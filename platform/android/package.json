@@ -1,0 +1,16 @@
+{
+  "applicationId": "io.github.someoneisworking.crashbash",
+  "versionCode": 1,
+  "versionName": "0.1.0",
+  "compileSdk": 36,
+  "targetSdk": 36,
+  "minSdk": 26,
+  "buildToolsVersion": "36.0.0",
+  "ndkVersion": "28.2.13676358",
+  "agpVersion": "9.3.0",
+  "gradleVersion": "9.7.1",
+  "gradleDistributionSha256": "acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a",
+  "abis": [
+    "arm64-v8a"
+  ]
+}

@@ -1,0 +1,8 @@
+plugins {
+    id 'com.android.application' apply false
+}
+
+rootProject.layout.buildDirectory.set(rootProject.file('../../build/android/project/root'))
+subprojects {
+    layout.buildDirectory.set(rootProject.file("../../build/android/project/${name}"))
+}
