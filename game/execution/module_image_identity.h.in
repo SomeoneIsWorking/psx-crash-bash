@@ -1,0 +1,17 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
+
+namespace crashbash::@MODULE_NAME@_image {
+
+inline constexpr std::uint32_t kDiscLba = @MODULE_DISC_LBA@u;
+inline constexpr std::uint32_t kSectorCount = @MODULE_SECTOR_COUNT@u;
+inline constexpr std::size_t kPayloadBytes = @MODULE_PAYLOAD_BYTES@u;
+inline constexpr std::string_view kSha256 = "@MODULE_SHA256@";
+inline constexpr std::uint32_t kLoadAddress = @MODULE_LOAD_ADDRESS@u;
+inline constexpr std::uint32_t kEntryPointerOffset = @MODULE_ENTRY_OFFSET@u;
+inline constexpr std::uint32_t kEntry = @MODULE_ENTRY@u;
+
+} // namespace crashbash::@MODULE_NAME@_image

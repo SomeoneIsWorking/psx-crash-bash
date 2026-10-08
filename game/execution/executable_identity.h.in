@@ -1,0 +1,15 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
+
+namespace crashbash::identity {
+
+inline constexpr std::string_view kExecutableSha256 = "@CRASHBASH_EXECUTABLE_SHA256@";
+inline constexpr std::size_t kExecutableBytes = @CRASHBASH_EXECUTABLE_SIZE@u;
+inline constexpr std::uint32_t kEntry = @CRASHBASH_EXECUTABLE_ENTRY@u;
+inline constexpr std::uint32_t kTextAddress = @CRASHBASH_EXECUTABLE_TEXT@u;
+inline constexpr std::uint32_t kTextBytes = @CRASHBASH_EXECUTABLE_TEXT_SIZE@u;
+
+} // namespace crashbash::identity
