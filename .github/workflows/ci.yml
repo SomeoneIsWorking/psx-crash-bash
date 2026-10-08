@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# This job verifies the real native adapter and title contracts without game files.
+# Retail gameplay and platform packaging remain separate, incomplete capabilities.
+jobs:
+  linux-native:
+    name: Native adapter and title contracts (Linux x86-64)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    env:
+      CC: clang
+      CXX: clang++
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install locked uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: '0.10.12'
+          python-version: '3.13.12'
+          enable-cache: false
+      - name: Install locked Python environment
+        run: uv sync --locked
+      - name: Resolve the exact pinned framework
+        run: uv run --frozen python tools/psxport_fetch.py --auto
+      - name: Provision the shared pinned Linux build inputs
+        uses: ./external/psxport/.github/actions/setup-linux
+        with:
+          framework-directory: external/psxport
+          dependency-directory: build/deps
+      - name: Compile and verify native adapter, title contracts, and execution boundary
+        run: uv run --frozen python tools/verify.py
