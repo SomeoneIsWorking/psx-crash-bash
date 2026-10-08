@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Crash Bash Port</string>
+    <string name="setup_title">Crash Bash setup</string>
+    <string name="setup_explanation">Choose your own North American Crash Bash disc image, or a ZIP containing it. The game is validated and installed into this app before play; the APK contains no game files.</string>
+    <string name="choose_game_file">Choose game disc or ZIP</string>
+    <string name="play">Play</string>
+    <string name="forget_selection">Forget selection</string>
+    <string name="selection_needed">No verified game installation is selected.</string>
+    <string name="selection_ready">The verified game installation is ready.</string>
+    <string name="selection_unreadable">That selection could not be read. The previous valid installation was preserved.</string>
+    <string name="selection_wrong_type">Choose a CHD, ISO, or ZIP. The previous valid installation was preserved.</string>
+    <string name="selection_identity_mismatch">That file is not the supported North American Crash Bash release, or its installation is incomplete. The previous valid installation was preserved.</string>
+    <string name="native_runtime_missing">This setup shell has no native game runtime. Release packaging refuses this state.</string>
+    <string name="reset_failed">The installed game data could not be removed, so the current valid selection was preserved.</string>
+</resources>

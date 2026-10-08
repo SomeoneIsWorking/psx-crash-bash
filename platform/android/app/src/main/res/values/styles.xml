@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CrashBash" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:colorAccent">#FFD34F</item>
+        <item name="android:navigationBarColor">#0B1025</item>
+        <item name="android:statusBarColor">#0B1025</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
