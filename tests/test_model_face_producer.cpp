@@ -118,10 +118,10 @@ void test_each_face_is_keyed_by_object_and_index() {
   Core &core = game->core;
   CHECK(drawObject(core, kObjectA, kEvenBuffer, kEvenBuffer + 4u));
   for (std::uint32_t face = 0; face < 3u; ++face) {
-    CHECK(core.emission.keyFor(kEvenBuffer + face * kFacePacketBytes) == faceKey(kObjectA, face));
+    CHECK(core.emission.identityFor(kEvenBuffer + face * kFacePacketBytes) == faceKey(kObjectA, face));
   }
-  CHECK(!core.emission.keyFor(kEvenBuffer + 3u * kFacePacketBytes));
-  CHECK(core.emission.keyFor(kEvenBuffer + 4u) ==
+  CHECK(!core.emission.identityFor(kEvenBuffer + 3u * kFacePacketBytes));
+  CHECK(core.emission.identityFor(kEvenBuffer + 4u) ==
         (RecordKey{crashbash::guest::kModelDraw, incarnationObject(kObjectA, 0u), 0u, 0u}));
 }
 
@@ -130,14 +130,14 @@ void test_keys_follow_the_object_not_the_packet_buffer() {
   Core &core = game->core;
   CHECK(drawObject(core, kObjectA, kEvenBuffer, kEvenBuffer));
   CHECK(drawObject(core, kObjectB, kOddBuffer, kOddBuffer));
-  CHECK(core.emission.keyFor(kEvenBuffer + kFacePacketBytes) == faceKey(kObjectA, 1u));
-  CHECK(core.emission.keyFor(kOddBuffer + kFacePacketBytes) == faceKey(kObjectB, 1u));
+  CHECK(core.emission.identityFor(kEvenBuffer + kFacePacketBytes) == faceKey(kObjectA, 1u));
+  CHECK(core.emission.identityFor(kOddBuffer + kFacePacketBytes) == faceKey(kObjectB, 1u));
 
   // Next frame the objects pop each other's buffers; each face keeps its object's key.
   CHECK(drawObject(core, kObjectB, kEvenBuffer, kEvenBuffer));
   CHECK(drawObject(core, kObjectA, kOddBuffer, kOddBuffer));
-  CHECK(core.emission.keyFor(kOddBuffer + 2u * kFacePacketBytes) == faceKey(kObjectA, 2u));
-  CHECK(core.emission.keyFor(kEvenBuffer + 2u * kFacePacketBytes) == faceKey(kObjectB, 2u));
+  CHECK(core.emission.identityFor(kOddBuffer + 2u * kFacePacketBytes) == faceKey(kObjectA, 2u));
+  CHECK(core.emission.identityFor(kEvenBuffer + 2u * kFacePacketBytes) == faceKey(kObjectB, 2u));
 }
 
 void test_faces_outside_a_model_draw_stay_unkeyed() {
@@ -150,16 +150,16 @@ void test_faces_outside_a_model_draw_stay_unkeyed() {
   core.r[31] = kReturn;
   CHECK(psx::cpu::dispatchGuest(core, crashbash::guest::kMeshFaceEmit, psx::cpu::ExecutionBudget::fromCycles(100000u))
             .returned());
-  CHECK(!core.emission.keyFor(kEvenBuffer));
+  CHECK(!core.emission.identityFor(kEvenBuffer));
 }
 
 void test_a_component_drawn_frame_after_frame_keeps_its_key() {
   auto game = makeGame();
   Core &core = game->core;
   CHECK(drawObject(core, kComponents, kEvenBuffer, kEvenBuffer));
-  CHECK(core.emission.keyFor(kEvenBuffer) == faceKey(kComponents, 0u));
+  CHECK(core.emission.identityFor(kEvenBuffer) == faceKey(kComponents, 0u));
   CHECK(drawObject(core, kComponents, kOddBuffer, kOddBuffer));
-  CHECK(core.emission.keyFor(kOddBuffer) == faceKey(kComponents, 0u));
+  CHECK(core.emission.identityFor(kOddBuffer) == faceKey(kComponents, 0u));
 }
 
 // FUN_8001D3B0 rebuilding a page re-initialises its buffer's components in place.
@@ -170,11 +170,11 @@ void test_a_component_reinitialised_in_its_buffer_gets_a_new_key() {
   CHECK(drawObject(core, second, kEvenBuffer, kEvenBuffer));
   CHECK(callGuest(core, crashbash::guest::kBufferComponentInit, 0u, 2u, kComponents));
   CHECK(drawObject(core, second, kOddBuffer, kOddBuffer));
-  CHECK(core.emission.keyFor(kOddBuffer) == faceKey(second, 0u, 1u));
+  CHECK(core.emission.identityFor(kOddBuffer) == faceKey(second, 0u, 1u));
   CHECK(!(faceKey(second, 0u, 1u) == faceKey(second, 0u)));
   // Past the count it was given, the buffer is not touched.
   CHECK(drawObject(core, second + crashbash::guest::kRenderComponentBytes, kEvenBuffer, kEvenBuffer));
-  CHECK(core.emission.keyFor(kEvenBuffer) == faceKey(second + crashbash::guest::kRenderComponentBytes, 0u));
+  CHECK(core.emission.identityFor(kEvenBuffer) == faceKey(second + crashbash::guest::kRenderComponentBytes, 0u));
 }
 
 // The pool allocator takes the pool's first v0 components along their +0x5C chain.
@@ -202,7 +202,7 @@ void test_an_animation_node_popped_again_gets_a_new_key() {
   core.mem_w32(crashbash::guest::kAnimationNodeFreeList, kNode);
   CHECK(callGuest(core, crashbash::guest::kAnimationNodeCreateType0, 0u, 0u, 0u));
   CHECK(drawObject(core, component, kOddBuffer, kOddBuffer));
-  CHECK(core.emission.keyFor(kOddBuffer) == faceKey(component, 0u, 1u));
+  CHECK(core.emission.identityFor(kOddBuffer) == faceKey(component, 0u, 1u));
 }
 
 } // namespace

@@ -179,9 +179,9 @@ void test_each_glyph_is_keyed_by_its_component_and_byte() {
   Core &core = game->core;
   CHECK(drawText(core, kComponentA, kStringB, kPackets));
   for (std::uint32_t glyph = 0; glyph < 3u; ++glyph) {
-    CHECK(core.emission.keyFor(kPackets + glyph * 4u) == glyphKey(kComponentA, kStringB, glyph));
+    CHECK(core.emission.identityFor(kPackets + glyph * 4u) == glyphKey(kComponentA, kStringB, glyph));
   }
-  CHECK(!core.emission.keyFor(kPackets + 12u));
+  CHECK(!core.emission.identityFor(kPackets + 12u));
 }
 
 // Two components showing one string, drawn in either order, keep distinct keys of their own.
@@ -190,12 +190,12 @@ void test_glyph_keys_follow_the_component_not_the_order() {
   Core &core = game->core;
   CHECK(drawText(core, kComponentA, kStringA, kPackets));
   CHECK(drawText(core, kComponentB, kStringA, kPackets + 0x100u));
-  CHECK(core.emission.keyFor(kPackets + 4u) == glyphKey(kComponentA, kStringA, 1u));
-  CHECK(core.emission.keyFor(kPackets + 0x104u) == glyphKey(kComponentB, kStringA, 1u));
+  CHECK(core.emission.identityFor(kPackets + 4u) == glyphKey(kComponentA, kStringA, 1u));
+  CHECK(core.emission.identityFor(kPackets + 0x104u) == glyphKey(kComponentB, kStringA, 1u));
   CHECK(drawText(core, kComponentB, kStringA, kPackets));
   CHECK(drawText(core, kComponentA, kStringA, kPackets + 0x100u));
-  CHECK(core.emission.keyFor(kPackets + 4u) == glyphKey(kComponentB, kStringA, 1u));
-  CHECK(core.emission.keyFor(kPackets + 0x104u) == glyphKey(kComponentA, kStringA, 1u));
+  CHECK(core.emission.identityFor(kPackets + 4u) == glyphKey(kComponentB, kStringA, 1u));
+  CHECK(core.emission.identityFor(kPackets + 0x104u) == glyphKey(kComponentA, kStringA, 1u));
 }
 
 // A component switched to another string names other glyphs, so nothing pairs across the switch.
@@ -204,7 +204,7 @@ void test_a_new_string_in_a_component_gets_new_keys() {
   Core &core = game->core;
   CHECK(drawText(core, kComponentA, kStringB, kPackets));
   CHECK(!(glyphKey(kComponentA, kStringB, 0u) == glyphKey(kComponentA, kStringA, 0u)));
-  CHECK(core.emission.keyFor(kPackets) == glyphKey(kComponentA, kStringB, 0u));
+  CHECK(core.emission.identityFor(kPackets) == glyphKey(kComponentA, kStringB, 0u));
 }
 
 void test_each_panel_part_is_its_own_element() {
@@ -214,7 +214,7 @@ void test_each_panel_part_is_its_own_element() {
   const PanelPart parts[] = {PanelPart::Body, PanelPart::Left, PanelPart::Right, PanelPart::Top, PanelPart::Bottom};
   for (std::uint32_t i = 0; i < std::size(parts); ++i) {
     CHECK(
-        core.emission.keyFor(kPackets + i * 4u) ==
+        core.emission.identityFor(kPackets + i * 4u) ==
         (RecordKey{
             guest::kPanelComponentDraw, incarnationObject(kComponentA, 0u), static_cast<std::uint32_t>(parts[i]), 0u}));
   }
@@ -225,7 +225,7 @@ void test_a_string_outside_any_owner_stays_unkeyed() {
   auto game = makeGame();
   Core &core = game->core;
   CHECK(call(core, guest::kStringDraw, {{6u, kStringA}}));
-  CHECK(!core.emission.keyFor(kPackets));
+  CHECK(!core.emission.identityFor(kPackets));
 }
 
 RecordKey hudKey(std::uint32_t record, DigitPlace place) {
@@ -238,16 +238,16 @@ void test_hud_digits_are_keyed_by_player_record_and_place() {
   CHECK(call(core, guest::kBootHudTwoDigitReturns[0] - 8u, {{kS4, kHudRecord}}));
   CHECK(call(core, guest::kBootHudTwoDigitReturns[1] - 8u, {{kS4, kHudRecord}, {kT9, kPackets + 4u}}));
   CHECK(call(core, guest::kBootHudThreeDigitReturns[2] - 8u, {{kS4, kHudRecord}, {kT9, kPackets + 8u}}));
-  CHECK(core.emission.keyFor(kPackets) == hudKey(kHudRecord, DigitPlace::Units));
-  CHECK(core.emission.keyFor(kPackets + 4u) == hudKey(kHudRecord, DigitPlace::Tens));
-  CHECK(core.emission.keyFor(kPackets + 8u) == hudKey(kHudRecord, DigitPlace::Hundreds));
+  CHECK(core.emission.identityFor(kPackets) == hudKey(kHudRecord, DigitPlace::Units));
+  CHECK(core.emission.identityFor(kPackets + 4u) == hudKey(kHudRecord, DigitPlace::Tens));
+  CHECK(core.emission.identityFor(kPackets + 8u) == hudKey(kHudRecord, DigitPlace::Hundreds));
 }
 
 void test_hud_icons_are_keyed_by_their_record() {
   auto game = makeGame();
   Core &core = game->core;
   CHECK(call(core, guest::kBootHudIconReturns[2] - 8u, {{16u, 0x8009AD5Cu}}));
-  CHECK(core.emission.keyFor(kPackets) == hudKey(0x8009AD5Cu, DigitPlace::Units));
+  CHECK(core.emission.identityFor(kPackets) == hudKey(0x8009AD5Cu, DigitPlace::Units));
 }
 
 void test_a_menu_item_number_is_keyed_by_item_and_place() {
@@ -256,7 +256,7 @@ void test_a_menu_item_number_is_keyed_by_item_and_place() {
   CHECK(call(core, guest::kBootMenuNumberReturn - 8u, {{kS4, kMenuItem}}));
   const DigitPlace order[] = {DigitPlace::Hundreds, DigitPlace::Tens, DigitPlace::Units};
   for (std::uint32_t i = 0; i < std::size(order); ++i) {
-    CHECK(core.emission.keyFor(kPackets + i * 4u) ==
+    CHECK(core.emission.identityFor(kPackets + i * 4u) ==
           (RecordKey{guest::kBootMenuPageDraw, kMenuItem, static_cast<std::uint32_t>(order[i]), 0u}));
   }
 }
@@ -266,7 +266,7 @@ void test_boot_sites_need_the_boot_image() {
   auto game = makeGame(GuestImage::Dat22510);
   Core &core = game->core;
   CHECK(call(core, guest::kBootHudTwoDigitReturns[0] - 8u, {{kS4, kHudRecord}}));
-  CHECK(!core.emission.keyFor(kPackets));
+  CHECK(!core.emission.identityFor(kPackets));
 }
 
 } // namespace
