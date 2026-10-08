@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "architectures": {
+    "x86_64": {
+      "linuxdeploy": {
+        "url": "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage",
+        "sha256": "421ca71d5c69ea97c6309276232990d43df1dcece0edfaa26bbf926ff96ed12e"
+      },
+      "appimagetool": {
+        "url": "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
+        "sha256": "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+      },
+      "runtime": {
+        "url": "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64",
+        "sha256": "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
+      }
+    }
+  }
+}
