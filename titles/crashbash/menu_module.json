@@ -1,0 +1,17 @@
+{
+  "title": "Crash Bash initial menu module",
+  "serial": "SCUS-94570",
+  "source_path": "CRASHBSH/CRASHBSH.DAT",
+  "source_size": 73220096,
+  "source_sha256": "3a02b477ab48ae99010e1a9db3b0d591c79e800b43d10779945ca18ab788acb7",
+  "source_file_lba": 236,
+  "payload_disc_lba": 28178,
+  "sector_size": 2048,
+  "sector_count": 16,
+  "payload_offset": "0x03693000",
+  "payload_size": "0x00008000",
+  "payload_sha256": "59c39295a4f2f50a2a472c06bc662155459052aa3934cedcc60345c267dc7e6f",
+  "load_address": "0x800B32B4",
+  "entry_pointer_offset": "0x00006270",
+  "entry": "0x800B5244"
+}

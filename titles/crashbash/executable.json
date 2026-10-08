@@ -1,0 +1,25 @@
+{
+  "title": "Crash Bash",
+  "region": "North America (NTSC-U)",
+  "serial": "SCUS-94570",
+  "boot_path": "SCUS_945.70",
+  "disc_lba": 23,
+  "disc_track_sectors": 75774,
+  "system_cnf_lba": 234,
+  "system_cnf_size": 69,
+  "file_size": 432128,
+  "sha1": "c4a06208612ff2625b9083596d36fdf60b01be5f",
+  "sha256": "fd5727a18feb2a2d5a6359a55966f0266284d1e50f64ee9b8a127a97091bd516",
+  "header": {
+    "entry": "0x8002E7B0",
+    "gp": "0x00000000",
+    "text_address": "0x80010000",
+    "text_size": "0x00069000",
+    "stack_address": "0x801FFFF0",
+    "stack_offset": "0x00000000"
+  },
+  "region_markers": [
+    "Sony Computer Entertainment Inc. for North America area",
+    "BASCUS-94570"
+  ]
+}

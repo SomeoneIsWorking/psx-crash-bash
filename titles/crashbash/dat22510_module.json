@@ -1,0 +1,17 @@
+{
+  "title": "Crash Bash sixth module in the 0x800B32B4 nested slot (Polar Push Battle flow)",
+  "serial": "SCUS-94570",
+  "source_path": "CRASHBSH/CRASHBSH.DAT",
+  "source_size": 73220096,
+  "source_sha256": "3a02b477ab48ae99010e1a9db3b0d591c79e800b43d10779945ca18ab788acb7",
+  "source_file_lba": 236,
+  "payload_disc_lba": 22510,
+  "sector_size": 2048,
+  "sector_count": 71,
+  "payload_offset": "0x02B81000",
+  "payload_size": "0x00023800",
+  "payload_sha256": "7477dd74ccd80f8f1b8ce63265f8acf130e36a97f1e9182767383556e8ffc7e1",
+  "load_address": "0x800B32B4",
+  "entry_pointer_offset": null,
+  "entry": null
+}

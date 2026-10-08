@@ -1,0 +1,17 @@
+{
+  "title": "Crash Bash fifth module in the 0x800B32B4 nested slot (Battle Mode flow)",
+  "serial": "SCUS-94570",
+  "source_path": "CRASHBSH/CRASHBSH.DAT",
+  "source_size": 73220096,
+  "source_sha256": "3a02b477ab48ae99010e1a9db3b0d591c79e800b43d10779945ca18ab788acb7",
+  "source_file_lba": 236,
+  "payload_disc_lba": 28382,
+  "sector_size": 2048,
+  "sector_count": 35,
+  "payload_offset": "0x036F9000",
+  "payload_size": "0x00011800",
+  "payload_sha256": "4a701e539d597c4848d463d5b1a0e8e2eb9f7cd25738be4dcbd67e22491997ff",
+  "load_address": "0x800B32B4",
+  "entry_pointer_offset": null,
+  "entry": null
+}
