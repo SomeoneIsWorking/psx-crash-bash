@@ -1,0 +1,113 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+def packageConfig = new JsonSlurper().parse(rootProject.file('package.json'))
+def releaseSigningKeys = [
+    'CRASHBASH_RELEASE_STORE_FILE',
+    'CRASHBASH_RELEASE_STORE_PASSWORD',
+    'CRASHBASH_RELEASE_KEY_ALIAS',
+    'CRASHBASH_RELEASE_KEY_PASSWORD'
+]
+def releaseSigning = releaseSigningKeys.collectEntries { key ->
+    [(key): System.getenv(key)]
+}
+def hasReleaseSigning = releaseSigning.values().every { value -> value != null && !value.isBlank() }
+
+android {
+    namespace = packageConfig.applicationId
+    compileSdk = packageConfig.compileSdk
+    buildToolsVersion = packageConfig.buildToolsVersion
+    ndkVersion = packageConfig.ndkVersion
+
+    defaultConfig {
+        applicationId = packageConfig.applicationId
+        minSdk = packageConfig.minSdk
+        targetSdk = packageConfig.targetSdk
+        versionCode = packageConfig.versionCode
+        versionName = packageConfig.versionName
+    }
+
+    sourceSets {
+        main {
+            java.srcDir rootProject.file('../../external/psxport/vendor/lucent/platforms/android/java')
+            // Crash Bash consumes Lucent's SAF transaction now. LucentActivity remains SDL-specific
+            // and joins this source set only with the title's real SDL Android entrypoint.
+            java.exclude 'io/github/someoneisworking/lucent/LucentActivity.java'
+            jniLibs.srcDirs rootProject.file('../../build/android/native')
+        }
+    }
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile = file(releaseSigning.CRASHBASH_RELEASE_STORE_FILE)
+                storePassword = releaseSigning.CRASHBASH_RELEASE_STORE_PASSWORD
+                keyAlias = releaseSigning.CRASHBASH_RELEASE_KEY_ALIAS
+                keyPassword = releaseSigning.CRASHBASH_RELEASE_KEY_PASSWORD
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = '.shell'
+            versionNameSuffix = '-shell'
+        }
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += [
+                '/META-INF/AL2.0',
+                '/META-INF/LGPL2.1'
+            ]
+        }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def releasePackageRequested = graph.allTasks.any { task ->
+        task.path == ':app:assembleRelease' ||
+            task.path == ':app:bundleRelease' ||
+            task.path == ':app:packageRelease'
+    }
+    if (!releasePackageRequested) {
+        return
+    }
+
+    def requiredLibrary = rootProject.file('../../build/android/native/arm64-v8a/libmain.so')
+    if (!requiredLibrary.isFile()) {
+        throw new GradleException(
+            "Release packaging requires ${requiredLibrary}; the APK shell must never ship without the native game runtime."
+        )
+    }
+    if (!hasReleaseSigning) {
+        def missing = releaseSigning.findAll { key, value -> value == null || value.isBlank() }.keySet()
+        throw new GradleException(
+            "Release signing is fail-closed. Set: ${missing.join(', ')}"
+        )
+    }
+}
