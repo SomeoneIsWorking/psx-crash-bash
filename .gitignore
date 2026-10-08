@@ -1,0 +1,20 @@
+/build/
+scratch/
+.env
+*.[Bb][Ii][Nn]
+*.[Cc][Hh][Dd]
+*.[Cc][Uu][Ee]
+*.[Ii][Ss][Oo]
+*.[Ii][Mm][Gg]
+*.[Pp][Bb][Pp]
+*.[Ee][Xx][Ee]
+/SYSTEM.CNF
+/SCUS_945.70
+__pycache__/
+
+# The framework. Not tracked: either a symlink to the workspace shared clone (local) or a
+# clone of its main (fresh machine). Managed by tools/psxport_fetch.py.
+/external/
+
+# Android package outputs and locally built native libraries live under the
+# authoritative top-level build/ tree and are covered by build/ above.
