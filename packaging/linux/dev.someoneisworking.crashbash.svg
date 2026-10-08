@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Crash Bash port icon</title>
+  <desc id="description">Four coloured arena arrows converge on a bright central sphere.</desc>
+  <defs>
+    <linearGradient id="backdrop" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#142d63"/>
+      <stop offset="1" stop-color="#071126"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="42%" cy="32%" r="72%">
+      <stop offset="0" stop-color="#fffbd1"/>
+      <stop offset=".45" stop-color="#ffc928"/>
+      <stop offset="1" stop-color="#e65d0c"/>
+    </radialGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity=".42"/>
+    </filter>
+  </defs>
+
+  <rect x="20" y="20" width="472" height="472" rx="106" fill="url(#backdrop)"/>
+  <rect x="35" y="35" width="442" height="442" rx="91" fill="none" stroke="#6fa9e9" stroke-width="6" opacity=".75"/>
+
+  <g filter="url(#shadow)" stroke="#071126" stroke-width="12" stroke-linejoin="round">
+    <path fill="#ef4b35" d="M256 70 337 163 302 163 302 224 210 224 210 163 175 163Z"/>
+    <path fill="#42a6ee" d="m442 256-93 81v-35h-61v-92h61v-35Z"/>
+    <path fill="#79c94b" d="m256 442-81-93h35v-61h92v61h35Z"/>
+    <path fill="#f5a623" d="m70 256 93-81v35h61v92h-61v35Z"/>
+  </g>
+
+  <circle cx="256" cy="256" r="87" fill="#0b1d3c" stroke="#a8d4ff" stroke-width="8"/>
+  <circle cx="256" cy="256" r="58" fill="url(#orb)" stroke="#fff4a8" stroke-width="7" filter="url(#shadow)"/>
+  <path d="M226 239c13-27 48-38 73-19" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" opacity=".72"/>
+
+  <g fill="#fff" opacity=".9">
+    <circle cx="91" cy="91" r="7"/>
+    <circle cx="421" cy="101" r="5"/>
+    <circle cx="105" cy="420" r="5"/>
+    <circle cx="421" cy="421" r="7"/>
+  </g>
+</svg>

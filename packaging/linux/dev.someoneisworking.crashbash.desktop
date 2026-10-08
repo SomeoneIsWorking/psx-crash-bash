@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Crash Bash
+GenericName=Party game
+Comment=PC-native port of Crash Bash
+Exec=crashbash-launcher
+TryExec=crashbash-launcher
+Icon=dev.someoneisworking.crashbash
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=Crash;Bash;PlayStation;Party;
+StartupNotify=true

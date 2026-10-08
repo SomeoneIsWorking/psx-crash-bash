@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.someoneisworking.crashbash</id>
+  <name>Crash Bash</name>
+  <summary>PC-native port of Crash Bash</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>
+      A PC-native port of Crash Bash. The original game is not included; first launch asks the
+      player to select their own North American Crash Bash disc image and verifies it locally.
+    </p>
+  </description>
+  <launchable type="desktop-id">dev.someoneisworking.crashbash.desktop</launchable>
+  <provides>
+    <binary>crashbash-launcher</binary>
+  </provides>
+  <categories>
+    <category>Game</category>
+  </categories>
+</component>
