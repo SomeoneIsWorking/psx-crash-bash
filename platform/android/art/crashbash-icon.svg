@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-label="Crash Bash Port launcher icon">
+  <rect width="108" height="108" rx="24" fill="#131b3a"/>
+  <path d="M22 29 43 22 49 40 29 47Z" fill="#2bb7e8"/>
+  <path d="M65 22 86 29 79 48 59 40Z" fill="#f04d46"/>
+  <path d="M29 60 49 68 43 86 22 79Z" fill="#72c94a"/>
+  <path d="M59 68 79 60 86 79 65 86Z" fill="#a765d4"/>
+  <path d="m54 34 5 11 12-3-7 10 10 7H61l-1 13-7-10-10 8 4-12-13-3 12-5-6-10 11 5Z" fill="#ffd34f"/>
+  <path d="m54 46 5 5-2 8-8 1-4-6 4-7Z" fill="#fff7d1"/>
+</svg>
