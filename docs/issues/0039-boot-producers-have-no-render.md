@@ -1,6 +1,6 @@
 # 0039 — BOOT's HUD and menu producers have no render; component bodies above the leaves are not re-run
 
-**Status:** partial (BOOT menu page unreached) · **State:** S006
+**Status:** resolved for the HUD (static) · menu page continues as issue 0040 · **State:** S006
 
 Done: `0x800798A4` and `0x800809A0` open a `PacketCollector::Scope` at their call sites and have
 `StateRender` installed; `0x800243A0`, `0x800248A0`, `0x8001A6D4` and `0x8001A43C` are native bodies
@@ -10,10 +10,32 @@ t=0.5 against a frame drawn halfway. The override differential matches all four 
 Polar Push recordcheck at 4:3 is 0 mismatched with fps60 off and on. `tools/source_policy.py` now expects 37
 override registrations (was 35) and 11 original calls (was 12).
 
-Remaining:
-- No replay reaches the BOOT menu page (`0x800809A0` renders once in total), and BOOT HUD leaf positions
-  never move between presents, so a menu item or HUD icon moving between consecutive presents has not been
-  seen. A route or a title debug option that opens the BOOT menu is needed to close this.
+Reached with the title `pause` command (`game/debug/dev_pause.{h,cpp}`; codemap, Debug control channel). In a live
+match it presses Start through the pad and the guest's own dispatcher `FUN_8007F314` opens the pause page (state word
+`0x8005A624` bit 0); `pause up|down|left|right|confirm` then walks its pages. The BOOT menu page `0x800809A0` is called
+from `FUN_80080FBC` once per frame from there, with the table of the open page.
+
+Findings (Polar Push `polar-push-control.pad` to f1400, Crashball `crashball-control.pad` to f3600, Battle Crate Crush
+and Tournament Crate Crush to f9100, then `pause open`, two `down`, `confirm`, `down`, `right`; 4:3, `aspect=0 ires=1`):
+- Recordcheck mismatched presents, fps60 off / on: Polar Push 0 of 1,741 / 0 of 1,770, Crashball 0 of 3,941 / 0 of
+  3,941, Battle Crate Crush 0 of 9,441 / 0 of 9,471, Tournament 0 of 9,441 / 0 of 9,470.
+- BOOT HUD `0x800798A4` renders (temporary probe, removed): off t=1 only; on t=0.5 and t=1 each logic frame, e.g.
+  Polar Push 2,864 at t=0.5 and 2,868 at t=1; Battle 29,021 and 29,453. The HUD's saved states differ between consecutive
+  frames only in the ordering-table base (the two tables alternate), a word at +0x18 (it counts down from 0x1000 to 0 in six steps) and the
+  texture record (animated sprite frames). No leaf position changes in any of the four replays: the HUD is static
+  (record placement is `DAT_800996D4`/`DAT_80099700` origins plus constant record offsets, written by `FUN_8007EAC0`
+  and `FUN_8007BE84`; the only writer of a digit's y offset, `FUN_8007B330`, slides it by -8 per frame only in the
+  result sequence of a mode that sets `0x80099174 & 0x1000`; the word reads `0x80028013` in Polar Push (f1400),
+  `0x80028202` in Crashball (f3600) and `0x8002800B` in Battle Crate Crush (f9100), none with that bit, so the
+  sliding digits are not reached by any retained replay).
+- The pause page's scoreboard strip is a component panel (not BOOT's HUD) and does move: it slides up over the first
+  presents after `pause open`; the consecutive presents show no tearing, doubling or vanishing.
+- Menu page `0x800809A0` renders: 1 in Polar Push, Crashball and Tournament (in Polar Push the fading GAME OPTIONS page at f1000), 0
+  in Battle. Its pause-page items are built every frame (five strings and their glyph leaves) but reach no GPU
+  primitive: issue 0040.
+
+A psxport defect hid every in-between present on these replays and is fixed (`entryWritesRect`): before it, fps60-on
+runs presented 0 in-betweens (`final=0` count 0); after it, 1,457 on Polar Push.
 
 Resolved (fps60-on recordcheck at 4:3, `aspect=0 ires=1`, replays `crashball-control.pad` and
 `tournament-crate-crush-control.pad`): both mismatch sets were psxport presentation, not a Crash Bash producer.

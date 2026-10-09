@@ -3,6 +3,7 @@
 #include "core.h"
 #include "crashbash_guest.h"
 #include "dev_arena.h"
+#include "dev_pause.h"
 #include "execution_services.h"
 #include "game.h"
 #include "guest_execution.h"
@@ -77,6 +78,7 @@ void CrashBashFrameDriver::finishUpdateSlice(Core &core) {
 void CrashBashFrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   // Developer request, applied at the frame boundary.
   devArena_.applyArmed(core, game_.pad, frame);
+  devPause_.applyArmed(core, game_.pad, frame);
   // Per-frame profiler (`PSXPORT_DEBUG=perf`).
   game_.perf.frameBegin();
   game_.timing.logicFrame = frame;

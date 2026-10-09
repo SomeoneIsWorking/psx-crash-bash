@@ -2,6 +2,7 @@
 
 #include "component_incarnation.h"
 #include "dev_arena.h"
+#include "dev_pause.h"
 #include "execution_exit.h"
 #include "frame_cut.h"
 #include "game_runtime.h"
@@ -28,6 +29,11 @@ public:
   // The developer arena request the control channel arms and this driver applies.
   debug::DevArena &devArena() {
     return devArena_;
+  }
+
+  // The developer pause request the control channel and REPL arm and this driver applies.
+  debug::DevPause &devPause() {
+    return devPause_;
   }
 
   // The Polar Push contact totals live here because this is the per-Core object native overrides reach
@@ -72,6 +78,7 @@ private:
   std::uint32_t scene_ = 0;
   std::uint32_t sceneChanges_ = 0;
   debug::DevArena devArena_;
+  debug::DevPause devPause_;
   polar::ContactCensus polarContactCensus_;
   render::ComponentIncarnations componentIncarnations_;
   render::PacketCollector packetCollector_;

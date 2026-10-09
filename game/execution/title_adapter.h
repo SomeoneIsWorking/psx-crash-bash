@@ -24,6 +24,7 @@ public:
   const char *discEnvVar() const override;
   // The developer `arena` command only.
   bool controlCommand(Core &core, const char *cmd, const char *line, FILE *out) override;
+  bool replCommand(Core &core, const char *cmd, const char *line) override;
   // Pad recording phase (crashbash_input_phase.h), held by value.
   std::uint64_t inputPhase(Core &core) const override {
     return inputPhase_.of(core);

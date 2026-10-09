@@ -84,6 +84,7 @@ set(CRASHBASH_SEAM_SOURCES
   game/frame/frame_cut.cpp
   game/input/crashbash_input_phase.cpp
   game/debug/dev_arena.cpp
+  game/debug/dev_pause.cpp
   game/frame/display_frame.cpp
   game/frame/gpu_timeout.cpp
   game/boot/memory_card_startup.cpp
@@ -216,6 +217,11 @@ if(BUILD_TESTING)
   target_link_libraries(crashbash_render_capabilities_test PRIVATE crashbash_seam)
   set_target_properties(crashbash_render_capabilities_test PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
   add_test(NAME crashbash_render_capabilities COMMAND crashbash_render_capabilities_test)
+  add_executable(crashbash_dev_pause_test tests/test_dev_pause.cpp)
+  target_include_directories(crashbash_dev_pause_test PRIVATE ${CRASHBASH_TITLE_INCLUDE_DIRS} "${PSXPORT_DIR}/tests")
+  target_link_libraries(crashbash_dev_pause_test PRIVATE crashbash_seam)
+  set_target_properties(crashbash_dev_pause_test PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+  add_test(NAME crashbash_dev_pause COMMAND crashbash_dev_pause_test)
   add_executable(crashbash_frame_cut_test tests/test_frame_cut.cpp)
   target_include_directories(crashbash_frame_cut_test PRIVATE ${CRASHBASH_TITLE_INCLUDE_DIRS} "${PSXPORT_DIR}/tests")
   target_link_libraries(crashbash_frame_cut_test PRIVATE crashbash_seam)

@@ -18,6 +18,7 @@
 #include <lucent/content.h>
 #include <lucent/log.h>
 #include <stdexcept>
+#include <string>
 
 namespace crashbash {
 namespace {
@@ -144,8 +145,25 @@ bool TitleAdapter::sealedFrameIsCut(Core &core) const {
 }
 
 bool TitleAdapter::controlCommand(Core &core, const char *cmd, const char *line, FILE *out) {
-  // Only the developer `arena` command lives here.
-  return frameDriver(core).devArena().handle(core, cmd, line, out);
+  CrashBashFrameDriver &driver = frameDriver(core);
+  if (driver.devArena().handle(core, cmd, line, out)) {
+    return true;
+  }
+  std::string reply;
+  if (!driver.devPause().handle(core, cmd, line, reply)) {
+    return false;
+  }
+  std::fprintf(out, "%s\n", reply.c_str());
+  return true;
+}
+
+bool TitleAdapter::replCommand(Core &core, const char *cmd, const char *line) {
+  std::string reply;
+  if (!frameDriver(core).devPause().handle(core, cmd, line, reply)) {
+    return false;
+  }
+  lucent::info("crashbash-pause", "{}", reply);
+  return true;
 }
 
 std::unique_ptr<FrameDriver> TitleAdapter::createFrameDriver(Game &game) {

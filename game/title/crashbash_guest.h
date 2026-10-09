@@ -168,6 +168,12 @@ inline constexpr std::uint32_t kScenePreviousSlot = 8u;
 inline constexpr std::uint32_t kSceneFlagsSlot = 12u;
 inline constexpr std::uint32_t kSceneClockAgeSlot = 8u;
 
+// BOOT's mode scene {enter 0x80092CAC, update 0x80092EDC, present 0x80092E94}: its update runs the pause
+// dispatcher FUN_8007F314 first. The dispatcher's state word is 0x8005A624; bit 0 is "pause page open".
+inline constexpr std::uint32_t kModeScene = 0x8009F720u;
+inline constexpr std::uint32_t kPauseFlags = 0x8005A624u;
+inline constexpr std::uint32_t kPauseOpenBit = 0x1u;
+
 // Second scene record for the menu world, run by 0x8001E610 from FUN_80092EDC. Current is the active
 // menu screen struct (SELECT GAME TYPE is 0x800B8E28).
 inline constexpr std::uint32_t kMenuSceneTransition = 0x8009F8A4u;

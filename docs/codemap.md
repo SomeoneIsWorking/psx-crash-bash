@@ -22,7 +22,7 @@ reusable; this title owns Crash Bash's game-flow interpretation of it.
 | `game/input/` | `crashbash`, `crashbash::input` | `crashbash_input_phase.{h,cpp}`, `crashbash_touch_controls.{h,cpp}` | `InputPhase` (which screen is taking input — the key a `.pad` recording is keyed on) and `CrashBashTouchControls` (the authored landscape touch overlay for Android). |
 | `game/render/` | `crashbash::render` | `model_face_producer.{h,cpp}`, `ui_producer.{h,cpp}`, `face_projection.{h,cpp}`, `leaf_packets.{h,cpp}`, `model_state.{h,cpp}`, `leaf_state.{h,cpp}`, `packet_collector.{h,cpp}`, `state_renders.{h,cpp}`, `draw_globals.{h,cpp}`, `packet_decode.{h,cpp}`, `ordering_table_slots.{h,cpp}`, `component_incarnation.{h,cpp}` | Producers: native overrides that key the guest's own packets for 60 fps interpolation (Producers below: models, and the 2D UI of text, panels, quads and BOOT's HUD), the native bodies of `0x800193A8` and the three 2D leaves with the state and render of the four component producers (State producers below), the ordering-table bucket of a packet, and `ComponentIncarnations`, which counts each re-initialisation of a render component so a reused slot keys as a new object. Nothing here draws; the picture is the guest's GP0 output on psxport's record path. |
 | `game/gameplay/` | `crashbash::polar` | `polar_push_contact.{h,cpp}` | The DAT22510 native owner of Polar Push contact traversal, motion and effects. Frame and presentation ownership, and the per-Core `ContactCensus` tally, stay in `CrashBashFrameDriver`. |
-| `game/debug/` | `crashbash::debug` | `dev_arena.{h,cpp}` | The developer `arena` control-channel command. It ARMS a request; the frame driver advances it through the game's own menu flow. No player input reaches it. |
+| `game/debug/` | `crashbash::debug` | `dev_arena.{h,cpp}`, `dev_pause.{h,cpp}` | The developer control-channel / REPL commands `arena` and `pause`. Each ARMS a request; the frame driver applies it at a frame boundary (`arena` walks the game's own menu flow, `pause open\|up\|down\|left\|right\|confirm` presses the pad so BOOT's pause dispatcher `FUN_8007F314` opens and walks its pages). Off unless the command is sent; no player input reaches them. |
 | `game/title/` | `crashbash::guest` | `crashbash_guest.h` | The recovered SCUS_945.70 guest facts: addresses, scene/scene-record layouts, arena table and menu flow. Facts only; no behavior. |
 | `packaging/linux/` | `crashbash::appimage` | `launcher_main.cpp`, `install_media.{h,cpp}`, `user_paths.{h,cpp}` | The AppImage launcher's first-run media setup. `user_paths.cpp` is this product's only environment-read boundary. |
 | `platform/android/` | — (Java) | `app/src/main/java/.../CrashBashActivity.java`, `CrashBashMediaImport.java` | Android Activity and SAF media policy. |
@@ -73,6 +73,10 @@ standard digital packet into the guest's VBlank slot.
   **`TitleAdapter::controlCommand`** → `crashbash::debug::DevArena::handle`. The command only arms
   a request; `CrashBashFrameDriver::stepFrame` advances it through `DevArena::applyArmed` using the
   title's own pad (`Pad::driveTap`), which is the same path a player's press takes.
+  `pause` is the same shape: `TitleAdapter::controlCommand` and `TitleAdapter::replCommand` (the REPL, which a
+  deterministic `run N` script uses) → `DevPause::handle` arms it, `CrashBashFrameDriver::stepFrame` applies it through
+  `DevPause::applyArmed`. `pause open` presses Start in the mode scene `0x8009F720` until the dispatcher sets bit 0 of
+  its state word `0x8005A624`; the other words press one button while that bit is set.
 
 ### Guest draw → presentation
 
@@ -172,11 +176,8 @@ Equality with the original bodies is proved by `PSXPORT_OVERRIDE_DIFF` over the 
 addresses: memory, GTE and result registers; the native bodies end on the same `v0`/`v1` the guest leaves,
 the list terminator for the mesh, the display scale for the sprites, the linked header for the shaded quad).
 
-The string and number bodies (`0x800243A0`, `0x800248A0`) and the component callbacks that place glyphs and
-panel parts stay guest code, so a render cannot re-run them: it moves the arguments they gave the leaves
-(position, corners), not the component's own fields. The BOOT HUD and menu-item producers have no render
-(issue 0039). Rotation is blended element by element, as a render of a turning model is only as good as that
-approximation over one tick.
+Rotation is blended element by element, as a render of a turning model is only as good as that approximation over one
+tick.
 
 UI element namer: `ui_producer.cpp:callNamed` overrides `0x8002992C`, `0x80029D28`, `0x8001A0D8`,
 `0x800243A0` and `0x800248A0` and reads the return address. A glyph site of `0x800243A0` (s2 is one past
