@@ -7,6 +7,7 @@
 #include "guest_abi.h"
 #include "guest_execution.h"
 #include "measured_guest_call.h"
+#include "ordering_table_slots.h"
 #include "packet_collector.h"
 
 #include <cstdint>
@@ -194,6 +195,7 @@ void displayFrameOwned(Core *core) {
     const std::uint32_t nextOrderingTable =
         orderingTable == guest::kOrderingTableA ? guest::kOrderingTableB : guest::kOrderingTableA;
     core->mem_w32(guest::kOrderingTablePointer, nextOrderingTable);
+    render::followDrawBase(*core, orderingTable, nextOrderingTable);
     core->mem_w32(kDisplayIndex, core->mem_r32(kDisplayIndex) + 1u);
     measuredGuestCall(*core, 0x8002F254u, 0x800273DCu, 7u, nextOrderingTable, guest::kOrderingTableBuckets);
     core->mem_w32(nextOrderingTable + guest::kOrderingTablePoolCursor,

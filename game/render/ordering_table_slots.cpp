@@ -48,6 +48,13 @@ void nameOrderingTables(Core &core) {
   }
 }
 
+void followDrawBase(Core &core, std::uint32_t walked, std::uint32_t next) {
+  const std::uint32_t base = core.mem_r32(guest::kDrawOtBase);
+  if (base >= walked && base - walked < guest::kOrderingTableBuckets * kWordBytes) {
+    core.mem_w32(guest::kDrawOtBase, next + (base - walked));
+  }
+}
+
 std::optional<psx::present::OtSlot> linkedSlot(Core &core, std::uint32_t packet) {
   const std::optional<Tail> tail = followToTail(core, packet);
   if (!tail) {

@@ -85,7 +85,7 @@ Guest draw callbacks (`0x80021770`/`0x80021990` → standard `0x80019F1C`, or th
 body writes its packets (`FUN_800193A8` per mesh, `FUN_80029D28` for 0x3000 sprite codes) and links
 them into the ordering table, each store bound to the open key → `FUN_800193A8`'s namer rebinds each
 face's header to `meshFaceElement(face list, index)` → `DisplayFrame` (`registerDisplayFrameOverride`)
-hands the table to the guest's own DrawOTag → `psxport:GpuDevice` executes it and `Gp0RecordTap` fills
+hands the table to the guest's own DrawOTag and carries the draw base `0x800569D8` into the table walked next (`ordering_table_slots.cpp:followDrawBase`; the pause page is drawn in the update with the base the last present left) → `psxport:GpuDevice` executes it and `Gp0RecordTap` fills
 the frame record with the keys → `CrashBashFrameDriver::stepFrame` notes `FrameCut` and calls
 `Game::presentation.commit` → `psxport:FramePresenter` seals the record, asks
 `TitleAdapter::sealedFrameIsCut`, and presents the keyed in-between and the record through

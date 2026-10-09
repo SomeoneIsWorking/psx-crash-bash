@@ -1,6 +1,6 @@
 # 0039 — BOOT's HUD and menu producers have no render; component bodies above the leaves are not re-run
 
-**Status:** resolved for the HUD (static) · menu page continues as issue 0040 · **State:** S006
+**Status:** resolved (HUD static, menu page items fixed in issue 0040) · **State:** S006
 
 Done: `0x800798A4` and `0x800809A0` open a `PacketCollector::Scope` at their call sites and have
 `StateRender` installed; `0x800243A0`, `0x800248A0`, `0x8001A6D4` and `0x8001A43C` are native bodies
@@ -31,8 +31,7 @@ and Tournament Crate Crush to f9100, then `pause open`, two `down`, `confirm`, `
 - The pause page's scoreboard strip is a component panel (not BOOT's HUD) and does move: it slides up over the first
   presents after `pause open`; the consecutive presents show no tearing, doubling or vanishing.
 - Menu page `0x800809A0` renders: 1 in Polar Push, Crashball and Tournament (in Polar Push the fading GAME OPTIONS page at f1000), 0
-  in Battle. Its pause-page items are built every frame (five strings and their glyph leaves) but reach no GPU
-  primitive: issue 0040.
+  in Battle. Its pause-page items were built every frame but linked into a table that was not walked again (issue 0040, fixed).
 
 A psxport defect hid every in-between present on these replays and is fixed (`entryWritesRect`): before it, fps60-on
 runs presented 0 in-betweens (`final=0` count 0); after it, 1,457 on Polar Push.
