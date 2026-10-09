@@ -8,7 +8,8 @@
 #pragma once
 
 #include "draw_globals.h"
-#include "gte_access.h"
+#include "emit_memory.h"
+#include "gte_control.h"
 
 #include <array>
 #include <cstdint>
@@ -48,7 +49,7 @@ struct LeafCall {
   std::uint32_t attributes = 0;                            // shaded
   std::array<std::uint8_t, kShadedVertexBytes> vertices{}; // shaded: four corners and their colours
   std::uint32_t hasControl = 0;                            // shaded in the GTE layout: the transform
-  gte::Control control{};
+  psx::present::GteControl control{};
 };
 
 // What a body built: the words after the header it filled (the bucket to link into, when it links).
@@ -60,23 +61,11 @@ struct LeafResult {
   bool built = false;
 };
 
-// Where a body writes its packet.
-class PacketWriter {
-public:
-  virtual ~PacketWriter() = default;
-  virtual void w8(std::uint32_t offset, std::uint32_t value) = 0;
-  virtual void w16(std::uint32_t offset, std::uint32_t value) = 0;
-  virtual void w32(std::uint32_t offset, std::uint32_t value) = 0;
-  // The GTE screen point `reg` into the word at `offset`.
-  virtual void storeXy(std::uint32_t offset, std::uint32_t reg) = 0;
-  virtual std::uint32_t r32(std::uint32_t offset) = 0;
-};
-
 // The arguments of the guest call being made (registers and stack at entry), and the memory it reads.
 LeafCall readLeafCall(Core &core, LeafKind kind);
 
-// Runs the body for `call` over `writer`.
-LeafResult buildLeaf(Core &core, PacketWriter &writer, const LeafCall &call);
+// Runs the body for `call`, writing the packet at `packet` in `memory`.
+LeafResult buildLeaf(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call);
 
 struct LeafExecution {
   std::uint32_t value = 0;  // the function's return value (v0)

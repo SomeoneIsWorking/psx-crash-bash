@@ -1,7 +1,7 @@
 #include "face_projection.h"
 
 #include "core.h"
-#include "gte_access.h"
+#include "gte_control.h"
 #include "model_face_producer.h"
 
 namespace crashbash::render {
@@ -24,9 +24,9 @@ std::uint32_t wordAt(std::span<const std::uint32_t> words, std::size_t index) {
 
 // Projects vertex `index`: the point and its depth enter the FIFOs.
 void project(Core &core, std::span<const std::uint32_t> vertices, std::size_t index) {
-  gte_write_data(gte::kVxy0, wordAt(vertices, index * 2u));
-  gte_write_data(gte::kVz0, wordAt(vertices, index * 2u + 1u));
-  gte_op(&core, gte::kRtps);
+  gte_write_data(psx::gte::kVxy0, wordAt(vertices, index * 2u));
+  gte_write_data(psx::gte::kVz0, wordAt(vertices, index * 2u + 1u));
+  gte_op(&core, psx::gte::kRtps);
 }
 
 } // namespace
@@ -76,8 +76,8 @@ void projectFaces(Core &core, const FaceInputs &inputs, FaceSink &sink) {
       const std::uint32_t corner = first + 2u + k;
       project(core, inputs.vertices, corner);
       const std::uint32_t vertexFlags = wordAt(inputs.vertices, corner * 2u + 1u);
-      gte_op(&core, gte::kAvsz3);
-      const auto depth = static_cast<std::int32_t>(gte_read_data(gte::kOtz));
+      gte_op(&core, psx::gte::kAvsz3);
+      const auto depth = static_cast<std::int32_t>(gte_read_data(psx::gte::kOtz));
       if (layout == FaceLayout::Shaded && depth == 0) {
         continue;
       }
@@ -87,8 +87,8 @@ void projectFaces(Core &core, const FaceInputs &inputs, FaceSink &sink) {
       }
       bool visible = true;
       if ((vertexFlags & kTwoSidedBit) == 0u) {
-        gte_op(&core, gte::kNclip);
-        const auto winding = static_cast<std::int32_t>(gte_read_data(gte::kMac0));
+        gte_op(&core, psx::gte::kNclip);
+        const auto winding = static_cast<std::int32_t>(gte_read_data(psx::gte::kMac0));
         visible = (vertexFlags & kBackFaceBit) == 0u ? winding > 0 : winding < 1;
       }
       if (visible) {
@@ -111,7 +111,7 @@ void GuestFaceSink::emit(const FaceEmit &face) {
   core_.mem_w32(bucket, (core_.mem_r32(bucket) & ~kLinkMask) | (packet & kLinkMask));
   const auto points = facePointWords(face.layout);
   for (std::uint32_t point = 0; point < 3u; ++point) {
-    gte_store_xy(&core_, packet + points[point] * kWordBytes, static_cast<int>(gte::kSxy0 + point));
+    gte_store_xy(&core_, packet + points[point] * kWordBytes, static_cast<int>(psx::gte::kSxy0 + point));
   }
   linked_.push_back(face);
 }

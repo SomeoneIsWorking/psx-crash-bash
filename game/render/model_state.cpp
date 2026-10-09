@@ -24,7 +24,7 @@ struct SavedFace {
 static_assert(std::is_trivially_copyable_v<SavedFace>);
 
 struct FaceStateHeader {
-  gte::Control control{};
+  psx::present::GteControl control{};
   std::int32_t zBias = 0;
   std::int32_t zLimit = 0;
   std::uint32_t table = 0;
@@ -42,7 +42,7 @@ struct FaceState {
   std::vector<SavedFace> faces;
 
   static FaceState read(std::span<const std::byte> bytes) {
-    StateReader reader(bytes);
+    psx::present::StateReader reader(bytes);
     reader.get<std::uint32_t>();
     FaceState state;
     state.header = reader.get<FaceStateHeader>();
@@ -72,7 +72,7 @@ public:
     Emitted emitted{face.bucket, saved_[byFace_[face.face]].words};
     const auto points = facePointWords(face.layout);
     for (std::uint32_t point = 0; point < 3u; ++point) {
-      emitted.words[points[point]] = gte_read_data(gte::kSxy0 + point);
+      emitted.words[points[point]] = gte_read_data(psx::gte::kSxy0 + point);
     }
     linked.push_back(emitted);
   }
@@ -92,9 +92,9 @@ private:
 // One s16 of a vertex word moved by `t`.
 std::uint32_t blendVertexWord(std::uint32_t from, std::uint32_t to, bool depth, float t) {
   if (depth) {
-    return (to & 0xFFFF0000u) | lerpHalf(from, to, 0, t);
+    return (to & 0xFFFF0000u) | psx::present::lerpHalf(from, to, 0, t);
   }
-  return lerpPoint(from, to, t);
+  return psx::present::lerpHalves(from, to, t);
 }
 
 bool sameDraw(const FaceState &a, const FaceState &b) {
@@ -107,7 +107,7 @@ FaceCall readFaceCall(Core &core) {
   FaceCall call;
   call.packets = core.r[4];
   call.globals = readDrawGlobals(core);
-  call.control = gte::readControl();
+  call.control = psx::present::readGteControl();
   if (const auto slot = core.otTables.slotOf(call.globals.otBase)) {
     call.named = true;
     call.table = slot->table;
@@ -157,7 +157,7 @@ bool saveFaceState(Core &core, const psx::present::RecordKey &owner, const FaceC
   header.listBytes = static_cast<std::uint32_t>(call.list.size());
   header.vertexWords = static_cast<std::uint32_t>(call.vertices.size());
   header.faces = static_cast<std::uint32_t>(faces.size());
-  StateWriter writer;
+  psx::present::StateWriter writer;
   writer.put(kFaceStateTag);
   writer.put(header);
   writer.putAll(std::span<const std::uint8_t>(call.list));
@@ -173,12 +173,12 @@ void renderFaceState(Core &core,
                      float t,
                      psx::present::PrimitiveSink &sink) {
   const FaceState state = FaceState::read(to);
-  gte::Control control = state.header.control;
+  psx::present::GteControl control = state.header.control;
   std::vector<std::uint32_t> vertices = state.vertices;
   if (t < 1.0f && from.data() != to.data()) {
     const FaceState earlier = FaceState::read(from);
     if (sameDraw(earlier, state)) {
-      control = gte::blendControl(earlier.header.control, state.header.control, t);
+      control = psx::present::blendGteControl(earlier.header.control, state.header.control, t);
       for (std::size_t word = 0; word < vertices.size(); ++word) {
         vertices[word] = blendVertexWord(earlier.vertices[word], state.vertices[word], (word & 1u) != 0u, t);
       }
@@ -186,8 +186,8 @@ void renderFaceState(Core &core,
   }
   HostFaceSink host(state.faces);
   {
-    const gte::Guard guard;
-    gte::writeControl(control);
+    const psx::present::GteGuard guard;
+    psx::present::writeGteControl(control);
     projectFaces(core, FaceInputs{state.list, vertices, state.header.zBias, state.header.zLimit}, host);
   }
   // A bucket's walk reaches the packet linked last first.

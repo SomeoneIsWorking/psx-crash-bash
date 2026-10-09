@@ -9,7 +9,7 @@
 
 #include "draw_globals.h"
 #include "face_projection.h"
-#include "gte_access.h"
+#include "gte_control.h"
 #include "state_bytes.h"
 #include "state_producer.h"
 
@@ -27,7 +27,7 @@ using FaceWords = std::array<std::uint32_t, kFacePacketWords>;
 
 // One call of the mesh body: its inputs at entry and the faces it linked.
 struct FaceCall {
-  gte::Control control{};
+  psx::present::GteControl control{};
   DrawGlobals globals;
   std::uint32_t table = 0;
   std::uint32_t baseBucket = 0;

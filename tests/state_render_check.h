@@ -7,7 +7,7 @@
 #include "frame_composer.h"
 #include "frame_record.h"
 #include "frame_state.h"
-#include "gte_access.h"
+#include "gte_control.h"
 #include "guest_call.h"
 #include "ordering_table.h"
 #include "state_producer.h"
@@ -87,7 +87,7 @@ private:
 
 // Rotation of 1, a 512 projection plane and a 320 by 240 screen centre; `translationX` moves the camera.
 inline void setCamera(std::int32_t translationX) {
-  render::gte::Control control{};
+  psx::present::GteControl control{};
   control[0] = 0x1000u;
   control[2] = 0x1000u;
   control[4] = 0x1000u;
@@ -96,7 +96,7 @@ inline void setCamera(std::int32_t translationX) {
   control[25] = 120u << 16;
   control[26] = 512u;
   control[29] = 0x155u;
-  render::gte::writeControl(control);
+  psx::present::writeGteControl(control);
 }
 
 // The executor takes the guest's registers, the GTE's among them, when it is first entered; enter it once, at a

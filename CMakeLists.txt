@@ -97,7 +97,6 @@ set(CRASHBASH_SEAM_SOURCES
   game/render/component_incarnation.cpp
   game/render/ui_producer.cpp
   game/render/ordering_table_slots.cpp
-  game/render/gte_access.cpp
   game/render/draw_globals.cpp
   game/render/packet_decode.cpp
   game/render/face_projection.cpp

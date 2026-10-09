@@ -37,30 +37,6 @@ constexpr std::uint32_t kShadedCommand = 0x38u;
 constexpr std::uint32_t kShadedSemiTransparent = 0x32000000u;
 constexpr std::uint32_t kShadedDrawModeBits = 0x60u;
 
-class GuestPacket final : public PacketWriter {
-public:
-  GuestPacket(Core &core, std::uint32_t base) : core_(core), base_(base) {}
-  void w8(std::uint32_t offset, std::uint32_t value) override {
-    core_.mem_w8(base_ + offset, static_cast<std::uint8_t>(value));
-  }
-  void w16(std::uint32_t offset, std::uint32_t value) override {
-    core_.mem_w16(base_ + offset, static_cast<std::uint16_t>(value));
-  }
-  void w32(std::uint32_t offset, std::uint32_t value) override {
-    core_.mem_w32(base_ + offset, value);
-  }
-  void storeXy(std::uint32_t offset, std::uint32_t reg) override {
-    gte_store_xy(&core_, base_ + offset, static_cast<int>(reg));
-  }
-  std::uint32_t r32(std::uint32_t offset) override {
-    return core_.mem_r32(base_ + offset);
-  }
-
-private:
-  Core &core_;
-  std::uint32_t base_;
-};
-
 std::int32_t divide(std::int32_t value, std::int32_t divisor) {
   if (divisor == 0) {
     lucent::error("leaf-packets", "a layout division by a display scale of 0");
@@ -115,25 +91,25 @@ std::uint32_t texturePage(const TextureRecord &texture, std::uint32_t colour) {
   return (texture.tpage & kTexturePageKeep) | ((colour >> kTexturePageShift) & kTexturePageBits);
 }
 
-LeafResult buildSprite(Core &, PacketWriter &packet, const LeafCall &call) {
+LeafResult buildSprite(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call) {
   const DrawGlobals &globals = call.globals;
   const TextureRecord &texture = call.texture;
   const std::uint32_t colour = call.colours[0];
   const Corners corners = spriteCorners(globals, texture, call.position);
-  packet.w32(4, fadedColour(globals, colour));
-  packet.w8(3, 9);
-  packet.w8(7, 0x2C);
-  packet.w8(7, static_cast<std::int32_t>(colour) < 0 ? 0x2E : 0x2C);
-  packet.w16(0xC, texture.uv[0]);
-  packet.w16(0x14, texture.uv[1]);
-  packet.w16(0x1C, texture.uv[2]);
-  packet.w16(0x24, texture.uv[3]);
-  packet.w16(0x16, texturePage(texture, colour));
-  packet.w32(8, corners.topLeft);
-  packet.w16(0xE, texture.clut);
-  packet.w32(0x10, corners.topRight);
-  packet.w32(0x20, corners.bottomRight);
-  packet.w32(0x18, corners.bottomLeft);
+  memory.mem_w32(packet + 4, fadedColour(globals, colour));
+  memory.mem_w8(packet + 3, 9);
+  memory.mem_w8(packet + 7, 0x2C);
+  memory.mem_w8(packet + 7, static_cast<std::int32_t>(colour) < 0 ? 0x2E : 0x2C);
+  memory.mem_w16(packet + 0xC, texture.uv[0]);
+  memory.mem_w16(packet + 0x14, texture.uv[1]);
+  memory.mem_w16(packet + 0x1C, texture.uv[2]);
+  memory.mem_w16(packet + 0x24, texture.uv[3]);
+  memory.mem_w16(packet + 0x16, texturePage(texture, colour));
+  memory.mem_w32(packet + 8, corners.topLeft);
+  memory.mem_w16(packet + 0xE, texture.clut);
+  memory.mem_w32(packet + 0x10, corners.topRight);
+  memory.mem_w32(packet + 0x20, corners.bottomRight);
+  memory.mem_w32(packet + 0x18, corners.bottomLeft);
   LeafResult result;
   result.allocated = 10;
   result.length = 9;
@@ -144,28 +120,28 @@ LeafResult buildSprite(Core &, PacketWriter &packet, const LeafCall &call) {
   return result;
 }
 
-LeafResult buildQuad(Core &, PacketWriter &packet, const LeafCall &call) {
+LeafResult buildQuad(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call) {
   const DrawGlobals &globals = call.globals;
   const TextureRecord &texture = call.texture;
   const std::uint32_t colour = call.colours[0];
   const Corners corners = spriteCorners(globals, texture, call.position);
-  packet.w32(4, fadedColour(globals, call.colours[0]));
-  packet.w32(0x10, fadedColour(globals, call.colours[1]));
-  packet.w32(0x1C, fadedColour(globals, call.colours[2]));
-  packet.w32(0x28, fadedColour(globals, call.colours[3]));
-  packet.w8(3, 0xC);
-  packet.w8(7, 0x3C);
-  packet.w8(7, static_cast<std::int32_t>(colour) < 0 ? 0x3E : 0x3C);
-  packet.w16(0xC, texture.uv[0]);
-  packet.w16(0x18, texture.uv[1]);
-  packet.w16(0x24, texture.uv[2]);
-  packet.w16(0x30, texture.uv[3]);
-  packet.w16(0x1A, texturePage(texture, colour));
-  packet.w32(8, corners.topLeft);
-  packet.w16(0xE, texture.clut);
-  packet.w32(0x14, corners.topRight);
-  packet.w32(0x2C, corners.bottomRight);
-  packet.w32(0x20, corners.bottomLeft);
+  memory.mem_w32(packet + 4, fadedColour(globals, call.colours[0]));
+  memory.mem_w32(packet + 0x10, fadedColour(globals, call.colours[1]));
+  memory.mem_w32(packet + 0x1C, fadedColour(globals, call.colours[2]));
+  memory.mem_w32(packet + 0x28, fadedColour(globals, call.colours[3]));
+  memory.mem_w8(packet + 3, 0xC);
+  memory.mem_w8(packet + 7, 0x3C);
+  memory.mem_w8(packet + 7, static_cast<std::int32_t>(colour) < 0 ? 0x3E : 0x3C);
+  memory.mem_w16(packet + 0xC, texture.uv[0]);
+  memory.mem_w16(packet + 0x18, texture.uv[1]);
+  memory.mem_w16(packet + 0x24, texture.uv[2]);
+  memory.mem_w16(packet + 0x30, texture.uv[3]);
+  memory.mem_w16(packet + 0x1A, texturePage(texture, colour));
+  memory.mem_w32(packet + 8, corners.topLeft);
+  memory.mem_w16(packet + 0xE, texture.clut);
+  memory.mem_w32(packet + 0x14, corners.topRight);
+  memory.mem_w32(packet + 0x2C, corners.bottomRight);
+  memory.mem_w32(packet + 0x20, corners.bottomLeft);
   LeafResult result;
   result.allocated = 13;
   result.length = 12;
@@ -206,49 +182,49 @@ std::uint32_t flatY(const LeafCall &call, std::uint32_t offset) {
   return static_cast<std::uint32_t>((call.globals.originY + vertexHalf(call, offset)) / 2) & 0xFFFFu;
 }
 
-LeafResult buildShaded(Core &core, PacketWriter &packet, const LeafCall &call) {
+LeafResult buildShaded(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call) {
   LeafResult result;
   result.allocated = kShadedWords;
   if ((call.attributes & kDrawn) == 0u) {
     return result;
   }
   const std::uint32_t attributes = call.attributes;
-  packet.w32(0xC, shadedColour(call, 0));
-  packet.w32(0x14, shadedColour(call, 1));
-  packet.w32(0x1C, shadedColour(call, 2));
-  packet.w32(0x24, shadedColour(call, 3));
-  packet.w8(3, kShadedLength);
-  packet.w8(0xF, kShadedCommand);
-  packet.w32(4, kShadedDrawMode);
-  packet.w32(8, 0);
+  memory.mem_w32(packet + 0xC, shadedColour(call, 0));
+  memory.mem_w32(packet + 0x14, shadedColour(call, 1));
+  memory.mem_w32(packet + 0x1C, shadedColour(call, 2));
+  memory.mem_w32(packet + 0x24, shadedColour(call, 3));
+  memory.mem_w8(packet + 3, kShadedLength);
+  memory.mem_w8(packet + 0xF, kShadedCommand);
+  memory.mem_w32(packet + 4, kShadedDrawMode);
+  memory.mem_w32(packet + 8, 0);
   if ((attributes & kSemiTransparent) != 0u) {
-    packet.w32(4, (attributes & kShadedDrawModeBits) | kShadedDrawMode);
-    packet.w32(0xC, packet.r32(0xC) | kShadedSemiTransparent);
+    memory.mem_w32(packet + 4, (attributes & kShadedDrawModeBits) | kShadedDrawMode);
+    memory.mem_w32(packet + 0xC, memory.mem_r32(packet + 0xC) | kShadedSemiTransparent);
   }
   std::int32_t depth = 0;
   if ((attributes & kFlatLayout) == 0u) {
-    gte_write_data(gte::kVxy0, vertexWord(call, 0));
-    gte_write_data(gte::kVz0, vertexWord(call, 4));
-    gte_write_data(gte::kVxy1, vertexWord(call, 8));
-    gte_write_data(gte::kVz1, vertexWord(call, 12));
-    gte_write_data(gte::kVxy2, vertexWord(call, 16));
-    gte_write_data(gte::kVz2, vertexWord(call, 20));
-    gte_op(&core, gte::kRtpt);
-    gte_op(&core, gte::kAvsz3);
-    depth = static_cast<std::int32_t>(gte_read_data(gte::kOtz));
-    packet.storeXy(0x10, gte::kSxy0);
-    packet.storeXy(0x18, gte::kSxy1);
-    packet.storeXy(0x20, gte::kSxy2);
-    gte_write_data(gte::kVxy0, vertexWord(call, 24));
-    gte_write_data(gte::kVz0, vertexWord(call, 28));
-    gte_op(&core, gte::kRtps);
-    packet.storeXy(0x28, gte::kSxy2);
+    gte_write_data(psx::gte::kVxy0, vertexWord(call, 0));
+    gte_write_data(psx::gte::kVz0, vertexWord(call, 4));
+    gte_write_data(psx::gte::kVxy1, vertexWord(call, 8));
+    gte_write_data(psx::gte::kVz1, vertexWord(call, 12));
+    gte_write_data(psx::gte::kVxy2, vertexWord(call, 16));
+    gte_write_data(psx::gte::kVz2, vertexWord(call, 20));
+    gte_op(&memory.core(), psx::gte::kRtpt);
+    gte_op(&memory.core(), psx::gte::kAvsz3);
+    depth = static_cast<std::int32_t>(gte_read_data(psx::gte::kOtz));
+    memory.storeGteXy(packet + 0x10, psx::gte::kSxy0);
+    memory.storeGteXy(packet + 0x18, psx::gte::kSxy1);
+    memory.storeGteXy(packet + 0x20, psx::gte::kSxy2);
+    gte_write_data(psx::gte::kVxy0, vertexWord(call, 24));
+    gte_write_data(psx::gte::kVz0, vertexWord(call, 28));
+    gte_op(&memory.core(), psx::gte::kRtps);
+    memory.storeGteXy(packet + 0x28, psx::gte::kSxy2);
   } else {
     constexpr std::uint32_t kCorners[4] = {0u, 8u, 16u, 24u};
     constexpr std::uint32_t kPoints[4] = {0x10u, 0x18u, 0x20u, 0x28u};
     for (std::uint32_t corner = 0; corner < 4u; ++corner) {
-      packet.w16(kPoints[corner], flatX(call, kCorners[corner]));
-      packet.w16(kPoints[corner] + 2u, flatY(call, kCorners[corner] + 2u));
+      memory.mem_w16(packet + kPoints[corner], flatX(call, kCorners[corner]));
+      memory.mem_w16(packet + kPoints[corner] + 2u, flatY(call, kCorners[corner] + 2u));
     }
   }
   const std::uint32_t bucket = static_cast<std::uint32_t>(depth + call.globals.zBias) >> 1;
@@ -302,7 +278,7 @@ LeafCall readLeafCall(Core &core, LeafKind kind) {
     }
     if ((call.attributes & kDrawn) != 0u && (call.attributes & kFlatLayout) == 0u) {
       call.hasControl = 1u;
-      call.control = gte::readControl();
+      call.control = psx::present::readGteControl();
     }
     return call;
   }
@@ -321,16 +297,16 @@ LeafCall readLeafCall(Core &core, LeafKind kind) {
   return call;
 }
 
-LeafResult buildLeaf(Core &core, PacketWriter &writer, const LeafCall &call) {
+LeafResult buildLeaf(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call) {
   switch (call.kind) {
   case LeafKind::Sprite:
-    return buildSprite(core, writer, call);
+    return buildSprite(memory, packet, call);
   case LeafKind::Quad:
-    return buildQuad(core, writer, call);
+    return buildQuad(memory, packet, call);
   case LeafKind::Shaded:
     break;
   }
-  return buildShaded(core, writer, call);
+  return buildShaded(memory, packet, call);
 }
 
 LeafExecution executeLeaf(Core &core, const LeafCall &call) {
@@ -342,8 +318,7 @@ LeafExecution executeLeaf(Core &core, const LeafCall &call) {
   const std::uint32_t packet = core.mem_r32(cursorAt);
   const std::uint32_t words = call.kind == LeafKind::Sprite ? 10u : call.kind == LeafKind::Quad ? 13u : kShadedWords;
   core.mem_w32(cursorAt, packet + words * kWordBytes);
-  GuestPacket writer(core, packet);
-  const LeafResult result = buildLeaf(core, writer, call);
+  const LeafResult result = buildLeaf(psx::present::EmitMemory(core), packet, call);
   const std::uint32_t header = result.bucket ? link(core, packet, call.globals.otBase, *result.bucket) : 0u;
   LeafExecution done;
   done.setsSecond = true;

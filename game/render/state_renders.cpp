@@ -13,7 +13,7 @@ namespace crashbash::render {
 namespace {
 
 std::uint32_t tagOf(std::span<const std::byte> state) {
-  return StateReader(state).get<std::uint32_t>();
+  return psx::present::StateReader(state).get<std::uint32_t>();
 }
 
 // Picks the render by the state's tag; a producer saves a mesh state or a leaf state per call.
