@@ -9,8 +9,8 @@ from pathlib import Path
 
 
 # Counted override registrations and original-call sites.
-EXPECTED_OVERRIDE_REGISTRATIONS = 35
-EXPECTED_ORIGINAL_CALLS = 12
+EXPECTED_OVERRIDE_REGISTRATIONS = 37
+EXPECTED_ORIGINAL_CALLS = 11
 SOURCE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".cxx", ".h", ".hpp"})
 ENVIRONMENT_CONFIG_OWNER = Path("packaging/linux/user_paths.cpp")
 DIRECT_STDERR_PATTERN = re.compile(

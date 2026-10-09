@@ -61,8 +61,21 @@ struct LeafResult {
   bool built = false;
 };
 
+// A leaf call and the pool packet it linked.
+struct LeafNote {
+  LeafCall call;
+  std::uint32_t packet = 0;
+};
+
+// `value` over `divisor`, truncating toward zero as the guest's div does; aborts on a display scale of 0.
+std::int32_t layoutDivide(std::int32_t value, std::int32_t divisor);
+
 // The arguments of the guest call being made (registers and stack at entry), and the memory it reads.
 LeafCall readLeafCall(Core &core, LeafKind kind);
+
+// Fills in what a call reads besides its arguments (the draw globals, the table, the texture record, the GTE
+// transform) from the guest's memory, for a call whose arguments are set.
+void completeLeafCall(Core &core, LeafCall &call);
 
 // Runs the body for `call`, writing the packet at `packet` in `memory`.
 LeafResult buildLeaf(const psx::present::EmitMemory &memory, std::uint32_t packet, const LeafCall &call);

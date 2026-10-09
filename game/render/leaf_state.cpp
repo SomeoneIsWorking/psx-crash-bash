@@ -3,11 +3,11 @@
 #include "blend.h"
 #include "core.h"
 #include "frame_state.h"
+#include "host_leaf.h"
 #include "ordering_table_slots.h"
-#include "packet_decode.h"
 #include "state_bytes.h"
 
-#include <array>
+#include <algorithm>
 #include <cstring>
 #include <type_traits>
 
@@ -16,21 +16,12 @@ namespace {
 
 static_assert(std::is_trivially_copyable_v<LeafCall>);
 
-constexpr std::uint32_t kPacketWords = 16u;
 constexpr std::uint32_t kWordBytes = 4u;
-// Where a render's packet lives in its host memory.
-constexpr std::uint32_t kHostPacket = 0x80000000u;
 
-struct LeafStateHeader {
+struct UiStateHeader {
   std::uint32_t tag = kLeafStateTag;
-  std::uint32_t calls = 0;
+  std::uint32_t items = 0;
 };
-
-std::array<std::uint32_t, kPacketWords> packetWords(const psx::present::HostMemory &host) {
-  std::array<std::uint32_t, kPacketWords> words{};
-  std::memcpy(words.data(), host.view(kHostPacket, kPacketWords * kWordBytes).data(), sizeof(words));
-  return words;
-}
 
 std::uint32_t vertexWord(const LeafCall &call, std::uint32_t index) {
   std::uint32_t word = 0;
@@ -42,7 +33,7 @@ void setVertexWord(LeafCall &call, std::uint32_t index, std::uint32_t word) {
   std::memcpy(call.vertices.data() + index * kWordBytes, &word, sizeof(word));
 }
 
-bool pairs(const LeafCall &from, const LeafCall &to) {
+bool pairsLeaf(const LeafCall &from, const LeafCall &to) {
   if (from.kind != to.kind) {
     return false;
   }
@@ -77,35 +68,72 @@ LeafCall blendCall(const LeafCall &from, const LeafCall &to, float t) {
   return call;
 }
 
-struct LeafState {
-  std::vector<LeafCall> calls;
+enum class ItemKind : std::uint32_t { Leaf, Body };
 
-  static LeafState read(std::span<const std::byte> bytes) {
+struct UiItem {
+  ItemKind kind = ItemKind::Leaf;
+  LeafCall leaf;
+  ComponentBody body;
+  BodyContext context;
+};
+
+struct UiState {
+  std::vector<UiItem> items;
+
+  static UiState read(std::span<const std::byte> bytes) {
     psx::present::StateReader reader(bytes);
-    const auto header = reader.get<LeafStateHeader>();
-    LeafState state;
-    state.calls = reader.getAll<LeafCall>(header.calls);
+    const auto header = reader.get<UiStateHeader>();
+    UiState state;
+    for (std::uint32_t at = 0; at < header.items; ++at) {
+      UiItem item;
+      item.kind = static_cast<ItemKind>(reader.get<std::uint32_t>());
+      if (item.kind == ItemKind::Leaf) {
+        item.leaf = reader.get<LeafCall>();
+      } else {
+        item.body = readBody(reader);
+        item.context = readContext(reader);
+      }
+      state.items.push_back(std::move(item));
+    }
     return state;
   }
 };
 
+bool linked(Core &core, const LeafNote &note) {
+  const auto slot = linkedSlot(core, note.packet);
+  return slot && slot->table == note.call.table;
+}
+
 } // namespace
 
-void saveLeafState(Core &core, const psx::present::RecordKey &owner, std::span<const LeafNote> notes) {
-  std::vector<LeafCall> calls;
-  for (const LeafNote &note : notes) {
-    const auto slot = linkedSlot(core, note.packet);
-    if (slot && slot->table == note.call.table) {
-      calls.push_back(note.call);
+void saveLeafState(Core &core, const psx::present::RecordKey &owner, std::span<const UiNote> notes) {
+  psx::present::StateWriter writer;
+  std::uint32_t items = 0;
+  for (const UiNote &note : notes) {
+    const bool kept =
+        !note.leaves.empty() && std::all_of(note.leaves.begin(), note.leaves.end(), [&](const LeafNote &leaf) {
+          return linked(core, leaf);
+        });
+    if (!kept) {
+      continue;
     }
+    if (note.body) {
+      writer.put(static_cast<std::uint32_t>(ItemKind::Body));
+      writeBody(writer, *note.body);
+      writeContext(writer, contextOf(note.leaves));
+    } else {
+      writer.put(static_cast<std::uint32_t>(ItemKind::Leaf));
+      writer.put(note.leaves.front().call);
+    }
+    ++items;
   }
-  if (calls.empty()) {
+  if (items == 0u) {
     return;
   }
-  psx::present::StateWriter writer;
-  writer.put(LeafStateHeader{kLeafStateTag, static_cast<std::uint32_t>(calls.size())});
-  writer.putAll(std::span<const LeafCall>(calls));
-  core.frameStates.save(owner, writer.bytes());
+  psx::present::StateWriter state;
+  state.put(UiStateHeader{kLeafStateTag, items});
+  state.putAll(writer.bytes());
+  core.frameStates.save(owner, state.bytes());
 }
 
 void renderLeafState(Core &core,
@@ -113,32 +141,37 @@ void renderLeafState(Core &core,
                      std::span<const std::byte> to,
                      float t,
                      psx::present::PrimitiveSink &sink) {
-  const LeafState later = LeafState::read(to);
-  LeafState earlier;
+  const UiState later = UiState::read(to);
+  UiState earlier;
   if (t < 1.0f && from.data() != to.data()) {
-    earlier = LeafState::read(from);
+    earlier = UiState::read(from);
   }
-  const bool blend = earlier.calls.size() == later.calls.size();
+  const bool blend = earlier.items.size() == later.items.size();
   const psx::present::GteGuard guard;
-  // A bucket's walk reaches the packet linked last first.
-  for (std::size_t index = later.calls.size(); index-- > 0;) {
-    LeafCall call = later.calls[index];
-    if (blend && pairs(earlier.calls[index], call)) {
-      call = blendCall(earlier.calls[index], call, t);
-    }
-    if (call.hasControl != 0u) {
-      psx::present::writeGteControl(call.control);
-    }
-    psx::present::HostMemory host;
-    host.zero(kHostPacket, kPacketWords * kWordBytes);
-    const LeafResult result = buildLeaf(psx::present::EmitMemory(core, host), kHostPacket, call);
-    if (!result.bucket) {
+  std::vector<Emission> drawn;
+  for (std::size_t index = 0; index < later.items.size(); ++index) {
+    const UiItem &item = later.items[index];
+    const UiItem *before = blend ? &earlier.items[index] : nullptr;
+    if (item.kind == ItemKind::Leaf) {
+      LeafCall call = item.leaf;
+      if (before != nullptr && before->kind == ItemKind::Leaf && pairsLeaf(before->leaf, call)) {
+        call = blendCall(before->leaf, call, t);
+      }
+      emitLeaf(core, call, drawn);
       continue;
     }
-    if (const auto primitive = decodeLinkedPacket(packetWords(host))) {
-      sink.emit(psx::present::OtSlot{static_cast<std::uint16_t>(call.table), call.baseBucket + *result.bucket},
-                *primitive);
+    ComponentBody body = item.body;
+    BodyContext context = item.context;
+    if (before != nullptr && before->kind == ItemKind::Body && sameKind(before->body, body)) {
+      body = blendBody(before->body, body, t);
+      context = blendContext(before->context, context, t);
     }
+    HostLeafPort port(core, context, drawn);
+    runBody(body, context.globals, port);
+  }
+  // A bucket's walk reaches the packet linked last first.
+  for (auto emission = drawn.rbegin(); emission != drawn.rend(); ++emission) {
+    sink.emit(emission->slot, emission->primitive);
   }
 }
 

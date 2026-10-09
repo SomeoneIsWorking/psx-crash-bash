@@ -41,8 +41,12 @@ private:
 } // namespace
 
 void registerStateRenders(Core &core) {
-  for (const std::uint32_t producer :
-       {guest::kModelDraw, guest::kTextComponentDraw, guest::kPanelComponentDraw, guest::kQuadComponentDraw}) {
+  for (const std::uint32_t producer : {guest::kModelDraw,
+                                       guest::kTextComponentDraw,
+                                       guest::kPanelComponentDraw,
+                                       guest::kQuadComponentDraw,
+                                       guest::kBootHudDraw,
+                                       guest::kBootMenuPageDraw}) {
     core.stateProducers.install(producer, std::make_unique<StateRender>(core));
   }
 }

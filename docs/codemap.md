@@ -92,8 +92,8 @@ the frame record with the keys → `CrashBashFrameDriver::stepFrame` notes `Fram
   (`0x8002992C`, `0x80029D28`, `0x8001A0D8`, via `0x800243A0`/`0x800248A0`) are overridden by
   `ui_producer.cpp:callNamed`, which names the element from the call site the leaf returns to.
 - **Real field vs in-between**: with `fps60` on, each logic frame presents the in-between then the record.
-  The four state producers below render their objects from saved state; every other keyed object (BOOT's
-  HUD and menu items) is still blended by psxport's `keyedBlend`. A cut, an incomplete record or a record
+  Every producer below is a state producer and renders its objects from saved state; `keyedBlend` no longer
+  composes any of them. A cut, an incomplete record or a record
   with no keys is drawn as is.
 - **Widescreen**: `TitleAdapter::guestWidescreenProjection` declares the player's aspect; the record
   canvas adds the margins and the guest's own primitives fill them. The HUD stays where the guest
@@ -112,12 +112,12 @@ A producer is a native override whose packet stores carry the key `(producer, ob
 | 0x8001C448 | `registerUiProducers` (`CrashBash::TextComponentDraw`) | A0 | the text component's incarnation | a glyph: `glyphElement(byte)`, its byte's main-RAM offset (string address + glyph index) |
 | 0x8001C690 | `registerUiProducers` (`CrashBash::PanelComponentDraw`) | A0 | the panel component's incarnation | `PanelPart`: body, left, right, top, bottom |
 | 0x8001C7FC | `registerUiProducers` (`CrashBash::QuadComponentDraw`) | A0 | the quad component's incarnation | 0 |
-| 0x800798A4 (BOOT) | opened at its leaf call sites by `callNamed` | s0 / s4 | the HUD icon record (s0, `0x800996E0`/`0x8009AD54` + 8i) or the player's digit record (s4, `0x8009AD74` + 8 * player) | 0 for an icon; `DigitPlace` for a digit |
-| 0x800809A0 (BOOT) | opened at its `0x800243A0`/`0x800248A0` call sites by `callNamed` | s4 | the 24-byte menu item record | a glyph, or the `DigitPlace` of `0x800248A0`'s three digits |
+| 0x800798A4 (BOOT) | `callNamed` opens a `Scope` at its leaf call sites | s0 / s4 | the HUD icon record (s0, `0x800996E0`/`0x8009AD54` + 8i) or the player's digit record (s4, `0x8009AD74` + 8 * player) | 0 for an icon; `DigitPlace` for a digit |
+| 0x800809A0 (BOOT) | `callNamed` opens a `Scope` at its leaf call sites | s4 | the 24-byte menu item record | a glyph, or the `DigitPlace` of `0x800248A0`'s three digits |
 
 #### State producers
 
-The four producers above save a state and render it (psxport `presentation.md`). The state is what the
+The producers above save a state and render it (psxport `presentation.md`). The state is what the
 guest's drawing body reads, and the render runs that same body on inputs a fraction `t` of the way between
 two states; no packet is interpolated. The bodies are native C++ and the overrides run them too:
 
@@ -148,6 +148,15 @@ stays as the guest drew it.
   transform of a projected one). The render blends sprite and quad positions, flat corners and origin, or
   projected corners and transform, between two states with the same number of calls of the same shapes, and
   runs `buildLeaf` on each.
+- Component bodies (`text_bodies.cpp`, `panel_bodies.cpp`, `component_body.cpp`; the BOOT producers and the
+  component producers save these): `0x800243A0` and `0x800248A0` (string and number layout) and `0x8001A6D4`
+  and `0x8001A43C` (panel body and border) are native. Each calls its leaves through a `LeafPort`: the
+  override's `GuestLeafPort` dispatches the leaf overrides (so the override differential sees the same
+  nested calls as the guest), a render's `HostLeafPort` emits host packets. A scope saves each body's own
+  fields (position, size, scale, string bytes, record words, tint) in `leaf_state.cpp` items, and the render
+  blends those fields at `t` and re-runs the body (`component_body.cpp:blendBody`/`runBody`), so a moved
+  component lays out its glyphs and parts at `t`. Leaf calls outside a body (BOOT's HUD icons) stay
+  leaf items. The string body writes the tint colours back to the caller's stack slots as the guest does.
 
 An unpaired or differently shaped state is drawn as saved. At `t = 1` the render draws exactly what the guest
 linked. Tests: `test_model_face_producer.cpp` (`the_render_at_t_reprojects_moved_vertices`,

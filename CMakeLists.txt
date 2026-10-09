@@ -96,6 +96,11 @@ set(CRASHBASH_SEAM_SOURCES
   game/render/model_face_producer.cpp
   game/render/component_incarnation.cpp
   game/render/ui_producer.cpp
+  game/render/leaf_port.cpp
+  game/render/host_leaf.cpp
+  game/render/text_bodies.cpp
+  game/render/panel_bodies.cpp
+  game/render/component_body.cpp
   game/render/ordering_table_slots.cpp
   game/render/draw_globals.cpp
   game/render/packet_decode.cpp

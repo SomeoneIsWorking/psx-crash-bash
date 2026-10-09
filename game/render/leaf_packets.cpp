@@ -37,14 +37,6 @@ constexpr std::uint32_t kShadedCommand = 0x38u;
 constexpr std::uint32_t kShadedSemiTransparent = 0x32000000u;
 constexpr std::uint32_t kShadedDrawModeBits = 0x60u;
 
-std::int32_t divide(std::int32_t value, std::int32_t divisor) {
-  if (divisor == 0) {
-    lucent::error("leaf-packets", "a layout division by a display scale of 0");
-    std::abort();
-  }
-  return value / divisor;
-}
-
 // A colour with the screen fade applied, as the guest packs it: blue, green, red.
 std::uint32_t fadedColour(const DrawGlobals &globals, std::uint32_t colour) {
   std::uint32_t red = colour & 0xFFu;
@@ -72,10 +64,10 @@ Corners spriteCorners(const DrawGlobals &globals, const TextureRecord &texture, 
   const std::int32_t high = static_cast<std::int32_t>(position & 0xFFFF0000u);
   const std::uint32_t halfY = static_cast<std::uint32_t>(((high >> 16) - (high >> 31)) >> 1) << 16;
   Corners corners;
-  corners.topLeft =
-      (static_cast<std::uint32_t>(divide(static_cast<std::int16_t>(position) * globals.screenScale, kLayoutWidth)) &
-       0xFFFFu) |
-      halfY;
+  corners.topLeft = (static_cast<std::uint32_t>(
+                         layoutDivide(static_cast<std::int16_t>(position) * globals.screenScale, kLayoutWidth)) &
+                     0xFFFFu) |
+                    halfY;
   std::uint32_t right = (texture.width + (corners.topLeft - 1u)) & 0xFFFFu;
   corners.topRight = halfY | right;
   const std::uint32_t bottom = (static_cast<std::uint32_t>(texture.height) +
@@ -116,7 +108,7 @@ LeafResult buildSprite(const psx::present::EmitMemory &memory, std::uint32_t pac
   result.bucket = call.bucket;
   result.built = true;
   result.value = static_cast<std::uint32_t>(
-      divide(static_cast<std::int32_t>(texture.advance) * kLayoutWidth, globals.screenScale));
+      layoutDivide(static_cast<std::int32_t>(texture.advance) * kLayoutWidth, globals.screenScale));
   return result;
 }
 
@@ -148,7 +140,7 @@ LeafResult buildQuad(const psx::present::EmitMemory &memory, std::uint32_t packe
   result.bucket = call.bucket;
   result.built = true;
   result.value = static_cast<std::uint32_t>(
-      divide(static_cast<std::int32_t>(texture.advance) * kLayoutWidth, globals.screenScale));
+      layoutDivide(static_cast<std::int32_t>(texture.advance) * kLayoutWidth, globals.screenScale));
   return result;
 }
 
@@ -175,7 +167,7 @@ std::uint32_t shadedColour(const LeafCall &call, std::uint32_t index) {
 // A flat-layout corner: the origin and the guest's coordinate scaled from the 640-column layout.
 std::uint32_t flatX(const LeafCall &call, std::uint32_t offset) {
   const std::int32_t value = (call.globals.originX + vertexHalf(call, offset)) * call.globals.screenScale;
-  return static_cast<std::uint32_t>(divide(value, 640)) & 0xFFFFu;
+  return static_cast<std::uint32_t>(layoutDivide(value, 640)) & 0xFFFFu;
 }
 
 std::uint32_t flatY(const LeafCall &call, std::uint32_t offset) {
@@ -260,9 +252,15 @@ TextureRecord readTexture(Core &core, std::uint32_t address) {
 
 } // namespace
 
-LeafCall readLeafCall(Core &core, LeafKind kind) {
-  LeafCall call;
-  call.kind = kind;
+std::int32_t layoutDivide(std::int32_t value, std::int32_t divisor) {
+  if (divisor == 0) {
+    lucent::error("leaf-packets", "a layout division by a display scale of 0");
+    std::abort();
+  }
+  return value / divisor;
+}
+
+void completeLeafCall(Core &core, LeafCall &call) {
   call.globals = readDrawGlobals(core);
   if (const auto slot = core.otTables.slotOf(call.globals.otBase)) {
     call.table = slot->table;
@@ -270,30 +268,37 @@ LeafCall readLeafCall(Core &core, LeafKind kind) {
   } else {
     call.table = ~0u;
   }
+  if (call.kind == LeafKind::Shaded) {
+    if ((call.attributes & kDrawn) != 0u && (call.attributes & kFlatLayout) == 0u) {
+      call.hasControl = 1u;
+      call.control = psx::present::readGteControl();
+    }
+  } else if (call.globals.hasEnvironment != 0u) {
+    call.texture = readTexture(core, call.textureAddress);
+  }
+}
+
+LeafCall readLeafCall(Core &core, LeafKind kind) {
+  LeafCall call;
+  call.kind = kind;
   if (kind == LeafKind::Shaded) {
     const std::uint32_t vertices = core.r[4];
     call.attributes = core.r[5];
     for (std::uint32_t byte = 0; byte < kShadedVertexBytes; ++byte) {
       call.vertices[byte] = core.mem_r8(vertices + byte);
     }
-    if ((call.attributes & kDrawn) != 0u && (call.attributes & kFlatLayout) == 0u) {
-      call.hasControl = 1u;
-      call.control = psx::present::readGteControl();
-    }
-    return call;
-  }
-  call.textureAddress = core.r[4];
-  call.position = core.r[5];
-  call.bucket = core.r[6];
-  call.colours[0] = core.r[7];
-  if (kind == LeafKind::Quad) {
-    for (std::uint32_t colour = 1; colour < 4u; ++colour) {
-      call.colours[colour] = core.mem_r32(core.r[29] + kStackArguments + (colour - 1u) * kWordBytes);
+  } else {
+    call.textureAddress = core.r[4];
+    call.position = core.r[5];
+    call.bucket = core.r[6];
+    call.colours[0] = core.r[7];
+    if (kind == LeafKind::Quad) {
+      for (std::uint32_t colour = 1; colour < 4u; ++colour) {
+        call.colours[colour] = core.mem_r32(core.r[29] + kStackArguments + (colour - 1u) * kWordBytes);
+      }
     }
   }
-  if (call.globals.hasEnvironment != 0u) {
-    call.texture = readTexture(core, call.textureAddress);
-  }
+  completeLeafCall(core, call);
   return call;
 }
 

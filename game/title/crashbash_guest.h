@@ -89,24 +89,31 @@ inline constexpr std::uint32_t kQuadComponentDraw = 0x8001C7FCu;
 inline constexpr std::uint32_t kImageQuad = 0x8002992Cu;
 inline constexpr std::uint32_t kImageSprite = 0x80029D28u;
 inline constexpr std::uint32_t kShadedQuad = 0x8001A0D8u;
-// FUN_800243A0(x, y, string, ...) walks the string in s2; each glyph's leaf call returns to one of these
-// with s2 one past the glyph's byte.
+// FUN_800243A0(x, y, string, colour, colour2, tint) draws a string; FUN_800248A0(x, y, colour, colour2, set)
+// draws a set of three digits, hundreds first. Both place their glyphs through the 2D leaves.
 inline constexpr std::uint32_t kStringDraw = 0x800243A0u;
-inline constexpr std::uint32_t kStringCursorRegister = 18u;
-inline constexpr std::uint32_t kStringGlyphQuadReturn = 0x80024688u;
-inline constexpr std::uint32_t kStringGlyphRaisedReturn = 0x800245F4u;
-inline constexpr std::uint32_t kStringGlyphSpriteReturn = 0x80024640u;
-// FUN_800248A0 draws a three-digit number, hundreds first.
 inline constexpr std::uint32_t kNumberDraw = 0x800248A0u;
-inline constexpr std::uint32_t kNumberHundredsReturn = 0x800249A0u;
-inline constexpr std::uint32_t kNumberTensReturn = 0x80024A2Cu;
-inline constexpr std::uint32_t kNumberUnitsReturn = 0x80024AACu;
-// 0x8001A6D4 draws a panel's body; 0x8001A43C its left, right, top and bottom borders.
-inline constexpr std::uint32_t kPanelBodyReturn = 0x8001A7E8u;
-inline constexpr std::uint32_t kPanelLeftReturn = 0x8001A530u;
-inline constexpr std::uint32_t kPanelRightReturn = 0x8001A5ACu;
-inline constexpr std::uint32_t kPanelTopReturn = 0x8001A62Cu;
-inline constexpr std::uint32_t kPanelBottomReturn = 0x8001A6ACu;
+// Glyph tables of the font at 0x8005B2B4: advance (s8) and flags (u8) by 256 bytes, texture index (s16) by 512.
+inline constexpr std::uint32_t kFontIndex = 0x8005B2B4u;
+inline constexpr std::uint32_t kFontAdvance = 0x8005AEB4u;
+inline constexpr std::uint32_t kFontFlags = 0x8005B0B4u;
+inline constexpr std::uint32_t kFontTexture = 0x8005AAB4u;
+// The texture records: 0x38 bytes each from the table at +0x18 of the record the pointer at 0x8005B63C names;
+// the digit draw reads it at 0x8005308C directly.
+inline constexpr std::uint32_t kTextureTablePointer = 0x8005B63Cu;
+inline constexpr std::uint32_t kTextureTableOffset = 0x18u;
+inline constexpr std::uint32_t kDigitTextureTable = 0x8005308Cu;
+inline constexpr std::uint32_t kTextureRecordBytes = 0x38u;
+// Three s16 texture indices (hundreds, tens, units) per digit set.
+inline constexpr std::uint32_t kDigitSets = 0x8005A5C0u;
+inline constexpr std::uint32_t kDigitSetBytes = 6u;
+// The tint FUN_80024214 applies: the frame counter indexes a table of s16 pairs, the second the scale.
+inline constexpr std::uint32_t kTintCounter = 0x8005B690u;
+inline constexpr std::uint32_t kTintTable = 0x80068BD4u;
+// 0x8001A6D4(record, attributes) draws a panel's body and 0x8001A43C(edge, colour, attributes, widths) its border.
+inline constexpr std::uint32_t kPanelDraw = 0x8001A6D4u;
+inline constexpr std::uint32_t kBorderDraw = 0x8001A43Cu;
+// The quad component's leaf call returns here.
 inline constexpr std::uint32_t kQuadComponentReturn = 0x8001C960u;
 // BOOT HUD 0x800798A4: icon loops over 8-byte records in s0 (0x800996E0 and 0x8009AD54, four each), and
 // per-player digits from the player's record in s4 (0x8009AD74 + 8 * player), units drawn first.
