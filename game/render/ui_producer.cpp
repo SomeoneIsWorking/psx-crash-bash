@@ -5,6 +5,8 @@
 #include "crashbash_frame_driver.h"
 #include "crashbash_guest.h"
 #include "guest_execution.h"
+#include "leaf_packets.h"
+#include "packet_collector.h"
 
 #include <algorithm>
 #include <iterator>
@@ -97,33 +99,52 @@ CallSiteName siteName(Core &core) {
   return {};
 }
 
-// Runs the resident function at `address` under the key its call site names.
-void callNamed(Core *core, std::uint32_t address) {
+// Runs `body` under the key its call site names.
+template <class Body> void underName(Core *core, Body body) {
   const CallSiteName name = siteName(*core);
   if (name.kind == CallSiteName::Kind::Owner) {
     const psx::present::EmissionScope::Guard scope(core->emission, name.producer, name.object, name.element);
-    runtime::callOriginal(*core, GuestImage::Resident, address);
+    body();
     return;
   }
   // An element names a part of the object whose scope is open; with none there is nothing to name.
   if (name.kind == CallSiteName::Kind::Element && core->emission.isOpen()) {
     const auto scope = core->emission.element(name.element);
-    runtime::callOriginal(*core, GuestImage::Resident, address);
+    body();
     return;
   }
-  runtime::callOriginal(*core, GuestImage::Resident, address);
+  body();
+}
+
+// A leaf: the native body over the call's arguments, noted for the state of the object that called it.
+void leaf(Core *core, LeafKind kind) {
+  underName(core, [&] {
+    const LeafCall call = readLeafCall(*core, kind);
+    const LeafExecution done = executeLeaf(*core, call);
+    core->r[2] = done.value;
+    if (done.setsSecond) {
+      core->r[3] = done.second;
+    }
+    frameDriver(*core).packetCollector().noteLeaf(call, done.packet);
+  });
+}
+
+void callNamed(Core *core, std::uint32_t address) {
+  underName(core, [&] {
+    runtime::callOriginal(*core, GuestImage::Resident, address);
+  });
 }
 
 void imageQuad(Core *core) {
-  callNamed(core, guest::kImageQuad);
+  leaf(core, LeafKind::Quad);
 }
 
 void imageSprite(Core *core) {
-  callNamed(core, guest::kImageSprite);
+  leaf(core, LeafKind::Sprite);
 }
 
 void shadedQuad(Core *core) {
-  callNamed(core, guest::kShadedQuad);
+  leaf(core, LeafKind::Shaded);
 }
 
 void stringDraw(Core *core) {
@@ -136,7 +157,9 @@ void numberDraw(Core *core) {
 
 void componentDraw(Core *core, std::uint32_t address) {
   const auto object = core->emission.instance(frameDriver(*core).componentIncarnations().object(core->r[4]));
+  PacketCollector::Scope packets(frameDriver(*core).packetCollector());
   runtime::callOriginal(*core, GuestImage::Resident, address);
+  packets.save(*core);
 }
 
 void textComponentDraw(Core *core) {

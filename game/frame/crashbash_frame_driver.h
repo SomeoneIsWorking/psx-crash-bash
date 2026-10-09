@@ -5,6 +5,7 @@
 #include "execution_exit.h"
 #include "frame_cut.h"
 #include "game_runtime.h"
+#include "packet_collector.h"
 #include "polar_push_contact.h"
 
 #include <cstdint>
@@ -38,6 +39,10 @@ public:
   render::ComponentIncarnations &componentIncarnations() {
     return componentIncarnations_;
   }
+  // The packets a producer call links, which its state keeps.
+  render::PacketCollector &packetCollector() {
+    return packetCollector_;
+  }
   // Whether the record this frame sealed is a cut (TitleAdapter::sealedFrameIsCut).
   const FrameCut &frameCut() const {
     return frameCut_;
@@ -69,6 +74,7 @@ private:
   debug::DevArena devArena_;
   polar::ContactCensus polarContactCensus_;
   render::ComponentIncarnations componentIncarnations_;
+  render::PacketCollector packetCollector_;
   FrameCut frameCut_;
 };
 

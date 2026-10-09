@@ -23,9 +23,6 @@ constexpr std::uint32_t meshFaceElement(std::uint32_t faceList, std::uint32_t fa
   return ((faceList & 0x1FFFFFu) << kFaceIndexBits) | face;
 }
 
-// Faces in a face list: {flags, count} byte pairs ended by a count of 0xFF.
-std::uint32_t meshFaceCount(Core &core, std::uint32_t faceList);
-
 // FUN_80019A60 as the producer (object: a3's incarnation) and FUN_800193A8 as the namer of its faces.
 void registerModelFaceProducer(Core &core);
 

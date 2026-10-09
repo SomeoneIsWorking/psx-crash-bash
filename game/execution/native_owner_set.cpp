@@ -11,7 +11,9 @@
 #include "loading_card_skip.h"
 #include "memory_card_startup.h"
 #include "model_face_producer.h"
+#include "ordering_table_slots.h"
 #include "polar_push_contact.h"
+#include "state_renders.h"
 #include "ui_producer.h"
 
 namespace crashbash {
@@ -31,6 +33,8 @@ void registerNativeOwners(Core &core) {
   render::registerModelFaceProducer(core);
   render::registerComponentIncarnationOwners(core);
   render::registerUiProducers(core);
+  render::nameOrderingTables(core);
+  render::registerStateRenders(core);
 }
 
 } // namespace crashbash

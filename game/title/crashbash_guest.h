@@ -25,6 +25,27 @@ inline constexpr std::uint32_t kCdSync = 0x8003E6B0u;
 inline constexpr std::uint32_t kCdCommand = 0x8003EBF8u;
 inline constexpr std::uint32_t kMemoryCardStartup = 0x800486DCu;
 
+// The two ordering tables DisplayFrame alternates between (pointer at 0x8005B68C): 0x1000 buckets of one
+// word, cleared by ClearOTagR so each bucket links to the one below it, and walked from the last bucket
+// down. The packet pool cursor of the table in use is at +0x4008.
+inline constexpr std::uint32_t kOrderingTablePointer = 0x8005B68Cu;
+inline constexpr std::uint32_t kOrderingTableA = 0x8005B790u;
+inline constexpr std::uint32_t kOrderingTableB = 0x8005F79Cu;
+inline constexpr std::uint32_t kOrderingTableBuckets = 0x1000u;
+inline constexpr std::uint32_t kOrderingTablePoolCursor = 0x4008u;
+
+// What the packet bodies (the mesh face emitter and the 2D leaves) read: the display environment pointer
+// (its s16 at +4 is the width the 640-column layout scales to), the screen fade, the table slice base,
+// the depth bias and limit, and the 2D origin.
+inline constexpr std::uint32_t kDrawEnvironment = 0x8005B698u;
+inline constexpr std::uint32_t kEnvironmentScaleOffset = 4u;
+inline constexpr std::uint32_t kScreenFade = 0x800569ACu;
+inline constexpr std::uint32_t kDrawOtBase = 0x800569D8u;
+inline constexpr std::uint32_t kDrawZBias = 0x800569DCu;
+inline constexpr std::uint32_t kDrawZLimit = 0x800569DEu;
+inline constexpr std::uint32_t kDrawOriginX = 0x800569C0u;
+inline constexpr std::uint32_t kDrawOriginY = 0x800569C4u;
+
 // Model draw: FUN_80019A60(frame code, model data, flags, object), reached from the standard
 // (0x80019F1C) and alternate (0x8001DD50) object draw callbacks; FUN_800193A8 emits a mesh's faces.
 inline constexpr std::uint32_t kModelDraw = 0x80019A60u;

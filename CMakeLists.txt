@@ -96,6 +96,16 @@ set(CRASHBASH_SEAM_SOURCES
   game/render/model_face_producer.cpp
   game/render/component_incarnation.cpp
   game/render/ui_producer.cpp
+  game/render/ordering_table_slots.cpp
+  game/render/gte_access.cpp
+  game/render/draw_globals.cpp
+  game/render/packet_decode.cpp
+  game/render/face_projection.cpp
+  game/render/leaf_packets.cpp
+  game/render/model_state.cpp
+  game/render/leaf_state.cpp
+  game/render/packet_collector.cpp
+  game/render/state_renders.cpp
 )
 
 find_package(SDL3 REQUIRED)

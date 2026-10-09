@@ -20,7 +20,7 @@ reusable; this title owns Crash Bash's game-flow interpretation of it.
 | `game/disc/` | `crashbash` | `cd_startup.{h,cpp}`, `cd_license_startup.{h,cpp}`, `cd_file_read.{h,cpp}`, `loading_card_skip.{h,cpp}` | The disc: the measured SCUS_945.70 startup handshake, licence startup, the synchronous file read that also retires authenticated images per sector write, the load-pump drain, and the retirement of the loading-card presentation at its two measured call sites. |
 | `game/frame/` | `crashbash` | `crashbash_frame_driver.{h,cpp}`, `frame_cut.{h,cpp}`, `display_frame.{h,cpp}`, `gpu_timeout.{h,cpp}`, `measured_guest_call.h` | The frame turn: `CrashBashFrameDriver` owns one measured input→audio→simulation→render→present order, the single presentation commit, the Polar Push `polarContactCensus`, the render `componentIncarnations`, and `FrameCut` (whether the record it seals is a cut, from the guest's process state, scene and menu screen); `registerDisplayFrameOverride` is the guest's own frame call it is invoked from; `registerGpuTimeoutOverrides` is the synchronous GPU timeout/transfer; `measuredGuestCall` is the one way a native owner calls a guest body. |
 | `game/input/` | `crashbash`, `crashbash::input` | `crashbash_input_phase.{h,cpp}`, `crashbash_touch_controls.{h,cpp}` | `InputPhase` (which screen is taking input — the key a `.pad` recording is keyed on) and `CrashBashTouchControls` (the authored landscape touch overlay for Android). |
-| `game/render/` | `crashbash::render` | `model_face_producer.{h,cpp}`, `ui_producer.{h,cpp}`, `component_incarnation.{h,cpp}` | Producers: native overrides that key the guest's own packets for 60 fps interpolation (Producers below: models, and the 2D UI of text, panels, quads and BOOT's HUD), and `ComponentIncarnations`, which counts each re-initialisation of a render component so a reused slot keys as a new object. Nothing here draws; the picture is the guest's GP0 output on psxport's record path. |
+| `game/render/` | `crashbash::render` | `model_face_producer.{h,cpp}`, `ui_producer.{h,cpp}`, `face_projection.{h,cpp}`, `leaf_packets.{h,cpp}`, `model_state.{h,cpp}`, `leaf_state.{h,cpp}`, `packet_collector.{h,cpp}`, `state_renders.{h,cpp}`, `gte_access.{h,cpp}`, `draw_globals.{h,cpp}`, `packet_decode.{h,cpp}`, `blend.h`, `state_bytes.h`, `ordering_table_slots.{h,cpp}`, `component_incarnation.{h,cpp}` | Producers: native overrides that key the guest's own packets for 60 fps interpolation (Producers below: models, and the 2D UI of text, panels, quads and BOOT's HUD), the native bodies of `0x800193A8` and the three 2D leaves with the state and render of the four component producers (State producers below), the ordering-table bucket of a packet, and `ComponentIncarnations`, which counts each re-initialisation of a render component so a reused slot keys as a new object. Nothing here draws; the picture is the guest's GP0 output on psxport's record path. |
 | `game/gameplay/` | `crashbash::polar` | `polar_push_contact.{h,cpp}` | The DAT22510 native owner of Polar Push contact traversal, motion and effects. Frame and presentation ownership, and the per-Core `ContactCensus` tally, stay in `CrashBashFrameDriver`. |
 | `game/debug/` | `crashbash::debug` | `dev_arena.{h,cpp}` | The developer `arena` control-channel command. It ARMS a request; the frame driver advances it through the game's own menu flow. No player input reaches it. |
 | `game/title/` | `crashbash::guest` | `crashbash_guest.h` | The recovered SCUS_945.70 guest facts: addresses, scene/scene-record layouts, arena table and menu flow. Facts only; no behavior. |
@@ -91,8 +91,10 @@ the frame record with the keys → `CrashBashFrameDriver::stepFrame` notes `Fram
   (quad) are producers like `0x80019A60` (object = the component's incarnation); the 2D leaves they reach
   (`0x8002992C`, `0x80029D28`, `0x8001A0D8`, via `0x800243A0`/`0x800248A0`) are overridden by
   `ui_producer.cpp:callNamed`, which names the element from the call site the leaf returns to.
-- **Real field vs in-between**: with `fps60` on, each logic frame presents `keyedBlend(shown before,
-  shown, 0.5)` then the record; a cut, an incomplete record or a record with no keys is drawn as is.
+- **Real field vs in-between**: with `fps60` on, each logic frame presents the in-between then the record.
+  The four state producers below render their objects from saved state; every other keyed object (BOOT's
+  HUD and menu items) is still blended by psxport's `keyedBlend`. A cut, an incomplete record or a record
+  with no keys is drawn as is.
 - **Widescreen**: `TitleAdapter::guestWidescreenProjection` declares the player's aspect; the record
   canvas adds the margins and the guest's own primitives fill them. The HUD stays where the guest
   draws it (issue 0035).
@@ -112,6 +114,60 @@ A producer is a native override whose packet stores carry the key `(producer, ob
 | 0x8001C7FC | `registerUiProducers` (`CrashBash::QuadComponentDraw`) | A0 | the quad component's incarnation | 0 |
 | 0x800798A4 (BOOT) | opened at its leaf call sites by `callNamed` | s0 / s4 | the HUD icon record (s0, `0x800996E0`/`0x8009AD54` + 8i) or the player's digit record (s4, `0x8009AD74` + 8 * player) | 0 for an icon; `DigitPlace` for a digit |
 | 0x800809A0 (BOOT) | opened at its `0x800243A0`/`0x800248A0` call sites by `callNamed` | s4 | the 24-byte menu item record | a glyph, or the `DigitPlace` of `0x800248A0`'s three digits |
+
+#### State producers
+
+The four producers above save a state and render it (psxport `presentation.md`). The state is what the
+guest's drawing body reads, and the render runs that same body on inputs a fraction `t` of the way between
+two states; no packet is interpolated. The bodies are native C++ and the overrides run them too:
+
+- `0x800193A8` (`CrashBash::MeshFaceEmit`) is `face_projection.cpp:projectFaces`: RTPS the strip's first
+  two vertices, then RTPS + AVSZ3 + NCLIP per face, culling by the vertex flags and the depth limit. The
+  override gives it the live GTE and writes each visible face into the guest's packet buffer
+  (`GuestFaceSink`); a render gives it the saved GTE and reads each face's projected points (`HostFaceSink`).
+- `0x80029D28`, `0x8002992C`, `0x8001A0D8` (sprite, Gouraud textured quad, Gouraud quad in 2D or through the
+  GTE) are `leaf_packets.cpp:buildLeaf` over a `PacketWriter`: guest pool memory for the override
+  (`executeLeaf`), host words for a render.
+
+`PacketCollector::Scope` (opened by the component override) collects what the bodies ran; `save` marks the
+scope when the guest body returns and `PacketCollector::commit`, called by `DisplayFrame` right before the
+guest's DrawOTag, saves each marked scope. A call whose packet is no longer linked into the table in use
+(`ordering_table_slots.cpp:linkedSlot`) is dropped, so a packet another draw relinked or overwrote after its
+own scope ended, and a culled face's stale link into the other table, are not saved. A scope that ran one
+mesh body saves a face state; one that ran only leaves saves a leaf state; anything else saves nothing and
+stays as the guest drew it.
+
+- Face state (`model_state.cpp`): the GTE control registers, the face list, the vertex words the guest
+  animated into its scratch buffer, the depth bias and limit, the table and bucket base, and the saved
+  packet words (colours, texture words, draw modes) of each face the body linked. The render blends the
+  rotation and translation registers and every vertex coordinate between two states with the same face list,
+  projects again under `gte::Guard`, and emits each face the body links at the bucket the body gives it,
+  last linked first.
+- Leaf state (`leaf_state.cpp`): each leaf call's arguments and what its body reads besides them (display
+  scale, fade, bias and limit, origin, the texture record, a shaded quad's corners and colours, the GTE
+  transform of a projected one). The render blends sprite and quad positions, flat corners and origin, or
+  projected corners and transform, between two states with the same number of calls of the same shapes, and
+  runs `buildLeaf` on each.
+
+An unpaired or differently shaped state is drawn as saved. At `t = 1` the render draws exactly what the guest
+linked. Tests: `test_model_face_producer.cpp` (`the_render_at_t_reprojects_moved_vertices`,
+`the_render_at_t_reprojects_through_a_moved_camera`, `a_culled_face_is_not_drawn_and_a_new_face_appears_at_t_one`,
+`a_packet_unlinked_after_its_scope_is_not_saved`, `a_face_linked_in_the_other_table_is_not_saved`) and
+`test_ui_producer.cpp` (`the_text_render_draws_the_glyphs_the_guest_linked`,
+`the_panel_render_draws_the_parts_the_guest_linked`, `the_quad_render_draws_the_quad_the_guest_linked`,
+`the_projected_quad_render_reprojects_through_the_moved_camera`). Each runs the shipping overrides over real
+guest memory (display environment, ordering table, vertices, GTE), checks `t = 1` against the guest's own
+walk with that memory scrambled after the save, and `t = 0.5` against the walk of a frame drawn halfway.
+
+Equality with the original bodies is proved by `PSXPORT_OVERRIDE_DIFF` over the Polar Push replay (all four
+addresses: memory, GTE and result registers; the native bodies end on the same `v0`/`v1` the guest leaves,
+the list terminator for the mesh, the display scale for the sprites, the linked header for the shaded quad).
+
+The string and number bodies (`0x800243A0`, `0x800248A0`) and the component callbacks that place glyphs and
+panel parts stay guest code, so a render cannot re-run them: it moves the arguments they gave the leaves
+(position, corners), not the component's own fields. The BOOT HUD and menu-item producers have no render
+(issue 0039). Rotation is blended element by element, as a render of a turning model is only as good as that
+approximation over one tick.
 
 UI element namer: `ui_producer.cpp:callNamed` overrides `0x8002992C`, `0x80029D28`, `0x8001A0D8`,
 `0x800243A0` and `0x800248A0` and reads the return address. A glyph site of `0x800243A0` (s2 is one past

@@ -7,6 +7,7 @@
 #include "guest_abi.h"
 #include "guest_execution.h"
 #include "measured_guest_call.h"
+#include "packet_collector.h"
 
 #include <cstdint>
 #include <lucent/log.h>
@@ -19,13 +20,8 @@ constexpr std::uint32_t kFrameHeapWorkTicks = 0x8004E0E8u;
 constexpr std::uint32_t kFrameHeapBudgetSpent = 0x8004E0ECu;
 constexpr std::uint32_t kFrameTimerSample = 0x8004E0E4u;
 constexpr std::uint32_t kDisplayDescriptor = 0x8005B698u;
-constexpr std::uint32_t kOrderingTablePointer = 0x8005B68Cu;
-constexpr std::uint32_t kOrderingTableA = 0x8005B790u;
-constexpr std::uint32_t kOrderingTableB = 0x8005F79Cu;
 constexpr std::uint32_t kOrderingTableDrawOffset = 0x3FFCu;
-constexpr std::uint32_t kOrderingTableHeadCopyOffset = 0x4008u;
 constexpr std::uint32_t kOrderingTableHeadOffset = 0x4000u;
-constexpr std::uint32_t kOrderingTableWordCount = 0x1000u;
 constexpr std::uint32_t kVideoMode = 0x800637A8u;
 constexpr std::uint32_t kDisplayIndex = 0x8005B690u;
 constexpr std::uint32_t kDisplayResource = 0x800643E8u;
@@ -173,7 +169,7 @@ void displayFrameOwned(Core *core) {
   GuestFrame<56, 4> frame(core, kDisplaySpills);
   core->r[18] = core->r[4];
   const std::uint32_t descriptor = core->mem_r32(kDisplayDescriptor);
-  const std::uint32_t orderingTable = core->mem_r32(kOrderingTablePointer);
+  const std::uint32_t orderingTable = core->mem_r32(guest::kOrderingTablePointer);
   core->r[16] = descriptor;
 
   measuredGuestCall(*core, 0x800338E8u, 0x800272D8u, 11u, core->mem_r32(kDisplayResource));
@@ -183,7 +179,7 @@ void displayFrameOwned(Core *core) {
 
   if (descriptor != 0) {
     const bool alternateMode = core->mem_r32(kVideoMode) != 0u;
-    const std::uint32_t origin = orderingTable == kOrderingTableA ? descriptor : descriptor + 8u;
+    const std::uint32_t origin = orderingTable == guest::kOrderingTableA ? descriptor : descriptor + 8u;
     DisplayEnvironment environment(*core, core->r[29] + 16u);
     environment.copyOrigin(origin);
     environment.configure(descriptor, alternateMode);
@@ -193,12 +189,14 @@ void displayFrameOwned(Core *core) {
     frameDriver(*core).deliverDisplayFields(*core, fields);
 
     measuredGuestCall(*core, 0x8002F598u, 0x80027398u, 2u, environment.address());
+    frameDriver(*core).packetCollector().commit(*core);
     measuredGuestCall(*core, 0x8002F35Cu, 0x800273A8u, 4u, orderingTable + kOrderingTableDrawOffset);
-    const std::uint32_t nextOrderingTable = orderingTable == kOrderingTableA ? kOrderingTableB : kOrderingTableA;
-    core->mem_w32(kOrderingTablePointer, nextOrderingTable);
+    const std::uint32_t nextOrderingTable =
+        orderingTable == guest::kOrderingTableA ? guest::kOrderingTableB : guest::kOrderingTableA;
+    core->mem_w32(guest::kOrderingTablePointer, nextOrderingTable);
     core->mem_w32(kDisplayIndex, core->mem_r32(kDisplayIndex) + 1u);
-    measuredGuestCall(*core, 0x8002F254u, 0x800273DCu, 7u, nextOrderingTable, kOrderingTableWordCount);
-    core->mem_w32(nextOrderingTable + kOrderingTableHeadCopyOffset,
+    measuredGuestCall(*core, 0x8002F254u, 0x800273DCu, 7u, nextOrderingTable, guest::kOrderingTableBuckets);
+    core->mem_w32(nextOrderingTable + guest::kOrderingTablePoolCursor,
                   core->mem_r32(nextOrderingTable + kOrderingTableHeadOffset));
   }
   measuredGuestCall(*core, 0x80017388u, 0x800273F0u, 2u);

@@ -4,7 +4,10 @@
 #include "core.h"
 #include "crashbash_frame_driver.h"
 #include "crashbash_guest.h"
+#include "face_projection.h"
 #include "guest_execution.h"
+#include "model_state.h"
+#include "packet_collector.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -14,18 +17,25 @@ namespace {
 
 void modelDraw(Core *core) {
   const auto object = core->emission.instance(frameDriver(*core).componentIncarnations().object(core->r[7]));
+  PacketCollector::Scope packets(frameDriver(*core).packetCollector());
   runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kModelDraw);
+  packets.save(*core);
 }
 
 void meshFaceEmit(Core *core) {
-  const std::uint32_t packets = core->r[4];
-  const std::uint32_t faceList = core->r[6];
-  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kMeshFaceEmit);
+  FaceCall call = readFaceCall(*core);
+  GuestFaceSink sink(*core, call.packets, call.globals.otBase);
+  projectFaces(*core, FaceInputs{call.list, call.vertices, call.globals.zBias, call.globals.zLimit}, sink);
+  call.linked = sink.linked();
+  // The body ends on the count that terminated the list, in both result registers.
+  core->r[2] = kFaceListEnd;
+  core->r[3] = kFaceListEnd;
   // Only FUN_80019A60 calls this; without its scope there is no object to name faces of.
   if (!core->emission.isOpen()) {
     return;
   }
-  const std::uint32_t faces = meshFaceCount(*core, faceList);
+  const std::uint32_t faceList = core->r[6];
+  const std::uint32_t faces = faceCount(call.list);
   if (faces > kFaceIndexLimit) {
     lucent::error("crashbash-render",
                   "face list 0x{:08X} has {} faces; elements name at most {}",
@@ -36,22 +46,12 @@ void meshFaceEmit(Core *core) {
   }
   for (std::uint32_t face = 0; face < faces; ++face) {
     const auto element = core->emission.element(meshFaceElement(faceList, face));
-    core->emission.bindPacket(packets + face * kFacePacketBytes);
+    core->emission.bindPacket(call.packets + face * kFacePacketBytes);
   }
+  frameDriver(*core).packetCollector().noteFaces(std::move(call));
 }
 
 } // namespace
-
-std::uint32_t meshFaceCount(Core &core, std::uint32_t faceList) {
-  std::uint32_t faces = 0;
-  for (std::uint32_t strip = faceList;; strip += 2u) {
-    const std::uint32_t count = core.mem_r8(strip + 1u);
-    if (count == 0xFFu) {
-      return faces;
-    }
-    faces += count;
-  }
-}
 
 void registerModelFaceProducer(Core &core) {
   runtime::registerNativeOverride(core,
