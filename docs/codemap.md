@@ -14,9 +14,9 @@ reusable; this title owns Crash Bash's game-flow interpretation of it.
 
 | Directory | Namespace | Files | One-line responsibility |
 | --- | --- | --- | --- |
-| `game/entry/` | — (process entry) | `player_entry.cpp` | `main`: read the executable, install `TitleAdapter`, bind the per-Core devices, enter psxport's native boot/frame loop. Nothing else; it composes, it does not implement. |
+| `game/entry/` | `crashbash` | `crashbash_catalog.{h,cpp}` | `createCatalog`: the title's `TitleIdentity` and its `TitleAdapter` in psxport's `SingleTitleCatalog`. The entry is the framework main (`psxport_add_product`); `ProductHost` boots the title directly, with no selector. |
 | `game/execution/` | `crashbash`, `crashbash::runtime` | `title_adapter.{h,cpp}`, `guest_execution.{h,cpp}`, `image_identity_state.{h,cpp}`, `native_owner_set.{h,cpp}`, `image_content_identity.h`, `executable_identity.h.in`, `module_image_identity.h.in` | The typed psxport boundary: `TitleAdapter` (the `GameRuntime` the framework drives), `GuestExecution` (per-Core title context: override registrations, authenticated image bindings, original calls), `ImageIdentityState` (those bindings in a save state), `NativeOwnerSet` (the complete installation list), and the CMake-derived identity metadata. |
-| `game/boot/` | `crashbash` | `crashbash_boot.{h,cpp}`, `boot_object_callbacks.{h,cpp}`, `boot_logo_skip.{h,cpp}`, `memory_card_startup.{h,cpp}`, `resident_image.{h,cpp}`, `boot_image.{h,cpp}`, `menu_image.{h,cpp}`, `authenticated_module_image.{h,cpp}`, `nested_module_image.{h,cpp}` | Everything that runs once at power-on: the finite retail boot prefix, the BOOT overlay's object callbacks and logo controller, BIOS memory-card startup, and the authenticated publication of the resident executable, BOOT and MENU (plus `NestedModuleImage` for the five overlays that reuse MENU's load slot). |
+| `game/boot/` | `crashbash` | `crashbash_boot.{h,cpp}`, `boot_object_callbacks.{h,cpp}`, `boot_logo_skip.{h,cpp}`, `memory_card_startup.{h,cpp}`, `boot_image.{h,cpp}`, `menu_image.{h,cpp}`, `authenticated_module_image.{h,cpp}`, `nested_module_image.{h,cpp}` | Everything that runs once at power-on: the finite retail boot prefix, the BOOT overlay's object callbacks and logo controller, BIOS memory-card startup, and the authenticated publication of the resident executable, BOOT and MENU (plus `NestedModuleImage` for the five overlays that reuse MENU's load slot). |
 | `game/disc/` | `crashbash` | `cd_startup.{h,cpp}`, `cd_license_startup.{h,cpp}`, `cd_file_read.{h,cpp}`, `loading_card_skip.{h,cpp}` | The disc: the measured SCUS_945.70 startup handshake, licence startup, the synchronous file read that also retires authenticated images per sector write, the load-pump drain, and the retirement of the loading-card presentation at its two measured call sites. |
 | `game/frame/` | `crashbash` | `crashbash_frame_driver.{h,cpp}`, `frame_cut.{h,cpp}`, `display_frame.{h,cpp}`, `gpu_timeout.{h,cpp}`, `measured_guest_call.h` | The frame turn: `CrashBashFrameDriver` owns one measured input→audio→simulation→render→present order, the single presentation commit, the Polar Push `polarContactCensus`, the render `componentIncarnations`, and `FrameCut` (whether the record it seals is a cut, from the guest's process state, scene and menu screen); `registerDisplayFrameOverride` is the guest's own frame call it is invoked from; `registerGpuTimeoutOverrides` is the synchronous GPU timeout/transfer; `measuredGuestCall` is the one way a native owner calls a guest body. |
 | `game/input/` | `crashbash`, `crashbash::input` | `crashbash_input_phase.{h,cpp}`, `crashbash_touch_controls.{h,cpp}` | `InputPhase` (which screen is taking input — the key a `.pad` recording is keyed on) and `CrashBashTouchControls` (the authored landscape touch overlay for Android). |
@@ -35,8 +35,9 @@ Each chain names the class and the method at every hop. `psxport:` marks a frame
 
 ### The frame turn
 
-`main` (`game/entry/player_entry.cpp`) → `psxport_install_game(runtime)` → `psxport:native_boot_run(core)`
-→ `psxport:FrameLoopShell::prepareProduct` → the loop's `psxport:FrameLoopShell::step(core, frame)` →
+`psxport:ProductHost::run` over the one-title catalog from `createCatalog` (`psxport:SingleTitleCatalog`) → `psxport:TitleSession::boot` (`TitleAdapter::admitExecutable`,
+the device binds, `TitleAdapter::registerOverrides`, `psxport:FrameLoopShell::prepareProduct`, crt0,
+`TitleAdapter::bootInit`) → `psxport:TitleSession::step` → `psxport:FrameLoopShell::step(core, frame)` →
 **`CrashBashFrameDriver::stepFrame`** (the title's single frame owner) → the guest process state's
 update/present pair → the guest's own `DisplayFrame` override →
 `CrashBashFrameDriver::deliverDisplayFields` → back at the driver tail, one
@@ -52,13 +53,13 @@ advances once, which `FrameLoopShell::step` asserts.
   `measuredGuestCall`, and each of those is a bounded executor exit the driver resumes itself; a
   guest call needing more than one display field is resumed by
   `crashbash::runtime::runGuestCallToReturn` under the `kGuestCallTurnCap` fence. Host input is not
-  re-pumped here because `Game::pad.serviceFrame()` already ran at the top of `stepFrame` and
+  re-pumped here because `psx::frame::LogicFrame::begin` already serviced the pad at the top of `stepFrame` and
   psxport's `Pad::pollHostInput` is the single host pump.
 
 ### Host input → guest pad buffer
 
 `psxport:psx::input::HostInput` (the SDL/gamepad mask) → `psxport:Pad::pollHostInput` (the one host
-pump) → `psxport:Pad::serviceFrame` at the top of `CrashBashFrameDriver::stepFrame`, which resolves
+pump) → `psxport:Pad::serviceFrame`, called by `psx::frame::LogicFrame::begin` at the top of `CrashBashFrameDriver::stepFrame`, which resolves
 forced / REPL / replay input and records or replays the frame → `psxport:Pad::fillBuffer` writes the
 standard digital packet into the guest's VBlank slot.
 
@@ -235,11 +236,11 @@ switch. The frame-time `audio` slot is 0.00 by construction (see the frame turn 
 
 ### The debug / control channel
 
-`psxport:DbgServer` (loopback TCP, started by `psxport:native_boot_run`; always on unless the port is
+`psxport:DbgServer` (loopback TCP, started by `psxport:TitleSession::boot`; always on unless the port is
 taken) → `handleCommand`: framework commands first (`r/w/regs/press/shot/dumpram/step/play/state/
 session/frame`), then `GameRuntime::controlCommand` → `TitleAdapter::controlCommand` →
 `crashbash::debug::DevArena::handle`. Run-end execution numbers are psxport's
-(`logRunEndLedger`) plus this title's guest-call turn cap (`reportGuestCallTurnCap`). A guest call the
+(`RunEndReport`) plus this title's guest-call turn cap (`TitleAdapter::reportRun` → `reportGuestCallTurnCap`). A guest call the
 runtime refuses is the product's one refusal route: the reason is logged and the process aborts.
 
 ## Placement rules for new work

@@ -63,17 +63,17 @@ void test_invalid_executable_does_not_publish_or_mutate_guest_state() {
   core.r[29] = 0x200u;
   core.mem_w32(0x10000u, 0x12345678u);
   const std::vector<std::uint8_t> invalid(crashbash::identity::kExecutableBytes, 0u);
-  const auto result = runtime.loadExecutable(core, invalid);
+  const auto result = runtime.admitExecutable(core, invalid);
   CHECK(!result);
-  CHECK(result.detail.find("SHA-256") != std::string::npos);
+  CHECK(!result.detail.empty());
   CHECK_EQ(core.pc, 0x100u);
   CHECK_EQ(core.r[29], 0x200u);
   CHECK_EQ(core.mem_r32(0x10000u), 0x12345678u);
   CHECK_EQ(core.imageCatalog().activeCount(), 0u);
   CHECK(!context(core).activeKey(crashbash::runtime::GuestImage::Resident, 0x80010000u));
-  CHECK(!runtime.loadExecutable(core, {}));
+  CHECK(!runtime.admitExecutable(core, {}));
   crashbash::TitleAdapter other;
-  CHECK(other.loadExecutable(core, invalid).detail.find("Core context") != std::string::npos);
+  CHECK(other.admitExecutable(core, invalid).detail.find("Core context") != std::string::npos);
 }
 
 void argumentSum(Core *core) {
@@ -101,7 +101,7 @@ void test_authenticated_retail_image_loads_and_corruption_preserves_prior_reside
   auto game = makeGame();
   Core &core = game->core;
   runtime.registerOverrides(*game);
-  const auto loaded = runtime.loadExecutable(core, retailBytes);
+  const auto loaded = runtime.admitExecutable(core, retailBytes);
   CHECK(loaded);
   CHECK_EQ(core.pc, runtime.guestProgramImage()->crt0Entry);
   CHECK_EQ(core.r[29], 0x801FFFF0u);
@@ -111,13 +111,13 @@ void test_authenticated_retail_image_loads_and_corruption_preserves_prior_reside
   CHECK(core.nativeDispatcher().isInstalled(*key));
   const auto priorWord = core.mem_r32(loaded.image.textAddress);
   auto corrupted = retailBytes;
-  corrupted.back() ^= 1u;
-  CHECK(!runtime.loadExecutable(core, corrupted));
+  corrupted.front() ^= 1u;
+  CHECK(!runtime.admitExecutable(core, corrupted));
   CHECK_EQ(core.mem_r32(loaded.image.textAddress), priorWord);
   CHECK(core.currentImageIdentity(loaded.image.textAddress) == *loaded.identity);
   CHECK(!core.currentImageIdentity(crashbash::boot_image::kLoadAddress));
   CHECK(core.nativeDispatcher().isInstalled(*key));
-  const auto reloaded = runtime.loadExecutable(core, retailBytes);
+  const auto reloaded = runtime.admitExecutable(core, retailBytes);
   CHECK(reloaded);
   CHECK(*reloaded.identity != *loaded.identity);
   CHECK_EQ(core.imageCatalog().activeCount(), 1u);

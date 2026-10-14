@@ -328,16 +328,15 @@ bool originalStillMapped(Core &core, std::uint32_t entry, const psx::cpu::Native
   return false;
 }
 
-void reportGuestCallTurnCap(Core &core, std::string_view why) {
+void reportGuestCallTurnCap(Core &core) {
   const std::uint32_t deepest = core.guestCallCensus().deepestTurns();
   if (deepest == 0u) {
     return;
   }
   lucent::info("crashbash-guest",
-               "run-end ({}): this title's guest-call cap is {} display field(s) (psxport's default is "
+               "run-end: this title's guest-call cap is {} display field(s) (psxport's default is "
                "{}, which is below this title's measured worst case); the deepest call this run measured "
                "needed {} host turn(s)",
-               why,
                kTitleCallTurnCap,
                psx::cpu::kDefaultCallTurns,
                deepest);

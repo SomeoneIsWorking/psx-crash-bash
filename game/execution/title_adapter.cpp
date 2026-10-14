@@ -13,7 +13,7 @@
 #include "memcard.h"
 #include "native_owner_set.h"
 #include "platform_hle.h"
-#include "resident_image.h"
+#include "psx_exe_image.h"
 
 #include <lucent/content.h>
 #include <lucent/log.h>
@@ -60,12 +60,13 @@ constexpr GuestPacketPoolWindows kPacketPoolWindows{
 
 } // namespace
 
-psx::cpu::PsxExeLoadResult TitleAdapter::loadExecutable(Core &core, std::span<const std::uint8_t> bytes) {
+psx::cpu::PsxExeLoadResult TitleAdapter::admitExecutable(Core &core, std::span<const std::uint8_t> bytes) {
   if (core.runtime != this || !core.gameCtx) {
-    return {std::nullopt, {}, "Crash Bash executable load requires this title's Core context"};
+    return {std::nullopt, {}, "Crash Bash executable admission requires this title's Core context"};
   }
   auto &execution = *static_cast<runtime::GuestExecution *>(core.gameCtx);
-  auto result = loadResidentImage(core, bytes);
+  // The host authenticated these bytes against the catalog identity before the session admitted them.
+  auto result = psx::cpu::loadPsxExeImage(core, bytes, "crashbash-usa-resident");
   if (result) {
     // The header text size includes BSS and heap tail; only the pre-BSS interval is code.
     runtime::retireAuthenticatedImagesForWrite(core, result.image.physicalText);
@@ -92,10 +93,6 @@ const PlatformHlePlan *TitleAdapter::platformHlePlan() const {
 // declared as live pointer pairs; the producer census attributes pool packets to their submitters through them.
 const GuestPacketPoolWindows *TitleAdapter::guestPacketPoolWindows() const {
   return &kPacketPoolWindows;
-}
-
-const char *TitleAdapter::discEnvVar() const {
-  return "PSXPORT_CRASHBASH_DISC";
 }
 
 psx::state::NativeStatePort *TitleAdapter::nativeState(Core &core) const {
@@ -168,6 +165,10 @@ bool TitleAdapter::replCommand(Core &core, const char *cmd, const char *line) {
 
 std::unique_ptr<FrameDriver> TitleAdapter::createFrameDriver(Game &game) {
   return std::make_unique<CrashBashFrameDriver>(game);
+}
+
+void TitleAdapter::reportRun(Core &core) const {
+  runtime::reportGuestCallTurnCap(core);
 }
 
 } // namespace crashbash

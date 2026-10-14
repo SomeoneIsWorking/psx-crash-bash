@@ -224,10 +224,10 @@ identity/generation, and complete physical range; registration publication and o
 mismatched residency. Original calls use shared scoped suppression, and replacement or unbind removes
 the old generation's native keys. The context owns no independent guest image catalog.
 
-`game/entry/player_entry.cpp` composes `TitleAdapter` with the heap-owned `Game`, authenticates the
-resident executable against `titles/crashbash/executable.json`, binds per-Core hardware owners, and
-enters `native_boot_run`. Failed authentication preserves guest state; successful replacement retires
-the prior resident generation.
+`game/entry/crashbash_catalog.cpp` is a one-title catalog for psxport's `ProductHost`, which boots it
+through `TitleSession`. The host authenticates the executable against the catalog identity (built from
+`titles/crashbash/executable.json`) before `TitleAdapter::admitExecutable` maps it. A refused
+admission preserves guest state; successful replacement retires the prior resident generation.
 
 Gap: qualify all 27 installations and 11 original calls on real loaded-image and gameplay routes. The
 shared memory-card path also needs OS user-data configuration; its scratch fallback is not a

@@ -22,8 +22,11 @@ file(READ "${CMAKE_CURRENT_SOURCE_DIR}/titles/crashbash/executable.json" CRASHBA
 string(JSON CRASHBASH_EXECUTABLE_SHA256 GET "${CRASHBASH_EXECUTABLE_MANIFEST}" sha256)
 string(JSON CRASHBASH_EXECUTABLE_SIZE GET "${CRASHBASH_EXECUTABLE_MANIFEST}" file_size)
 string(JSON CRASHBASH_EXECUTABLE_ENTRY GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header entry)
+string(JSON CRASHBASH_EXECUTABLE_GP GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header gp)
 string(JSON CRASHBASH_EXECUTABLE_TEXT GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header text_address)
 string(JSON CRASHBASH_EXECUTABLE_TEXT_SIZE GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header text_size)
+string(JSON CRASHBASH_EXECUTABLE_STACK GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header stack_address)
+string(JSON CRASHBASH_EXECUTABLE_STACK_OFFSET GET "${CRASHBASH_EXECUTABLE_MANIFEST}" header stack_offset)
 configure_file(game/execution/executable_identity.h.in title_metadata/executable_identity.h @ONLY)
 
 function(configure_crashbash_module_identity module_name)
@@ -91,7 +94,6 @@ set(CRASHBASH_SEAM_SOURCES
   game/boot/menu_image.cpp
   game/execution/native_owner_set.cpp
   game/execution/title_adapter.cpp
-  game/boot/resident_image.cpp
   game/gameplay/polar_push_contact.cpp
   game/input/crashbash_touch_controls.cpp
   game/render/model_face_producer.cpp
@@ -150,10 +152,15 @@ target_include_directories(crashbash_seam PRIVATE ${CRASHBASH_TITLE_INCLUDE_DIRS
 target_link_libraries(crashbash_seam PUBLIC crashbash_guest_execution)
 add_custom_target(crashbash_scaffold DEPENDS crashbash_seam psxport)
 
-add_executable(crashbash_port game/entry/player_entry.cpp $<TARGET_OBJECTS:crashbash_seam>)
+psxport_add_product(
+  crashbash_port
+  CATALOG crashbash::createCatalog
+  HEADER crashbash_catalog.h
+  SOURCES game/entry/crashbash_catalog.cpp $<TARGET_OBJECTS:crashbash_seam>
+  LIBRARIES crashbash_guest_execution
+)
 target_include_directories(crashbash_port PRIVATE ${CRASHBASH_TITLE_INCLUDE_DIRS}
                            "${CMAKE_CURRENT_BINARY_DIR}/title_metadata")
-target_link_libraries(crashbash_port PRIVATE crashbash_guest_execution psxport)
 set_target_properties(
   crashbash_port
   PROPERTIES
@@ -162,6 +169,8 @@ set_target_properties(
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 if(BUILD_TESTING)
+  add_test(NAME crashbash_product_help COMMAND $<TARGET_FILE:crashbash_port> --help)
+  set_tests_properties(crashbash_product_help PROPERTIES PASS_REGULAR_EXPRESSION "Crash Bash \\(SCUS_945\\.70\\)")
   add_executable(crashbash_title_adapter_test tests/test_title_adapter.cpp)
   target_include_directories(crashbash_title_adapter_test PRIVATE ${CRASHBASH_TITLE_INCLUDE_DIRS} "${PSXPORT_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}/title_metadata")
   target_link_libraries(crashbash_title_adapter_test PRIVATE crashbash_seam)

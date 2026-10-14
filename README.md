@@ -13,8 +13,9 @@ The native title adapter authenticates and loads the resident executable, instal
 image-qualified native owners, and selects the record path with keyed 60 fps in-betweens. Its 5
 original-body calls enter psxport's generation-aware dispatcher and scoped original-call boundary.
 
-`crashbash_port` is the real executable entry: it authenticates the resident image, creates the
-per-Core title runtime, binds hardware owners, and enters psxport's native boot/frame loop.
+`crashbash_port` is psxport's framework `main` over a one-title catalog: `psx::host::ProductHost`
+boots Crash Bash directly, authenticates its executable against the catalog identity, and the title's
+`admitExecutable` publishes the resident image.
 
 ## Player input and provisioning
 

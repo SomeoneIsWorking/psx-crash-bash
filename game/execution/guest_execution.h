@@ -136,7 +136,7 @@ std::uint32_t runGuestCallToReturn(Core &core,
                                    const std::optional<psx::cpu::NativeKey> &original);
 
 // Prints the title's turn cap beside psxport's guest-call census line.
-void reportGuestCallTurnCap(Core &core, std::string_view why);
+void reportGuestCallTurnCap(Core &core);
 
 // Runs the guest body of the active override with only that override suppressed, to the return address.
 void callOriginal(Core &core, GuestImage image, std::uint32_t address);

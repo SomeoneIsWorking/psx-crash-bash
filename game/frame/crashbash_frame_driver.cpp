@@ -7,6 +7,7 @@
 #include "execution_services.h"
 #include "game.h"
 #include "guest_execution.h"
+#include "logic_frame.h"
 #include "measured_guest_call.h"
 #include "snapshot.h"
 
@@ -81,10 +82,8 @@ void CrashBashFrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   devPause_.applyArmed(core, game_.pad, frame);
   // Per-frame profiler (`PSXPORT_DEBUG=perf`).
   game_.perf.frameBegin();
-  game_.timing.logicFrame = frame;
   game_.timing.frameTick();
-  core.rsub.otAttr.beginLogicFrame(frame);
-  game_.pad.serviceFrame();
+  psx::frame::LogicFrame::begin(game_, frame);
   deliveredFields_ = 0;
   // Above is host-side per-tick work; below is the guest tick and present.
   game_.perf.markPre();
