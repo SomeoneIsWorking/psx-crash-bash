@@ -42,7 +42,7 @@ std::array<std::uint32_t, kPacketWords> packetWords(const psx::present::HostMemo
 
 void emitLeaf(Core &core, const LeafCall &call, std::vector<Emission> &out) {
   if (call.hasControl != 0u) {
-    psx::present::writeGteControl(call.control);
+    psx::present::writeGteControl(core.gte(), call.control);
   }
   psx::present::HostMemory host;
   host.zero(kHostPacket, kPacketWords * kWordBytes);

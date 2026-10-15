@@ -156,7 +156,7 @@ void loadScene(Core &core, std::uint32_t buffer, const ScenePose &pose = {}) {
   crashbash::test::OrderingTableModel(core).begin();
   writeVertices(core, pose.shift, pose.culled);
   writePackets(core, buffer);
-  crashbash::test::setCamera(pose.cameraX);
+  crashbash::test::setCamera(core, pose.cameraX);
 }
 
 // Calls `address` with a0..a3.
@@ -312,7 +312,7 @@ public:
     for (std::uint32_t word = 0; word < 14u; ++word) {
       core.mem_w32(kVertices + word * 4u, 0xA5A5A5A5u);
     }
-    crashbash::test::setCamera(0x1234);
+    crashbash::test::setCamera(core, 0x1234);
   }
 
   std::unique_ptr<crashbash::test::TitleGame> game;
@@ -488,5 +488,5 @@ int main() {
   RUN(a_packet_unlinked_after_its_scope_is_not_saved);
   RUN(a_face_linked_in_the_other_table_is_not_saved);
   RUN(the_boot_scratch_draw_keys_each_entry_and_keeps_it_across_frames);
-  return pt_summary();
+  return psx::test::summary();
 }

@@ -40,5 +40,5 @@ void test_a_base_outside_the_walked_table_is_left_alone() {
 int main() {
   RUN(the_base_moves_to_the_same_slice_of_the_next_table);
   RUN(a_base_outside_the_walked_table_is_left_alone);
-  return pt_summary();
+  return psx::test::summary();
 }

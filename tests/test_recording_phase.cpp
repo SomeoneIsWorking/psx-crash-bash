@@ -65,5 +65,5 @@ int main() {
   RUN(addresses_are_the_guest_facts);
   RUN(reads_the_two_scene_records);
   RUN(halves_do_not_alias_and_the_reserved_key_is_unreachable);
-  return pt_summary();
+  return psx::test::summary();
 }

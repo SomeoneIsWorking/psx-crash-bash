@@ -151,5 +151,5 @@ int main() {
   RUN(confirm_presses_cross_and_an_unknown_word_is_usage);
   RUN(open_is_refused_when_already_open);
   RUN(the_title_command_arms_the_session_request);
-  return pt_summary();
+  return psx::test::summary();
 }

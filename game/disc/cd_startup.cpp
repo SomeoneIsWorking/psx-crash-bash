@@ -13,8 +13,8 @@ namespace {
 
 void cdDriveReadyOwned(Core *core) {
   // Retail 0x800349AC waits in VSync(30) retries for GetTN readiness; a parsed non-empty CHD TOC is the host's proof.
-  DiscState &disc = core->game->disc;
-  core->r[2] = disc_open(&disc) && disc.track_count != 0u ? 2u : 5u;
+  psx::cd::Disc &disc = core->game->disc;
+  core->r[2] = disc.open() && disc.track_count != 0u ? 2u : 5u;
 }
 
 void cdInitHandshakeOwned(Core *core) {

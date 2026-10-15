@@ -154,7 +154,8 @@ class ProductWorkflowTest(unittest.TestCase):
         python_commands = [
             command for command in commands if command[0] == sys.executable
         ]
-        self.assertEqual(len(python_commands), 2)
+        self.assertEqual(len(python_commands), 1)
+        self.assertNotIn(bootstrap.FRAMEWORK_FETCH, commands)
         product_build = [
             command
             for command in commands

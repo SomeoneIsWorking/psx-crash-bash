@@ -32,7 +32,8 @@ constexpr std::uint32_t kObjectUpdate = 0x8008BB48u;
 
 // MIPS div plus the retail break checks for a zero divisor and INT_MIN / -1.
 std::int32_t guestDiv(Core &core, std::int32_t numerator, std::int32_t divisor) {
-  cpu_div(&core, static_cast<std::uint32_t>(numerator), static_cast<std::uint32_t>(divisor));
+  psx::cpu::divide(
+      &core, {.numerator = static_cast<std::uint32_t>(numerator), .denominator = static_cast<std::uint32_t>(divisor)});
   if (divisor == 0) {
     psx::cpu::handleBreak(core, 7168u);
   } else if (divisor == -1 && numerator == INT32_MIN) {

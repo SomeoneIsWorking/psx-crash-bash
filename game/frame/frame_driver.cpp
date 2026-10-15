@@ -7,7 +7,6 @@
 #include "game.h"
 #include "logic_frame.h"
 #include "runtime/session.h"
-#include "snapshot.h"
 #include "title/guest.h"
 
 #include <cstdlib>
@@ -133,11 +132,11 @@ void FrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   }
 
   reportProgress(core, frame);
-  snapshot_tick(&core);
+  core.game->snapshots.tick(core);
   game_.perf.phaseEnd(GpuPerf::Phase::GameLogic);
   game_.perf.phaseBegin(GpuPerf::Phase::Present);
   if (deliveredFields_ == 0) {
-    game_.presentation.commitUnpresented(&core);
+    game_.presentation.commitUnpresented();
   } else {
     title.frameCut.noteFrameEnded(core);
     game_.presentation.commit(&core, static_cast<int>(deliveredFields_));

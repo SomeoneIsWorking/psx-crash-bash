@@ -164,5 +164,5 @@ int main(int argc, char **argv) {
   } else if (argc != 1) {
     return 2;
   }
-  return pt_summary();
+  return psx::test::summary();
 }

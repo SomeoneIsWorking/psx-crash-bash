@@ -36,24 +36,23 @@ constexpr std::array<std::uint8_t, 69> kSystemCnf = {
     'C', 'K',  ' ',  '=', ' ', '8', '0', '1', 'F', 'F',  'F',  '0',  '0', '\r', '\n',
 };
 
-bool hasMeasuredDiscLayout(DiscState &disc) {
-  if (!disc_open(&disc) || disc.track_count != 1u) {
+bool hasMeasuredDiscLayout(psx::cd::Disc &disc) {
+  if (!disc.open() || disc.track_count != 1u) {
     return false;
   }
-  const DiscTrackInfo &track = disc.tracks[0];
+  const psx::cd::DiscTrackInfo &track = disc.tracks[0];
   if (track.number != 1u || track.lba != 0 || track.sectors != guest::kDiscTrackSectors || track.pregap != 150 ||
       track.pregap_dv != 0 || track.postgap != 0) {
     return false;
   }
   for (const DiscFileFact &fact : kDiscFiles) {
-    std::uint32_t lba = 0;
-    std::uint32_t size = 0;
-    if (!disc_find_file(&disc, fact.path, &lba, &size) || lba != fact.lba || size != fact.size) {
+    const std::optional<psx::cd::DiscFile> file = disc.findFile(fact.path);
+    if (!file || file->lba != fact.lba || file->size != fact.size) {
       return false;
     }
   }
   std::array<std::uint8_t, 2048> sector{};
-  if (!disc_read_sector(&disc, kDiscFiles[1].lba, sector.data())) {
+  if (!disc.readSector(kDiscFiles[1].lba, sector.data())) {
     return false;
   }
   return std::equal(kSystemCnf.begin(), kSystemCnf.end(), sector.begin());
@@ -67,7 +66,7 @@ void cdLicenseStartupOwned(Core *core) {
     return;
   }
 
-  DiscState &disc = core->game->disc;
+  psx::cd::Disc &disc = core->game->disc;
   // Provisioning already authenticated the executable and modules; a medium of another layout is a host
   // refusal, never the failure renderer.
   if (!hasMeasuredDiscLayout(disc)) {

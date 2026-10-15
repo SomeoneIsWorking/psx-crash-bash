@@ -92,7 +92,7 @@ void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
   const std::uint32_t waited = frame - request_.firstFrame;
 
   if (request_.action == Action::Press) {
-    pad.driveTap(request_.button, kPressFrames);
+    pad.driveTap({.activeLowMask = request_.button, .frames = kPressFrames});
     lucent::info("crashbash-pause", "pause {} pressed at f{}", request_.word, frame);
     request_ = Request{};
     return;
@@ -118,7 +118,7 @@ void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
     return;
   }
   if (modeSceneIsCurrent(core) && waited % kPressStride == 0) {
-    pad.driveTap(kStartPressed, kPressFrames);
+    pad.driveTap({.activeLowMask = kStartPressed, .frames = kPressFrames});
     lucent::info("crashbash-pause", "pause open: Start pressed at f{}", frame);
   }
 }

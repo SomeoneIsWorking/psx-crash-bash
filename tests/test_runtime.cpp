@@ -33,7 +33,6 @@ void test_overrides_bind_stock_libraries_and_the_card_device() {
   CHECK(&game->core().runtime == &game->runtime());
   CHECK(dynamic_cast<crashbash::Session *>(game->game().sessionState.get()) != nullptr);
   CHECK(dynamic_cast<crashbash::FrameDriver *>(game->game().frameDriver.get()) != nullptr);
-  CHECK(game->runtime().guestVramIsPicture(game->game()));
   CHECK(game->runtime().interpolates());
   game->runtime().registerOverrides(game->game());
   CHECK(game->game().cd.stockLibrary() != nullptr);
@@ -70,7 +69,7 @@ void test_packet_pool_reads_both_parity_pools_live() {
   CHECK(pool->contains(0x80100010u));
   CHECK(pool->contains(0x80110010u));
   CHECK(!pool->contains(0x80108000u));
-  CHECK(pool->readFrom(0x8006379Cu, 4u));
+  CHECK(pool->readFrom({0x8006379Cu, 4u}));
 }
 
 void test_invalid_executable_does_not_publish_or_mutate_guest_state() {
@@ -175,5 +174,5 @@ int main(int argc, char **argv) {
   } else if (argc != 1) {
     return 2;
   }
-  return pt_summary();
+  return psx::test::summary();
 }

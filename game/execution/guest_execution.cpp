@@ -343,7 +343,7 @@ std::uint32_t runGuestCallToReturn(Core &core,
                                    std::string_view owner,
                                    const std::optional<psx::cpu::NativeKey> &original) {
   psx::cpu::ResumableGuestCall call;
-  call.begin(core, owner, entry, returnPc, kTitleCallTurnCap);
+  call.begin(core, owner, psx::cpu::GuestCallSite{entry, returnPc}, kTitleCallTurnCap);
   for (;;) {
     if (original && call.turns() > 0u && !originalStillMapped(core, entry, *original, owner)) {
       return 0u;

@@ -150,7 +150,7 @@ Crush; Tournament is the same mode screen with one more Down and its own flow ta
 component the guest re-initialises in place (a briefing page flip, a pooled slot handed out again) keys
 as a new object. `FrameCut`
 declares a cut when the process state, scene (`0x8009F658`) or menu screen (`0x8009F8A4`) changed.
-`FramePresenter` presents `keyedBlend(N-1, N, 0.5)` then N per logic frame with `fps60` on.
+`FramePresenter` presents the in-between (each producer's render at t = 0.5 on the shown record) then N per logic frame with `fps60` on.
 
 Evidence (2026-10-07): census over Polar Push to f1370 keyed 1,554,644 of 1,618,751 primitives, every
 remaining one under the menu/UI present `0x80010278` or the LOADING card; live-match frames 1,804 of
@@ -279,7 +279,7 @@ Gap: nothing mechanical excludes their return since `tools/source_policy.py` was
 
 `.github/workflows/ci.yml` configures a Linux x86-64 native adapter job with full history, read-only
 permissions, pinned actions, and an explicit timeout. It resolves the framework with
-`tools/psxport_fetch.py` (a clone of psxport `main` in CI, which has no sibling checkout), uses that
+psxport's `tools/psxport_fetch.py` run from psxport `main` (a clone in CI, which has no sibling checkout), uses that
 checkout's shared Linux setup action, and runs `tools/verify.py`. The thin title verifier selects the
 real `crashbash_runtime_test` artifact and every `crashbash_` CTest; shared `ConsumerVerifier`
 owns build, style/test execution, and linked execution-boundary checks.

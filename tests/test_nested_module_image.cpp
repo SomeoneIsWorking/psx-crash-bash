@@ -210,5 +210,5 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "usage: %s [DAT28272.BIN DAT28136.BIN]\n", argv[0]);
     return 2;
   }
-  return pt_summary();
+  return psx::test::summary();
 }

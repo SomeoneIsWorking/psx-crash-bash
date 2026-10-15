@@ -234,7 +234,7 @@ def _load_psx_executable_parser(psxport: pathlib.Path):
     if not module_path.is_file():
         raise Refused(
             f"cannot find psxport PS-X EXE loader at {module_path}; "
-            "run tools/psxport_fetch.py --auto or set PSXPORT_DIR"
+            "run ./run.sh once to fetch it, or set PSXPORT_DIR"
         )
     spec = importlib.util.spec_from_file_location(
         "crashbash_psxport_psx_exe", module_path

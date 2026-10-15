@@ -5,15 +5,9 @@
 
 namespace {
 
-void test_record_path_with_interpolation_is_the_only_picture() {
+void test_the_record_path_is_interpolated() {
   const crashbash::Runtime runtime;
-  const RenderCapabilities capabilities = runtime.renderCapabilities();
-  CHECK(capabilities.defaultPath == RenderPath::Record);
   CHECK(runtime.interpolates());
-  CHECK(!capabilities.nativeRenderPath);
-  CHECK(!capabilities.supports(RenderPath::Native));
-  CHECK(render_path_resolve(RenderPath::Native, capabilities) == RenderPath::Record);
-  CHECK(render_path_resolve(RenderPath::Record, capabilities) == RenderPath::Record);
 }
 
 void test_widescreen_widens_the_record_canvas_only_when_asked() {
@@ -21,7 +15,7 @@ void test_widescreen_widens_the_record_canvas_only_when_asked() {
   CHECK(runtime.guestWidescreenProjection() != nullptr);
   // The 512-wide gameplay display: 86 columns per side at 16:9, none at 4:3.
   const auto plan = [](PresentationAspect aspect) {
-    return guest_projection_plan({
+    return psx::present::guestProjectionPlan({
         .path = RenderPath::Record,
         .requested = aspect,
         .nativePresentation = {512, 234},
@@ -43,7 +37,7 @@ void test_widescreen_widens_the_record_canvas_only_when_asked() {
 } // namespace
 
 int main() {
-  RUN(record_path_with_interpolation_is_the_only_picture);
+  RUN(the_record_path_is_interpolated);
   RUN(widescreen_widens_the_record_canvas_only_when_asked);
-  return pt_summary();
+  return psx::test::summary();
 }

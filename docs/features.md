@@ -42,8 +42,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-RENDER.1 | `game/runtime/runtime.cpp:Runtime::renderCapabilities` — Record; guest VRAM is the picture |
-| 2 | psxport F-RENDER.2 | `game/runtime/runtime.cpp:Runtime::packetPool` — live base/end pointers `0x8005F790`/`0x8006379C` and `0x8005F794`/`0x800637A0` |
+| 1 | psxport F-RENDER.2 | `game/runtime/runtime.cpp:Runtime::packetPool` — live base/end pointers `0x8005F790`/`0x8006379C` and `0x8005F794`/`0x800637A0` |
 
 ## F-FPS60
 

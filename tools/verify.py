@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -13,17 +12,10 @@ BUILD = ROOT / "build" / "migration"
 
 
 def main() -> int:
-    bootstrap = subprocess.run(
-        [sys.executable, ROOT / "tools" / "psxport_fetch.py", "--auto"],
-        cwd=ROOT,
-        check=False,
-    )
-    if bootstrap.returncode:
-        return bootstrap.returncode
     framework = Path(os.environ.get("PSXPORT_DIR", ROOT / "external" / "psxport")).resolve()
     shared = framework / "tools" / "port" / "consumer_verify.py"
     if not shared.is_file():
-        print(f"[verify] required shared consumer verifier is missing: {shared}", file=sys.stderr)
+        print(f"[verify] REFUSED: no framework verifier at {shared}; run `uv run --no-project https://raw.githubusercontent.com/SomeoneIsWorking/psxport/main/tools/psxport_fetch.py --auto`", file=sys.stderr)
         return 2
     sys.path.insert(0, str(framework / "tools"))
     from port.consumer_verify import ConsumerVerifyConfig, run_consumer_verification

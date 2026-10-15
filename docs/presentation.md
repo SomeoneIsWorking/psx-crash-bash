@@ -22,8 +22,7 @@ the frame record with the keys → `FrameDriver::stepFrame` notes `FrameCut` and
   (`0x8002992C`, `0x80029D28`, `0x8001A0D8`, via `0x800243A0`/`0x800248A0`) are overridden by
   `registerUiProducers`, whose `ui_producer.cpp:underName` names the element from the call site the leaf returns to.
 - **Real field vs in-between**: with `fps60` on, each logic frame presents the in-between then the record.
-  Every producer below is a state producer and renders its objects from saved state; `keyedBlend` no longer
-  composes any of them. A cut, an incomplete record or a record
+  Every producer below is a state producer and renders its objects from saved state. A cut, an incomplete record or a record
   with no keys is drawn as is.
 - **Widescreen**: `Runtime::guestWidescreenProjection` declares the player's aspect; the record
   canvas adds the margins and the guest's own primitives fill them. The HUD stays where the guest

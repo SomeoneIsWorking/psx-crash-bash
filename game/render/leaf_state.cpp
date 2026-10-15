@@ -60,7 +60,7 @@ LeafCall blendCall(const LeafCall &from, const LeafCall &to, float t) {
     setVertexWord(call,
                   z,
                   (vertexWord(to, z) & 0xFFFF0000u) |
-                      psx::present::lerpHalf(vertexWord(from, z), vertexWord(to, z), 0, t));
+                      psx::present::lerpHalf(vertexWord(from, z), vertexWord(to, z), psx::present::Halfword::Low, t));
   }
   if (to.hasControl != 0u) {
     call.control = psx::present::blendGteControl(from.control, to.control, t);
@@ -147,8 +147,7 @@ void renderLeafState(Core &core,
     earlier = UiState::read(from);
   }
   const bool blend = earlier.items.size() == later.items.size();
-  core.gte().bind();
-  const psx::present::GteGuard guard;
+  const psx::present::GteGuard guard(core.gte());
   std::vector<Emission> drawn;
   for (std::size_t index = 0; index < later.items.size(); ++index) {
     const UiItem &item = later.items[index];

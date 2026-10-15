@@ -385,7 +385,7 @@ public:
   // One Gouraud quad projected through the GTE; the camera moves it.
   psx::present::FrameRecord drawProjectedQuad(int shift) {
     writeCorners({-40, -30}, 400);
-    crashbash::test::setCamera(shift * 8);
+    crashbash::test::setCamera(core(), shift * 8);
     return run(guest::kQuadComponentDraw, {{4u, kComponentA}, {5u, crashbash::render::kDrawn}});
   }
 
@@ -449,7 +449,7 @@ public:
         c.mem_w32(address + word * 4u, 0xA5A5A5A5u);
       }
     }
-    crashbash::test::setCamera(0x1234);
+    crashbash::test::setCamera(c, 0x1234);
   }
 
   Core &core() {
@@ -580,5 +580,5 @@ int main() {
   RUN(the_menu_string_render_draws_the_glyphs_the_guest_linked);
   RUN(the_menu_number_render_draws_the_digits_the_guest_linked);
   RUN(the_menu_number_render_centres_the_digits);
-  return pt_summary();
+  return psx::test::summary();
 }

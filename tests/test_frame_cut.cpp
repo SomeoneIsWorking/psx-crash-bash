@@ -61,5 +61,5 @@ int main() {
   RUN(same_scene_is_not_a_cut);
   RUN(each_scene_word_change_is_a_cut);
   RUN(sample_reads_the_guest_scene_records);
-  return pt_summary();
+  return psx::test::summary();
 }

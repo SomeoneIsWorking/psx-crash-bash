@@ -13,7 +13,7 @@ scratch/
 __pycache__/
 
 # The framework. Not tracked: either a symlink to the workspace shared clone (local) or a
-# clone of its main (fresh machine). Managed by tools/psxport_fetch.py.
+# clone of its main (fresh machine). Made by psxport's tools/psxport_fetch.py.
 /external/
 
 # Android package outputs and locally built native libraries live under the

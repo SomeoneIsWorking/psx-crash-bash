@@ -6,13 +6,12 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 include(CTest)
 
 # PSXPORT_DIR: the framework; external/psxport is a symlink to the live checkout or a clone of main
-# (tools/psxport_fetch.py --auto).
+# (psxport tools/psxport_fetch.py).
 set(PSXPORT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/psxport" CACHE PATH
     "psxport framework source directory (default: external/psxport)")
 if(NOT EXISTS "${PSXPORT_DIR}/cmake/psxport.cmake")
   message(FATAL_ERROR "PSXPORT_DIR=${PSXPORT_DIR} has no cmake/psxport.cmake — run "
-                      "`uv run --frozen python tools/psxport_fetch.py --auto`, or point PSXPORT_DIR "
-                      "at a psxport checkout.")
+                      "./run.sh once to fetch it, or point PSXPORT_DIR at a psxport checkout.")
 endif()
 set(PSXPORT_BUILD_SMOKE OFF CACHE BOOL "Build the framework agnosticism smoke" FORCE)
 add_subdirectory("${PSXPORT_DIR}" psxport_build)
@@ -149,7 +148,7 @@ if(BUILD_TESTING)
   crashbash_add_test(guest_execution tests/test_guest_execution.cpp)
   target_link_libraries(crashbash_guest_execution_test PRIVATE psxport_test_support)
   crashbash_add_test(touch_controls tests/test_touch_controls.cpp)
-  crashbash_add_test(render_capabilities tests/test_render_capabilities.cpp)
+  crashbash_add_test(record_widescreen tests/test_record_widescreen.cpp)
   crashbash_add_test(dev_pause tests/test_dev_pause.cpp)
   crashbash_add_test(frame_cut tests/test_frame_cut.cpp)
   crashbash_add_test(draw_base tests/test_draw_base.cpp)

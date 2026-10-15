@@ -23,6 +23,7 @@ PORT = (
     / ("crashbash_port.exe" if os.name == "nt" else "crashbash_port")
 )
 EXECUTABLE = ROOT / "scratch" / "bin" / "crashbash" / "SCUS_945.70"
+FRAMEWORK_FETCH = ["uv", "run", "--no-project", "https://raw.githubusercontent.com/SomeoneIsWorking/psxport/main/tools/psxport_fetch.py", "--auto"]
 
 COMMAND_CAPABILITIES = {
     "cmake": "cmake",
@@ -328,7 +329,8 @@ def prepare_product(
         environment["PSXPORT_CRASHBASH_DISC"] = str(disc.resolve())
     jobs = str(min(os.cpu_count() or 1, 16))
 
-    runner([sys.executable, "-B", "tools/psxport_fetch.py", "--auto"], environment)
+    if "PSXPORT_DIR" not in environment and not (ROOT / "external/psxport/cmake/psxport.cmake").is_file():
+        runner(FRAMEWORK_FETCH, environment)
     runner(configure_arguments(paths.build), environment)
     runner(
         [

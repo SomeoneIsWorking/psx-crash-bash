@@ -115,7 +115,7 @@ void fillScratchComponent(Core &core, std::uint32_t entry) {
   core.r[3] = static_cast<std::uint32_t>(scale);
   for (std::uint32_t axis = 0; axis < 3u; ++axis) {
     const auto coordinate = static_cast<std::int32_t>(core.mem_r32(row + axis * 4u));
-    guest_mult(&core, scale, coordinate);
+    psx::cpu::multiply(&core, scale, coordinate);
     core.r[7] = core.lo;
     core.mem_w16(component + 0x10u + axis * 2u, static_cast<std::uint16_t>(static_cast<std::int32_t>(core.lo) >> 12));
   }

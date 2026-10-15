@@ -242,7 +242,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
         pad.driveRelease();
         request_.tapped = false;
       }
-      pad.driveTap(kStartPressed, kPressFrames);
+      pad.driveTap({.activeLowMask = kStartPressed, .frames = kPressFrames});
       request_.tapped = true;
       lucent::info(
           "crashbash-arena",
@@ -321,7 +321,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
     core.mem_w8(guest::kArenaCursorIndex, static_cast<std::uint8_t>(request_.index));
     // Screens advance on the game's own accept, a Cross press.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      pad.driveTap(kConfirmPressed, kPressFrames);
+      pad.driveTap({.activeLowMask = kConfirmPressed, .frames = kPressFrames});
     }
     if (core.mem_r32(guest::kArenaSelection) == request_.arena && request_.stage == Stage::AwaitArenaScreen) {
       request_.stage = Stage::AwaitCommit;
@@ -342,7 +342,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
   case Stage::AwaitCommit: {
     // Arena set; the remaining screens advance by the same presses.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      pad.driveTap(kConfirmPressed, kPressFrames);
+      pad.driveTap({.activeLowMask = kConfirmPressed, .frames = kPressFrames});
     }
     const bool leftMenu = screen < guest::kMenuImageBase || screen >= guest::kMenuImageBase + guest::kMenuImageBytes;
     if (leftMenu) {

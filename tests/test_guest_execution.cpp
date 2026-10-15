@@ -333,5 +333,5 @@ int main() {
   RUN(invalid_replacement_preserves_binding_and_cores_are_isolated);
   RUN(restored_identities_replace_the_session_and_keep_their_retired_ranges);
   RUN(image_identity_records_refuse_what_no_title_writes);
-  return pt_summary();
+  return psx::test::summary();
 }

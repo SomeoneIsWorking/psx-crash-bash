@@ -8,8 +8,8 @@ Never commit discs, extracted executables, `.env`, or machine-specific paths. Ru
 `scratch/`, never `/tmp`; build output goes under `build/`.
 
 `external/psxport` is not a git submodule. It is a relative symlink to the workspace's live framework
-checkout when one exists, or a clone of psxport `main` where there is none. `tools/psxport_fetch.py
---auto` establishes that checkout. Framework changes happen in the workspace's psxport, and this title
+checkout when one exists, or a clone of psxport `main` where there is none. psxport's
+`tools/psxport_fetch.py`, run from psxport `main` by `bootstrap.py` and CI, establishes that checkout. Framework changes happen in the workspace's psxport, and this title
 always gates against them as they stand.
 
 ## Product execution contract

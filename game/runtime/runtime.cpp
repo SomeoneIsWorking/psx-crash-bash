@@ -68,7 +68,7 @@ constexpr psx::cd::StockLibcd::Entries kLibcd{
 
 } // namespace
 
-Runtime::Runtime() : libcd_(kLibcd, {}, 0), vsync_(guest::kVSync.begin, 0) {}
+Runtime::Runtime() : libcd_(kLibcd, {}, 0), vsync_({.entry = guest::kVSync.begin}) {}
 
 psx::cpu::PsxExeLoadResult Runtime::admitExecutable(Core &core, std::span<const std::uint8_t> bytes) {
   if (&core.runtime != this) {
@@ -102,7 +102,7 @@ void Runtime::registerOverrides(Game &game) {
   libcd_.bind(game);
   vsync_.bind(game);
   // libmcrd walks the BIOS device table itself; its completion wait never ends without the device install.
-  card_overrides_init(&game);
+  game.memcard.install();
   Core &core = game.core;
   registerCdFileReadOverride(core);
   registerLoadPumpDrainOverride(core);
@@ -144,18 +144,6 @@ bool Runtime::sealedFrameIsCut(Core &core) const {
 
 const GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
   return &aspectPolicy_;
-}
-
-RenderCapabilities Runtime::renderCapabilities() const {
-  // The picture is the guest's GP0 output replayed from the frame record.
-  return RenderCapabilities{
-      .defaultPath = RenderPath::Record,
-      .nativeRenderPath = false,
-  };
-}
-
-bool Runtime::guestVramIsPicture(const Game &) const {
-  return true;
 }
 
 bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) {

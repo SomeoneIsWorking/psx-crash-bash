@@ -7,6 +7,7 @@
 #include "frame_record.h"
 #include "frame_state.h"
 #include "game_runtime.h"
+#include "gpu_ports.h"
 #include "gte_control.h"
 #include "guest_call.h"
 #include "ordering_table.h"
@@ -55,9 +56,8 @@ public:
 
   // The record DrawOTag makes of the table.
   psx::present::FrameRecord walk() {
-    psx::gpu::submitOrderingTable(
-        core_, core_.gpuDevice, guest::kOrderingTableA + 4u * (guest::kOrderingTableBuckets - 1u));
-    return core_.gpuDevice.sealRecord();
+    psx::gpu::dma2LinkedList(core_, guest::kOrderingTableA + 4u * (guest::kOrderingTableBuckets - 1u));
+    return psx::gpu::sealRecord(core_);
   }
 
   // Scribbles over the pool, the table's lowest buckets and the globals, so a render that reads any of them
@@ -88,7 +88,7 @@ private:
 };
 
 // Rotation of 1, a 512 projection plane and a 320 by 240 screen centre; `translationX` moves the camera.
-inline void setCamera(std::int32_t translationX) {
+inline void setCamera(Core &core, std::int32_t translationX) {
   psx::present::GteControl control{};
   control[0] = 0x1000u;
   control[2] = 0x1000u;
@@ -98,7 +98,7 @@ inline void setCamera(std::int32_t translationX) {
   control[25] = 120u << 16;
   control[26] = 512u;
   control[29] = 0x155u;
-  psx::present::writeGteControl(control);
+  psx::present::writeGteControl(core.gte(), control);
 }
 
 // The executor takes the guest's registers, the GTE's among them, when it is first entered; enter it once, at a

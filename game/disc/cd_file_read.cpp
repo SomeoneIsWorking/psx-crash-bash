@@ -63,7 +63,7 @@ void cdFileReadOwned(Core *core) {
   std::array<std::uint8_t, kSectorBytes> sector{};
 
   for (std::uint32_t index = 0; index < sectorCount; ++index) {
-    if (!disc_read_sector(&core->game->disc, lba + index, sector.data())) {
+    if (!core->game->disc.readSector(lba + index, sector.data())) {
       core->mem_w32(guest::kCdReadActive, 0u);
       core->r[2] = 0xFFFFFFFFu;
       lucent::error("crashbash-cd", "native file read failed at LBA {} ({}/{})", lba + index, index, sectorCount);

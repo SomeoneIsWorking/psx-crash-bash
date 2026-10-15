@@ -93,7 +93,7 @@ private:
 // One s16 of a vertex word moved by `t`.
 std::uint32_t blendVertexWord(std::uint32_t from, std::uint32_t to, bool depth, float t) {
   if (depth) {
-    return (to & 0xFFFF0000u) | psx::present::lerpHalf(from, to, 0, t);
+    return (to & 0xFFFF0000u) | psx::present::lerpHalf(from, to, psx::present::Halfword::Low, t);
   }
   return psx::present::lerpHalves(from, to, t);
 }
@@ -108,7 +108,7 @@ FaceCall readFaceCall(Core &core) {
   FaceCall call;
   call.packets = core.r[4];
   call.globals = readDrawGlobals(core);
-  call.control = psx::present::readGteControl();
+  call.control = psx::present::readGteControl(core.gte());
   if (const auto slot = core.otTables.slotOf(call.globals.otBase)) {
     call.named = true;
     call.table = slot->table;
@@ -187,9 +187,8 @@ void renderFaceState(Core &core,
   }
   HostFaceSink host(core, state.faces);
   {
-    core.gte().bind();
-    const psx::present::GteGuard guard;
-    psx::present::writeGteControl(control);
+    const psx::present::GteGuard guard(core.gte());
+    psx::present::writeGteControl(core.gte(), control);
     projectFaces(core, FaceInputs{state.list, vertices, state.header.zBias, state.header.zLimit}, host);
   }
   // A bucket's walk reaches the packet linked last first.

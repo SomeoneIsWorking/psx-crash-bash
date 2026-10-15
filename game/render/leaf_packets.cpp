@@ -272,7 +272,7 @@ void completeLeafCall(Core &core, LeafCall &call) {
   if (call.kind == LeafKind::Shaded) {
     if ((call.attributes & kDrawn) != 0u && (call.attributes & kFlatLayout) == 0u) {
       call.hasControl = 1u;
-      call.control = psx::present::readGteControl();
+      call.control = psx::present::readGteControl(core.gte());
     }
   } else if (call.globals.hasEnvironment != 0u) {
     call.texture = readTexture(core, call.textureAddress);
