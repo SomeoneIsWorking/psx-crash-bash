@@ -1,8 +1,8 @@
-#include "loading_card_skip.h"
+#include "disc/loading_card_skip.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
-#include "guest_execution.h"
+#include "execution/guest_execution.h"
+#include "title/guest.h"
 
 #include <cstdint>
 

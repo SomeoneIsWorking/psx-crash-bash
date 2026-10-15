@@ -1,17 +1,17 @@
-#include "ui_producer.h"
+#include "render/ui_producer.h"
 
-#include "component_body.h"
-#include "component_incarnation.h"
 #include "core.h"
-#include "crashbash_frame_driver.h"
-#include "crashbash_guest.h"
-#include "draw_globals.h"
-#include "guest_execution.h"
-#include "leaf_packets.h"
-#include "leaf_port.h"
-#include "packet_collector.h"
-#include "panel_bodies.h"
-#include "text_bodies.h"
+#include "execution/guest_execution.h"
+#include "render/component_body.h"
+#include "render/component_incarnation.h"
+#include "render/draw_globals.h"
+#include "render/leaf_packets.h"
+#include "render/leaf_port.h"
+#include "render/packet_collector.h"
+#include "render/panel_bodies.h"
+#include "render/text_bodies.h"
+#include "runtime/session.h"
+#include "title/guest.h"
 
 #include <algorithm>
 #include <iterator>
@@ -23,7 +23,7 @@ using runtime::GuestImage;
 
 // What a call site says about the packets the called function writes.
 struct CallSiteName {
-  enum class Kind { None, Element, Owner };
+  enum class Kind : std::uint8_t { None, Element, Owner };
   Kind kind = Kind::None;
   std::uint32_t producer = 0;
   std::uint32_t object = 0;
@@ -80,7 +80,7 @@ template <class Body> void underName(Core *core, Body body) {
   const CallSiteName name = siteName(*core);
   if (name.kind == CallSiteName::Kind::Owner) {
     const psx::present::EmissionScope::Guard scope(core->emission, name.producer, name.object, name.element);
-    PacketCollector::Scope packets(frameDriver(*core).packetCollector());
+    PacketCollector::Scope packets(session(*core).packetCollector);
     body();
     packets.save(*core);
     return;
@@ -110,7 +110,7 @@ void leaf(Core *core, LeafKind kind) {
     if (done.setsSecond) {
       core->r[3] = done.second;
     }
-    frameDriver(*core).packetCollector().noteLeaf(call, done.packet);
+    session(*core).packetCollector.noteLeaf(call, done.packet);
   });
 }
 
@@ -133,7 +133,7 @@ constexpr std::uint32_t kColour2Slot = 0x10u;
 void stringDraw(Core *core) {
   underName(core, [&] {
     const StringBody body = readStringBody(*core);
-    PacketCollector::BodyScope drawn(frameDriver(*core).packetCollector());
+    PacketCollector::BodyScope drawn(session(*core).packetCollector);
     GuestLeafPort port(*core, guest::kStringDraw);
     const StringOutcome outcome = runString(body, readDrawGlobals(*core), port);
     core->mem_w32(core->r[29] + kColourHome, outcome.colour);
@@ -149,7 +149,7 @@ void stringDraw(Core *core) {
 template <class Read, class Run> void componentBody(Core *core, std::uint32_t owner, Read read, Run run) {
   underName(core, [&] {
     const auto body = read(*core);
-    PacketCollector::BodyScope drawn(frameDriver(*core).packetCollector());
+    PacketCollector::BodyScope drawn(session(*core).packetCollector);
     GuestLeafPort port(*core, owner);
     setResult(*core, run(body, readDrawGlobals(*core), port));
     drawn.finish(body);
@@ -169,8 +169,8 @@ void borderDraw(Core *core) {
 }
 
 void componentDraw(Core *core, std::uint32_t address) {
-  const auto object = core->emission.instance(frameDriver(*core).componentIncarnations().object(core->r[4]));
-  PacketCollector::Scope packets(frameDriver(*core).packetCollector());
+  const auto object = core->emission.instance(session(*core).componentIncarnations.object(core->r[4]));
+  PacketCollector::Scope packets(session(*core).packetCollector);
   runtime::callOriginal(*core, GuestImage::Resident, address);
   packets.save(*core);
 }

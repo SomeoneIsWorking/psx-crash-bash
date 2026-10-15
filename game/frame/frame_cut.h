@@ -6,7 +6,7 @@
 // Identity is sampled after the frame's present call, so it describes the record being sealed.
 #pragma once
 
-#include "crashbash_guest.h"
+#include "title/guest.h"
 
 #include <cstdint>
 #include <optional>

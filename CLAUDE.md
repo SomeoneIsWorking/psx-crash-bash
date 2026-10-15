@@ -25,7 +25,7 @@ generated guest corpus, static dispatch table, or precompiled title substrate. T
 path has already been deleted before dynarec implementation and must remain absent without a
 compatibility mode or tombstone.
 
-Preserve every native override installation and original call (counted in `tools/source_policy.py`) from native
+Preserve every native override installation (`crashbash_runtime_test` checks them by address) and original call from native
 owners through psxport's scoped runtime original-call operation, which bypasses
 only the current override and executes the authenticated original body through Lightrec. Override and
 translated-block identity must include the loaded image generation because several modules reuse the
@@ -44,8 +44,8 @@ they do not define presentation completion. Boot, logos, menus, attract loops, a
 representative gameplay and cannot establish product completion.
 
 The host structure is project-owned and split by cohesive responsibility. The old host composition
-was removed with its legacy runtime adapter. `game/execution/title_adapter.{h,cpp}` composes the direct typed
-psxport boundary; boot, frame, device, diagnostics, and render responsibilities remain in dedicated
+was removed with its legacy runtime adapter. `game/runtime/runtime.{h,cpp}` (`Runtime`) is the
+title's `GameRuntime`; boot, frame, device, diagnostics, and render responsibilities remain in dedicated
 modules with narrow interfaces. Do not grow the future entry point or runtime adapter into a monolith.
 
 The player entry point remains `./run.sh`, a slim repository-root handoff to the frozen uv environment

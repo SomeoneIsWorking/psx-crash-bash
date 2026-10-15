@@ -25,6 +25,8 @@ class ComponentIncarnations {
 public:
   // The guest copied the render template into `component`.
   void begin(std::uint32_t component);
+  // A scratch component the guest refills for each entry it draws: its key names the entry.
+  void refill(std::uint32_t component, std::uint32_t entry);
   // The object key for the component's current incarnation.
   std::uint32_t object(std::uint32_t component) const;
 

@@ -29,7 +29,7 @@ native/dynarec product; nothing it lands may regress Spyro 1's gates. Finish lis
    DAT28272, DAT28382 and DAT22510 have not been seen alongside them.
 3. **Issue 0030's remaining half**: the framework-side negative case for a resume whose image
    generation has been retired.
-4. **S015**: all 27 overrides by image identity and the 11 original calls under the differential. The
+4. **S015**: every override by image identity and the original calls under the differential. The
    live-match leg is already a concrete instance: `0x800B4694` is DAT28136's registered callback in
    one image generation and DAT28241's code in the next, at the same address.
 5. **S016 / S009-S012**: requalify Battle Mode Crate Crush, Tournament Crate Crush, Polar Push and
@@ -48,7 +48,7 @@ native/dynarec product; nothing it lands may regress Spyro 1's gates. Finish lis
 | S004 | Crash Bash graphics are the guest's own GP0 output on the record path and look correct across representative content | partial — `RenderPath::Record` is the only picture path; `recordcheck` mismatched=0 on 1,395/1,395 Polar Push and 3,741/3,741 Crashball presents at 4:3 with fps60 off; looked at in menus and both live matches | S002, S015 | G001, G002, G003 |
 | S005 | Wider aspect ratios widen horizontal view without changing vertical framing | partial — `GuestWidescreenProjection` declares the aspect and the record canvas adds 86 columns per side at 16:9 (512 → 684), filled by the guest's own geometry in menus and Polar Push; 4:3 stays the device picture. No guest cull has been found to widen; margins not yet surveyed in every arena | S004 | G002 |
 | S019 | Widescreen anchors the UI: edge HUD elements sit at the widened edges or safe area, centred elements stay centred, nothing stretches | missing — the native anchoring policy was deleted with the native renderer; on the record path the HUD stays at its 4:3 position (issue 0035) | S005 | G002 |
-| S006 | Camera and world motion render between simulation ticks | partial — the `0x80019A60` producer keys every model face by object and face and the UI producers key text glyphs, panel parts and HUD digits (`docs/codemap.md`, Producers): 99.97% of Polar Push (1,661,862 of 1,662,395) and of Crashball (5,902,090 of 5,904,051), only the static LOADING card left, 0 duplicate keys; in-betweens differ from and lie between their neighbours; a re-initialised component keys as a new object (issue 0037); every producer (model faces, text, panels, quads, BOOT HUD and menu items) is a state producer whose render runs the native bodies (`0x800193A8`, `0x800243A0`, `0x800248A0`, `0x8001A6D4`, `0x8001A43C` and the three 2D leaves) on component fields blended at t (codemap, State producers); the override differential matches those four bodies on 6,624 sampled Polar Push calls; Polar Push `recordcheck` at 4:3 is mismatched=0 on 1,391/1,391 presents with fps60 off and 1,420/1,420 with it on; Crashball (3,746 presents) and Tournament (9,246) recordcheck at 4:3 are mismatched=0 with fps60 on and off; the title `pause` command reaches BOOT's pause pages in every retained match: recordcheck at 4:3 is mismatched=0 with fps60 off and on over them (Polar Push 1,741/1,770 presents, Crashball 3,941/3,941, Battle Crate Crush 9,441/9,471, Tournament 9,441/9,470); the BOOT HUD's leaf positions never move in those matches (issue 0039); the pause page's title and items reach the GPU since `followDrawBase` (issue 0040): Polar Push pause sequence recordcheck is mismatched=0 on 1,741/1,741 presents with fps60 off and 1,770/1,770 on | S004 | G003 |
+| S006 | Camera and world motion render between simulation ticks | partial — the `0x80019A60` producer keys every model face by object and face and the UI producers key text glyphs, panel parts and HUD digits (`docs/presentation.md`, Producers): 99.97% of Polar Push (1,661,862 of 1,662,395) and of Crashball (5,902,090 of 5,904,051), only the static LOADING card left, 0 duplicate keys; in-betweens differ from and lie between their neighbours; a re-initialised component keys as a new object (issue 0037); every producer (model faces, text, panels, quads, BOOT HUD and menu items) is a state producer whose render runs the native bodies (`0x800193A8`, `0x800243A0`, `0x800248A0`, `0x8001A6D4`, `0x8001A43C` and the three 2D leaves) on component fields blended at t (`docs/presentation.md`, State producers); the override differential matches those four bodies on 6,624 sampled Polar Push calls; Polar Push `recordcheck` at 4:3 is mismatched=0 on 1,391/1,391 presents with fps60 off and 1,420/1,420 with it on; Crashball (3,746 presents) and Tournament (9,246) recordcheck at 4:3 are mismatched=0 with fps60 on and off; the title `pause` command reaches BOOT's pause pages in every retained match: recordcheck at 4:3 is mismatched=0 with fps60 off and on over them (Polar Push 1,741/1,770 presents, Crashball 3,941/3,941, Battle Crate Crush 9,441/9,471, Tournament 9,441/9,470); the BOOT HUD's leaf positions never move in those matches (issue 0039); the pause page's title and items reach the GPU since `followDrawBase` (issue 0040): Polar Push pause sequence recordcheck is mismatched=0 on 1,741/1,741 presents with fps60 off and 1,770/1,770 on; BOOT's scratch-component draw `0x8009440C` is native and keys each entry as its own object, so the census's keyed-without-render count on Polar Push (1,500 frames) went from 54,788 to 0 with 0 duplicate keys and recordcheck mismatched=0 on 1,501/1,501 presents | S004 | G003 |
 | S007 | Deterministic diagnostics compare reached hybrid-product boundaries with independent retail behavior and prove both answers | partial | S001, S003 | G001, G002, G003 |
 | S008 | The retail game modes are reachable and playable end to end on the hybrid product | partial | S002, S003, S004, S015 | G001 |
 | S009 | The Crashball gameplay scenario reaches a live match and accepts player control | verified | `replays/flow/crashball-control.pad` drives a live match, guest movement words are proven against an idle control leg, 0 fallback | G001 |
@@ -57,9 +57,9 @@ native/dynarec product; nothing it lands may regress Spyro 1's gates. Finish lis
 | S012 | Polar Push reaches a visually correct, controllable live match | verified | `replays/flow/polar-push-control.pad` reaches the live DAT22510 match with P1 answering a held direction | G001 |
 | S013 | The remaining retail modes are reachable and playable | partial — Pogo Painter plays on Lightrec (`replays/flow/pogo-painter-control.pad` reaches a live DAT28272 match). On a fresh card Battle offers Crate Crush, Polar Push, Pogo Pandemonium and Ballistix; Tank Wars, Crash Dash and Medieval Mayhem show retail's own LOCKED page and need Adventure progress on the card, which is the next route | S008 | G001 |
 | S014 | Retail music and sound effects play at the correct rate without premature truncation | partial | S003 | G001 |
-| S015 | All 27 native override registrations install by runtime image identity and all 12 original-body calls execute through the dynarec | partial | S003 | G001 |
+| S015 | Every native override registration installs by runtime image identity and every original-body call executes through the dynarec | partial | S003 | G001 |
 | S016 | Representative interactive gameplay passes on the native/dynarec product | partial | S003, S004, S005, S006, S007, S008, S014, S015 | G001, G002, G003 |
-| S017 | Every static product path is deleted before dynarec implementation and mechanically excluded | verified | — | G001 |
+| S017 | Every static product path is deleted before dynarec implementation and mechanically excluded | partial — deleted; nothing excludes their return since `tools/source_policy.py` was retired | — | G001 |
 | S018 | Hosted CI truthfully covers applicable Linux, Windows, macOS, and Android product boundaries | partial | S003 | G001 |
 | S020 | Crash Bash: load operations complete without loading-only waits or presentation; logos cancel through the recovered route | verified | S003 | G004 |
 | S021 | A whole-machine save state restores into any session (other minigame, menu, same match) with image identity, generations and native keys matching the restored RAM | verified | S003, S015 | G001 |
@@ -117,7 +117,7 @@ Gap: representative gameplay, complete image publication, and the two framework 
 ### S004 — Record-path graphics
 
 The guest draws every frame through its own ordering table; psxport's `GpuDevice` executes it and the
-record rasterizer replays the frame record (`RenderPath::Record`, the only path `TitleAdapter`
+record rasterizer replays the frame record (`RenderPath::Record`, the only path `Runtime`
 declares). Evidence (2026-10-07, `PSXPORT_DEBUG=recordcheck`, 4:3, fps60 off): Polar Push replay
 1,395/1,395 presents mismatched=0, Crashball replay 3,741/3,741. Producers do not change the picture:
 the f1370 Polar Push shot is byte-identical with and without them. The record path also draws what
@@ -127,7 +127,7 @@ Gap: survey the remaining modes and transitions on the record path.
 
 ### S005 — Widescreen
 
-`TitleAdapter::guestWidescreenProjection` declares the player's aspect (`aspect` in the settings file:
+`Runtime::guestWidescreenProjection` declares the player's aspect (`aspect` in the settings file:
 0 = 4:3, 1 = 16:9); the record canvas keeps the guest's 512-wide draw and adds the margins, and every
 primitive whose draw area spans the display draws into them. Nothing in guest RAM is changed and 4:3
 presents the device picture. In the SELECT NUMBER OF PLAYERS menu and Polar Push the margins are
@@ -213,10 +213,9 @@ pinned-Lightrec gameplay.
 
 ### S015 — Runtime overrides and original calls
 
-The title sources register 27 native overrides through the single image-qualified
-`runtime::registerNativeOverride` boundary and route 11 calls through the single scoped
-`runtime::callOriginal` boundary; `tools/source_policy.py` reports both denominators and
-proves the forbidden old paths are detected.
+`Runtime::registerOverrides` binds psxport's stock libcd and VSync and installs the title overrides
+through the single image-qualified `runtime::registerNativeOverride` boundary (`crashbash_runtime_test`
+checks named ones by image); calls to the original go through the single scoped `runtime::callOriginal` boundary.
 
 `game/execution/guest_execution.{h,cpp}` supplies the per-Core adapter. Native owners can register
 before their module is resident. The authenticated loader supplies the logical image, shared catalog
@@ -224,12 +223,12 @@ identity/generation, and complete physical range; registration publication and o
 mismatched residency. Original calls use shared scoped suppression, and replacement or unbind removes
 the old generation's native keys. The context owns no independent guest image catalog.
 
-`game/entry/crashbash_catalog.cpp` is a one-title catalog for psxport's `ProductHost`, which boots it
+`game/entry/catalog.cpp` is a one-title catalog for psxport's `ProductHost`, which boots it
 through `TitleSession`. The host authenticates the executable against the catalog identity (built from
-`titles/crashbash/executable.json`) before `TitleAdapter::admitExecutable` maps it. A refused
+`titles/crashbash/executable.json`) before `Runtime::admitExecutable` maps it. A refused
 admission preserves guest state; successful replacement retires the prior resident generation.
 
-Gap: qualify all 27 installations and 11 original calls on real loaded-image and gameplay routes. The
+Gap: qualify every installation and the original calls on real loaded-image and gameplay routes. The
 shared memory-card path also needs OS user-data configuration; its scratch fallback is not a
 releasable save location.
 
@@ -271,8 +270,10 @@ Polar Push on the dynarec product.
 
 The tracked offline emitter integration, seed file, generated registry installer, and static-only
 verifiers are deleted. The ignored generated corpus, prior static build tree, and retained static
-product binaries are absent. `tools/source_policy.py` rejects the old files, generated directory,
-static dispatch markers, and any change to the override/original-call source boundary.
+product binaries are absent.
+
+Gap: nothing mechanical excludes their return since `tools/source_policy.py` was retired; psxport's
+`cpp_policy` retired-name list is the place for such names.
 
 ### S018 — Platform CI coverage
 
@@ -280,12 +281,12 @@ static dispatch markers, and any change to the override/original-call source bou
 permissions, pinned actions, and an explicit timeout. It resolves the framework with
 `tools/psxport_fetch.py` (a clone of psxport `main` in CI, which has no sibling checkout), uses that
 checkout's shared Linux setup action, and runs `tools/verify.py`. The thin title verifier selects the
-real `crashbash_title_adapter_test` artifact and every `crashbash_` CTest; shared `ConsumerVerifier`
+real `crashbash_runtime_test` artifact and every `crashbash_` CTest; shared `ConsumerVerifier`
 owns build, style/test execution, and linked execution-boundary checks.
 
 | Platform | Applicability | Current CI evidence and exact gap |
 | --- | --- | --- |
-| Linux x86-64 | applicable desktop target | Native adapter build, complete title tests/style, and execution-boundary inspection are configured through the shared verifier; hosted result and packaged gameplay remain unverified. |
+| Linux x86-64 | applicable desktop target | Native adapter build, complete title tests/style, and execution-boundary inspection are configured through the shared verifier. The AppImage packages `crashbash_port` alone, whose first run is psxport's `FirstRunSetup`: a zero-argument packaged run refused with no disc (hidden) and booted from a saved disc choice; no AppImage was built in that pass, and the windowed screen has not been driven by a player. Hosted result and packaged gameplay remain unverified. |
 | Windows x86-64 | applicable portable-PC target | Missing: no supported Windows native build, runtime test, first-run setup, or package boundary exists. |
 | macOS arm64 | applicable portable-PC target | Missing: no Apple-Silicon native build, runtime test, first-run setup, or application package exists. |
 | Android arm64 | applicable mobile target | Android metadata and setup sources exist, but the Lightrec native runtime, shared `android-port` build path, Gradle/NDK APK build, and install/runtime test are missing. |
@@ -318,7 +319,7 @@ the card's presentation, and `game/disc/loading_card_skip.{h,cpp}` retires the c
 other caller — the menu screens draw their own panels through it — runs the guest's own body.
 
 **Phase-keyed replays.** `replays/flow/polar-push-control.pad` is phase-keyed v1 (1,394 frames, 13
-segments, keyed through `crashbash::InputPhase`, unit-tested in `tests/test_input_phase.cpp`), so it
+segments, keyed through `crashbash::RecordingPhase`, unit-tested in `tests/test_recording_phase.cpp`), so it
 survives the collapse of the handoff the way an absolute recording does not. `crashball-control.pad` is
 still absolute from boot and is checked against S020 rather than assumed.
 

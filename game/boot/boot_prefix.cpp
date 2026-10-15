@@ -1,10 +1,10 @@
-#include "crashbash_boot.h"
+#include "boot/boot_prefix.h"
 
-#include "boot_image_identity.h"
 #include "core.h"
-#include "crashbash_guest.h"
+#include "execution/boot_image_identity.h"
 #include "execution_services.h"
-#include "measured_guest_call.h"
+#include "frame/measured_guest_call.h"
+#include "title/guest.h"
 
 #include <cstdint>
 
@@ -18,10 +18,11 @@ constexpr std::uint32_t kLoadedApplication = boot_image::kLoadAddress;
 constexpr std::uint32_t kApplicationDescriptor = 0x80050008u;
 constexpr std::uint32_t kApplicationDispatch = 0x8004E0DCu;
 
-void beginGuestFrame(Core &core, std::uint32_t bytes, std::uint32_t savedRaOffset, std::uint32_t savedS0Offset) {
-  core.r[29] -= bytes;
-  core.mem_w32(core.r[29] + savedRaOffset, core.r[31]);
-  core.mem_w32(core.r[29] + savedS0Offset, core.r[16]);
+// Both lifetime mains open the same 24-byte frame: ra at +20, s0 at +16.
+void beginGuestFrame(Core &core) {
+  core.r[29] -= 24u;
+  core.mem_w32(core.r[29] + 20u, core.r[31]);
+  core.mem_w32(core.r[29] + 16u, core.r[16]);
 }
 
 void beginProcessRunnerActivation(Core &core) {
@@ -40,8 +41,8 @@ void beginProcessRunnerActivation(Core &core) {
 
 void runApplicationPrefix(Core &core) {
   // 0x80010158 frame; the retail call that follows is the non-returning process runner
-  // CrashBashFrameDriver now represents, so this frame stays live.
-  beginGuestFrame(core, 24u, 20u, 16u);
+  // FrameDriver now represents, so this frame stays live.
+  beginGuestFrame(core);
   core.mem_w32(guest::kDisplayFieldsPerFrame, 2u);
   core.r[16] = kLoadedApplication;
   measuredGuestCall(core, 0x80011BF8u, 0x80010194u, 15u, kFrameHeap, kLoadedApplication, 0x00186370u);
@@ -61,7 +62,7 @@ void runApplicationPrefix(Core &core) {
 
 void runBootPrefix(Core &core) {
   // 0x8002718C frame. Like the retail lifetime main, this activation is intentionally not unwound.
-  beginGuestFrame(core, 24u, 20u, 16u);
+  beginGuestFrame(core);
   measuredGuestCall(core, 0x8002E7A8u, 0x8002719Cu, 4u);
   core.r[16] = kGpuGlobals;
   measuredGuestCall(core, 0x800318ECu, 0x800271A4u, 2u);

@@ -1,4 +1,4 @@
-#include "packet_decode.h"
+#include "render/packet_decode.h"
 
 #include "gp0_primitive_decode.h"
 

@@ -5,11 +5,11 @@
 // body again over inputs `t` of the way from the earlier state.
 #pragma once
 
-#include "draw_globals.h"
-#include "leaf_port.h"
-#include "panel_bodies.h"
+#include "render/draw_globals.h"
+#include "render/leaf_port.h"
+#include "render/panel_bodies.h"
+#include "render/text_bodies.h"
 #include "state_bytes.h"
-#include "text_bodies.h"
 
 #include <variant>
 

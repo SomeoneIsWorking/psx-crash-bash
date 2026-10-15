@@ -1,11 +1,11 @@
-#include "state_renders.h"
+#include "render/state_renders.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
-#include "leaf_state.h"
-#include "model_state.h"
+#include "render/leaf_state.h"
+#include "render/model_state.h"
 #include "state_bytes.h"
 #include "state_producer.h"
+#include "title/guest.h"
 
 #include <memory>
 
@@ -21,16 +21,13 @@ class StateRender final : public psx::present::StateProducer {
 public:
   explicit StateRender(Core &core) : core_(core) {}
 
-  void render(std::span<const std::byte> from,
-              std::span<const std::byte> to,
-              float t,
-              psx::present::PrimitiveSink &sink) const override {
+  void render(const psx::present::StateInterval &states, psx::present::PrimitiveSink &sink) const override {
     // A state of another kind is a different draw: nothing to move from.
-    const auto earlier = tagOf(from) == tagOf(to) ? from : to;
-    if (tagOf(to) == kFaceStateTag) {
-      renderFaceState(core_, earlier, to, t, sink);
+    const auto earlier = tagOf(states.from) == tagOf(states.to) ? states.from : states.to;
+    if (tagOf(states.to) == kFaceStateTag) {
+      renderFaceState(core_, earlier, states.to, states.t, sink);
     } else {
-      renderLeafState(core_, earlier, to, t, sink);
+      renderLeafState(core_, earlier, states.to, states.t, sink);
     }
   }
 
@@ -40,14 +37,14 @@ private:
 
 } // namespace
 
-void registerStateRenders(Core &core) {
+void registerStateRenders(Core &core, psx::present::StateProducerTable &renders) {
   for (const std::uint32_t producer : {guest::kModelDraw,
                                        guest::kTextComponentDraw,
                                        guest::kPanelComponentDraw,
                                        guest::kQuadComponentDraw,
                                        guest::kBootHudDraw,
                                        guest::kBootMenuPageDraw}) {
-    core.stateProducers.install(producer, std::make_unique<StateRender>(core));
+    renders.install(producer, std::make_unique<StateRender>(core));
   }
 }
 

@@ -1,4 +1,4 @@
-#include "polar_push_contact.h"
+#include "gameplay/polar_push_contact.h"
 
 #include <cassert>
 #include <cstdint>
@@ -6,8 +6,8 @@
 int main() {
   using crashbash::polar::contactThreshold;
   using crashbash::polar::crossesContactThreshold;
-  using crashbash::polar::effectRecipe;
   using crashbash::polar::isWithinContactDisk;
+  using crashbash::polar::kEffectRecipes;
 
   assert(isWithinContactDisk(0, 0, 0));
   assert(isWithinContactDisk(329, 0, 108899));
@@ -22,9 +22,9 @@ int main() {
   assert(!crossesContactThreshold(1, 384, 1));
   assert(!crossesContactThreshold(1, 385, 0));
 
-  const auto &first = effectRecipe(0);
-  const auto &second = effectRecipe(1);
-  const auto &third = effectRecipe(2);
+  const auto &first = kEffectRecipes[0];
+  const auto &second = kEffectRecipes[1];
+  const auto &third = kEffectRecipes[2];
   assert(first.directionOffset == -0x200 && first.lateralOffset == 0x200 && first.sineMultiplier == 17 &&
          first.sineShift == 11);
   assert(second.verticalOffset == -0x2A && second.sideOffset == 0x80 && second.choreographyOffset == -0x100);

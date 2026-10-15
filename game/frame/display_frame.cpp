@@ -1,14 +1,15 @@
-#include "display_frame.h"
+#include "frame/display_frame.h"
 
 #include "core.h"
-#include "crashbash_frame_driver.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
+#include "frame/frame_driver.h"
+#include "frame/measured_guest_call.h"
 #include "game.h"
 #include "guest_abi.h"
-#include "guest_execution.h"
-#include "measured_guest_call.h"
-#include "ordering_table_slots.h"
-#include "packet_collector.h"
+#include "render/ordering_table_slots.h"
+#include "render/packet_collector.h"
+#include "runtime/session.h"
+#include "title/guest.h"
 
 #include <cstdint>
 #include <lucent/log.h>
@@ -72,9 +73,14 @@ std::uint32_t eligibleSplit(Core &core, const FrameArena &arena) {
   return candidate;
 }
 
-void copyWords(Core &core, std::uint32_t destination, std::uint32_t source, std::uint32_t count) {
-  for (std::uint32_t index = 0; index < count; ++index) {
-    core.mem_w32(destination + index * 4u, core.mem_r32(source + index * 4u));
+struct GuestWords {
+  std::uint32_t address;
+  std::uint32_t count;
+};
+
+void copyWords(Core &core, std::uint32_t destination, GuestWords source) {
+  for (std::uint32_t index = 0; index < source.count; ++index) {
+    core.mem_w32(destination + index * 4u, core.mem_r32(source.address + index * 4u));
   }
 }
 
@@ -85,10 +91,10 @@ void splitActiveBlock(Core &core, FrameArena &arena, std::uint32_t candidate) {
   const std::uint32_t oldWords = core.mem_r32(active + 8u);
   const std::uint32_t candidateWords = core.mem_r32(candidate + 8u);
   const std::uint32_t activeLink = core.mem_r32(active + 12u);
-  copyWords(core, active, candidate, 6u);
+  copyWords(core, active, {candidate, 6u});
   core.mem_w32(active + 12u, activeLink);
   core.mem_w32(core.mem_r32(active + 4u), active + 24u);
-  copyWords(core, active + 24u, candidate + 24u, candidateWords);
+  copyWords(core, active + 24u, {candidate + 24u, candidateWords});
 
   const std::uint32_t next = active + 24u + oldWords * 4u;
   const std::uint32_t remainder = candidate + 36u + candidateWords * 4u;
@@ -190,7 +196,7 @@ void displayFrameOwned(Core *core) {
     frameDriver(*core).deliverDisplayFields(*core, fields);
 
     measuredGuestCall(*core, 0x8002F598u, 0x80027398u, 2u, environment.address());
-    frameDriver(*core).packetCollector().commit(*core);
+    session(*core).packetCollector.commit(*core);
     measuredGuestCall(*core, 0x8002F35Cu, 0x800273A8u, 4u, orderingTable + kOrderingTableDrawOffset);
     const std::uint32_t nextOrderingTable =
         orderingTable == guest::kOrderingTableA ? guest::kOrderingTableB : guest::kOrderingTableA;

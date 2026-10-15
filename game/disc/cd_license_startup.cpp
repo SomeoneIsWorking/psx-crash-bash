@@ -1,17 +1,16 @@
-#include "cd_license_startup.h"
+#include "disc/cd_license_startup.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
 #include "disc.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
+#include "title/guest.h"
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <lucent/log.h>
-#include <string_view>
 
 namespace crashbash {
 namespace {
@@ -19,7 +18,7 @@ namespace {
 constexpr std::uint32_t kPassedState = 0u;
 
 struct DiscFileFact {
-  std::string_view path;
+  const char *path;
   std::uint32_t lba;
   std::uint32_t size;
 };
@@ -49,7 +48,7 @@ bool hasMeasuredDiscLayout(DiscState &disc) {
   for (const DiscFileFact &fact : kDiscFiles) {
     std::uint32_t lba = 0;
     std::uint32_t size = 0;
-    if (!disc_find_file(&disc, fact.path.data(), &lba, &size) || lba != fact.lba || size != fact.size) {
+    if (!disc_find_file(&disc, fact.path, &lba, &size) || lba != fact.lba || size != fact.size) {
       return false;
     }
   }
@@ -69,8 +68,8 @@ void cdLicenseStartupOwned(Core *core) {
   }
 
   DiscState &disc = core->game->disc;
-  // The launcher already hash-verified the executable and modules; bind that identity to the opened medium,
-  // whose mismatch is a host refusal, never the failure renderer.
+  // Provisioning already authenticated the executable and modules; a medium of another layout is a host
+  // refusal, never the failure renderer.
   if (!hasMeasuredDiscLayout(disc)) {
     lucent::error("crashbash-cd", "license startup rejected a disc that does not match SCUS-94570 layout");
     std::abort();

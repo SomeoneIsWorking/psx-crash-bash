@@ -1,10 +1,10 @@
-#include "cd_startup.h"
+#include "disc/cd_startup.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
 #include "disc.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
+#include "title/guest.h"
 
 #include <lucent/log.h>
 

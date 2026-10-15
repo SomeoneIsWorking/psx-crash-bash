@@ -1,8 +1,8 @@
-#include "panel_bodies.h"
+#include "render/panel_bodies.h"
 
 #include "core.h"
-#include "placement_blend.h"
-#include "ui_producer.h"
+#include "render/placement_blend.h"
+#include "render/ui_producer.h"
 
 #include <cstring>
 
@@ -15,16 +15,30 @@ constexpr std::uint32_t kBorderFlags = 7u;
 constexpr std::uint32_t kBorderColour = 5u;
 constexpr std::uint32_t kBorderEdge = 4u; // the border reads the rectangle from the record's +4
 
+struct QuadRect {
+  std::int32_t left = 0;
+  std::int32_t top = 0;
+  std::int32_t right = 0;
+  std::int32_t bottom = 0;
+  std::int32_t depth = 0;
+};
+
 // The vertex array of a shaded quad: four (x, y, depth) words and four colours.
 class QuadVertices {
 public:
-  void point(std::uint32_t corner, std::int32_t x, std::int32_t y, std::int32_t depth) {
-    half(corner * 8u, x);
-    half(corner * 8u + 2u, y);
-    half(corner * 8u + 4u, depth);
+  // Corners top-left, top-right, bottom-left, bottom-right.
+  void rectangle(const QuadRect &rect) {
+    const std::array<std::array<std::int32_t, 2>, 4> corners{
+        {{rect.left, rect.top}, {rect.right, rect.top}, {rect.left, rect.bottom}, {rect.right, rect.bottom}}};
+    for (std::size_t corner = 0; corner < corners.size(); ++corner) {
+      const std::array<std::uint16_t, 3> halves{static_cast<std::uint16_t>(corners[corner][0]),
+                                                static_cast<std::uint16_t>(corners[corner][1]),
+                                                static_cast<std::uint16_t>(rect.depth)};
+      std::memcpy(bytes_.data() + corner * 8u, halves.data(), sizeof(halves));
+    }
   }
   void colour(std::uint32_t colour) {
-    for (std::uint32_t corner = 0; corner < 4u; ++corner) {
+    for (std::size_t corner = 0; corner < 4u; ++corner) {
       std::memcpy(bytes_.data() + 0x20u + corner * 4u, &colour, sizeof(colour));
     }
   }
@@ -33,11 +47,6 @@ public:
   }
 
 private:
-  void half(std::uint32_t offset, std::int32_t value) {
-    const auto stored = static_cast<std::uint16_t>(value);
-    std::memcpy(bytes_.data() + offset, &stored, sizeof(stored));
-  }
-
   std::array<std::uint8_t, kShadedVertexBytes> bytes_{};
 };
 
@@ -91,10 +100,7 @@ BodyResult runPanel(const PanelBody &body, const DrawGlobals &globals, LeafPort 
       right = width + left;
     }
     QuadVertices vertices;
-    vertices.point(0, left, halfOf(record, 6), halfOf(record, 8));
-    vertices.point(1, right, halfOf(record, 6), halfOf(record, 8));
-    vertices.point(2, left, halfOf(record, 12), halfOf(record, 8));
-    vertices.point(3, right, halfOf(record, 12), halfOf(record, 8));
+    vertices.rectangle({left, halfOf(record, 6), right, halfOf(record, 12), halfOf(record, 8)});
     vertices.colour(record[4]);
     result.take(
         port.draw(shadedCall(vertices, record[0] | body.attributes), static_cast<std::uint32_t>(PanelPart::Body)));
@@ -170,10 +176,7 @@ BodyResult runBorder(const BorderBody &body, const DrawGlobals &globals, LeafPor
   BodyResult result;
   for (const Strip &strip : strips) {
     QuadVertices vertices;
-    vertices.point(0, strip.x0, strip.y0, depth);
-    vertices.point(1, strip.x1, strip.y0, depth);
-    vertices.point(2, strip.x0, strip.y1, depth);
-    vertices.point(3, strip.x1, strip.y1, depth);
+    vertices.rectangle({strip.x0, strip.y0, strip.x1, strip.y1, depth});
     vertices.colour(body.colour);
     result.take(port.draw(shadedCall(vertices, body.attributes), static_cast<std::uint32_t>(strip.part)));
   }

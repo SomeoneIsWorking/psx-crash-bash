@@ -5,8 +5,8 @@
 // lays out from halfwords.
 #pragma once
 
-#include "draw_globals.h"
-#include "leaf_port.h"
+#include "render/draw_globals.h"
+#include "render/leaf_port.h"
 #include "state_bytes.h"
 
 #include <array>

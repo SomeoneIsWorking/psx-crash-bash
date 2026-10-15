@@ -34,7 +34,7 @@ def main() -> int:
             root=ROOT,
             build=BUILD,
             psxport=framework,
-            product=BUILD / ("crashbash_title_adapter_test.exe" if os.name == "nt" else "crashbash_title_adapter_test"),
+            product=BUILD / ("crashbash_runtime_test.exe" if os.name == "nt" else "crashbash_runtime_test"),
             cmake_module=ROOT / "CMakeLists.txt",
             test_regex="^crashbash_",
             cmake_definitions=("-DBUILD_TESTING=ON", "-DPSXPORT_BUILD_TESTS=OFF"),

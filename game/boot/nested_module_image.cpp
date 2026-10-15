@@ -1,11 +1,11 @@
-#include "nested_module_image.h"
+#include "boot/nested_module_image.h"
 
-#include "dat22510_image_identity.h"
-#include "dat28136_image_identity.h"
-#include "dat28241_image_identity.h"
-#include "dat28272_image_identity.h"
-#include "dat28382_image_identity.h"
-#include "guest_execution.h"
+#include "execution/dat22510_image_identity.h"
+#include "execution/dat28136_image_identity.h"
+#include "execution/dat28241_image_identity.h"
+#include "execution/dat28272_image_identity.h"
+#include "execution/dat28382_image_identity.h"
+#include "execution/guest_execution.h"
 
 #include <array>
 #include <cstddef>

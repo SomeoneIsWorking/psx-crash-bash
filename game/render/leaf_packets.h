@@ -7,9 +7,9 @@
 // a packet bump-allocated from the pool, a render over host words with the position moved.
 #pragma once
 
-#include "draw_globals.h"
 #include "emit_memory.h"
 #include "gte_control.h"
+#include "render/draw_globals.h"
 
 #include <array>
 #include <cstdint>
@@ -19,7 +19,7 @@ class Core;
 
 namespace crashbash::render {
 
-enum class LeafKind : std::uint32_t { Sprite, Quad, Shaded };
+enum class LeafKind : std::uint8_t { Sprite, Quad, Shaded };
 
 // The fields of a 0x38-byte texture record the sprite bodies read.
 struct TextureRecord {

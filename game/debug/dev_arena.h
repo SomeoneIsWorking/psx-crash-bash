@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game_runtime.h"
+
 #include <cstdint>
 #include <cstdio>
 
@@ -14,18 +16,18 @@ namespace crashbash::debug {
 class DevArena {
 public:
   // Returns true when `cmd` was this title's command and the reply has been written to `out`.
-  bool handle(Core &core, const char *cmd, const char *line, std::FILE *out);
+  bool handle(Core &core, const psx::game::TitleCommandLine &input, std::FILE *out);
 
   // Called at every frame boundary; `pad` delivers the real Start press that leaves the attract demo.
   void applyArmed(Core &core, Pad &pad, std::uint32_t frame);
 
 private:
-  enum class ArenaMode : std::uint32_t {
+  enum class ArenaMode : std::uint8_t {
     Battle = 0,
     Tournament = 1,
   };
 
-  enum class Stage : std::uint32_t {
+  enum class Stage : std::uint8_t {
     // The attract demo owns the nested overlay slot; leave it with a Start press.
     EnterMenu = 0,
     // The mode's flow table has not been requested yet.

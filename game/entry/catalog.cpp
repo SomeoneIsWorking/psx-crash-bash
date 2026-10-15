@@ -1,8 +1,8 @@
-#include "crashbash_catalog.h"
+#include "entry/catalog.h"
 
-#include "executable_identity.h"
+#include "execution/executable_identity.h"
+#include "runtime/runtime.h"
 #include "single_title_catalog.h"
-#include "title_adapter.h"
 
 namespace crashbash {
 namespace {
@@ -26,8 +26,7 @@ constexpr psx::host::TitleIdentity kTitleIdentity{
 } // namespace
 
 std::unique_ptr<psx::host::TitleCatalog> createCatalog() {
-  return std::make_unique<psx::host::SingleTitleCatalog>(
-      kTitleIdentity, "scratch/bin", std::make_unique<TitleAdapter>());
+  return std::make_unique<psx::host::SingleTitleCatalog>(kTitleIdentity, "scratch/bin", std::make_unique<Runtime>());
 }
 
 } // namespace crashbash

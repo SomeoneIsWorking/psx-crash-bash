@@ -1,24 +1,27 @@
 // The model producer keys each face packet by the drawing object's incarnation and the face, through the
 // shipping overrides.
-#include "component_incarnation.h"
 #include "core.h"
-#include "crashbash_frame_driver.h"
-#include "crashbash_guest.h"
-#include "face_projection.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "model_face_producer.h"
-#include "ordering_table_slots.h"
-#include "packet_collector.h"
+#include "gte_registers.h"
+#include "render/component_incarnation.h"
+#include "render/face_projection.h"
+#include "render/model_face_producer.h"
+#include "render/ordering_table_slots.h"
+#include "render/packet_collector.h"
+#include "render/state_renders.h"
+#include "runtime/session.h"
 #include "state_render_check.h"
-#include "state_renders.h"
 #include "testutil.h"
-#include "title_adapter.h"
+#include "title/guest.h"
+#include "title_game.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace {
 
@@ -37,8 +40,6 @@ constexpr std::uint32_t kOddBuffer = 0x80141000u;
 constexpr std::uint32_t kComponents = 0x80150000u;
 constexpr std::uint32_t kNode = 0x80160000u;
 constexpr std::uint32_t kVertices = 0x80190000u;
-
-crashbash::TitleAdapter runtime;
 
 // FUN_80019A60 stand-in: calls the face emitter with a0 = a1 (the packet buffer), a1 = the vertices, a2 = the
 // face list.
@@ -64,10 +65,9 @@ void copierStub(Core &core, std::uint32_t address, std::uint32_t taken) {
   core.mem_w32(address + 4u, 0x24020000u | taken); // li v0, taken
 }
 
-std::unique_ptr<Game> makeGame() {
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+std::unique_ptr<crashbash::test::TitleGame> makeGame() {
+  auto game = crashbash::test::makeTitleGame();
+  Core &core = game->core();
   modelDrawStub(core);
   copierStub(core, crashbash::guest::kBufferComponentInit, 0u);
   copierStub(core, crashbash::guest::kEntityComponentAlloc, 2u);
@@ -78,12 +78,11 @@ std::unique_ptr<Game> makeGame() {
     core.mem_w8(kFaceList + i, faceList[i]);
   }
   const auto image = core.imageCatalog().activate("synthetic-model-draw", kRange, 1u);
-  static_cast<crashbash::runtime::GuestExecution *>(core.gameCtx)
-      ->bindAuthenticatedImage(crashbash::runtime::GuestImage::Resident, image, kRange);
+  crashbash::session(core).execution.bindAuthenticatedImage(crashbash::runtime::GuestImage::Resident, image, kRange);
   crashbash::render::registerModelFaceProducer(core);
   crashbash::render::registerComponentIncarnationOwners(core);
   crashbash::render::nameOrderingTables(core);
-  crashbash::render::registerStateRenders(core);
+  crashbash::render::registerStateRenders(core, crashbash::session(core).stateProducers);
   crashbash::test::warmUpExecutor(core, 0x80018100u);
   return game;
 }
@@ -144,37 +143,39 @@ void writePackets(Core &core, std::uint32_t buffer) {
   }
 }
 
+// How a scene departs from the one the tests draw: `shift` moves the vertices, `cameraX` the camera, and
+// `culled` flips the second face's winding flag.
+struct ScenePose {
+  int shift = 0;
+  bool culled = false;
+  int cameraX = 0;
+};
+
 // The guest's state before it draws a model: a cleared table, the vertices it animated and the camera.
-void loadScene(Core &core, std::uint32_t buffer, int shift = 0, bool culled = false, int cameraX = 0) {
+void loadScene(Core &core, std::uint32_t buffer, const ScenePose &pose = {}) {
   crashbash::test::OrderingTableModel(core).begin();
-  writeVertices(core, shift, culled);
+  writeVertices(core, pose.shift, pose.culled);
   writePackets(core, buffer);
-  crashbash::test::setCamera(cameraX);
+  crashbash::test::setCamera(pose.cameraX);
+}
+
+// Calls `address` with a0..a3.
+bool callGuest(Core &core, std::uint32_t address, const std::array<std::uint32_t, 4> &arguments) {
+  for (std::size_t index = 0; index < arguments.size(); ++index) {
+    core.r[4 + index] = arguments[index];
+  }
+  core.r[29] = 0x801FFF00u;
+  core.r[31] = kReturn;
+  return psx::cpu::dispatchGuest(core, address, psx::cpu::ExecutionBudget::fromCycles(100000u)).returned();
 }
 
 bool runModelDraw(Core &core, std::uint32_t object, std::uint32_t buffer) {
-  core.r[4] = 0x1000u;
-  core.r[5] = buffer;
-  core.r[6] = kFaceList;
-  core.r[7] = object;
-  core.r[29] = 0x801FFF00u;
-  core.r[31] = kReturn;
-  return psx::cpu::dispatchGuest(core, crashbash::guest::kModelDraw, psx::cpu::ExecutionBudget::fromCycles(100000u))
-      .returned();
+  return callGuest(core, crashbash::guest::kModelDraw, {0x1000u, buffer, kFaceList, object});
 }
 
 bool drawObject(Core &core, std::uint32_t object, std::uint32_t buffer) {
   loadScene(core, buffer);
   return runModelDraw(core, object, buffer);
-}
-
-bool callGuest(Core &core, std::uint32_t address, std::uint32_t a0, std::uint32_t a1, std::uint32_t a2) {
-  core.r[4] = a0;
-  core.r[5] = a1;
-  core.r[6] = a2;
-  core.r[29] = 0x801FFF00u;
-  core.r[31] = kReturn;
-  return psx::cpu::dispatchGuest(core, address, psx::cpu::ExecutionBudget::fromCycles(100000u)).returned();
 }
 
 RecordKey faceKey(std::uint32_t object, std::uint32_t face, std::uint32_t generation = 0u) {
@@ -184,7 +185,7 @@ RecordKey faceKey(std::uint32_t object, std::uint32_t face, std::uint32_t genera
 
 void test_face_list_counts_every_strip() {
   auto game = makeGame();
-  const auto list = crashbash::render::readFaceList(game->core, kFaceList);
+  const auto list = crashbash::render::readFaceList(game->core(), kFaceList);
   CHECK_EQ(crashbash::render::faceCount(list), 3u);
   CHECK_EQ(crashbash::render::faceVertexWords(list), 14u);
   static_assert(meshFaceElement(0x80120003u, 2u) == ((0x120003u << 11) | 2u));
@@ -192,7 +193,7 @@ void test_face_list_counts_every_strip() {
 
 void test_each_face_is_keyed_by_object_and_index() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(drawObject(core, kObjectA, kEvenBuffer));
   for (std::uint32_t face = 0; face < 3u; ++face) {
     CHECK(core.emission.identityFor(kEvenBuffer + face * kFacePacketBytes) == faceKey(kObjectA, face));
@@ -204,7 +205,7 @@ void test_each_face_is_keyed_by_object_and_index() {
 
 void test_keys_follow_the_object_not_the_packet_buffer() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(drawObject(core, kObjectA, kEvenBuffer));
   CHECK(drawObject(core, kObjectB, kOddBuffer));
   CHECK(core.emission.identityFor(kEvenBuffer + kFacePacketBytes) == faceKey(kObjectA, 1u));
@@ -219,7 +220,7 @@ void test_keys_follow_the_object_not_the_packet_buffer() {
 
 void test_faces_outside_a_model_draw_stay_unkeyed() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   loadScene(core, kEvenBuffer);
   core.r[4] = kEvenBuffer;
   core.r[5] = kVertices;
@@ -233,7 +234,7 @@ void test_faces_outside_a_model_draw_stay_unkeyed() {
 
 void test_a_component_drawn_frame_after_frame_keeps_its_key() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(drawObject(core, kComponents, kEvenBuffer));
   CHECK(core.emission.identityFor(kEvenBuffer) == faceKey(kComponents, 0u));
   CHECK(drawObject(core, kComponents, kOddBuffer));
@@ -243,10 +244,10 @@ void test_a_component_drawn_frame_after_frame_keeps_its_key() {
 // FUN_8001D3B0 rebuilding a page re-initialises its buffer's components in place.
 void test_a_component_reinitialised_in_its_buffer_gets_a_new_key() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   const std::uint32_t second = kComponents + crashbash::guest::kRenderComponentBytes;
   CHECK(drawObject(core, second, kEvenBuffer));
-  CHECK(callGuest(core, crashbash::guest::kBufferComponentInit, 0u, 2u, kComponents));
+  CHECK(callGuest(core, crashbash::guest::kBufferComponentInit, {0u, 2u, kComponents, 0u}));
   CHECK(drawObject(core, second, kOddBuffer));
   CHECK(core.emission.identityFor(kOddBuffer) == faceKey(second, 0u, 1u));
   CHECK(!(faceKey(second, 0u, 1u) == faceKey(second, 0u)));
@@ -258,14 +259,14 @@ void test_a_component_reinitialised_in_its_buffer_gets_a_new_key() {
 // The pool allocator takes the pool's first v0 components along their +0x5C chain.
 void test_components_taken_from_the_pool_get_new_keys() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   const std::uint32_t second = kComponents + 0x400u;
   const std::uint32_t third = kComponents + 0x800u;
   core.mem_w32(crashbash::guest::kRenderComponentPool, kComponents);
   core.mem_w32(kComponents + crashbash::guest::kRenderComponentNext, second);
   core.mem_w32(second + crashbash::guest::kRenderComponentNext, third);
-  CHECK(callGuest(core, crashbash::guest::kEntityComponentAlloc, 0u, 2u, 0u));
-  const auto &incarnations = crashbash::frameDriver(core).componentIncarnations();
+  CHECK(callGuest(core, crashbash::guest::kEntityComponentAlloc, {0u, 2u, 0u, 0u}));
+  const auto &incarnations = crashbash::session(core).componentIncarnations;
   CHECK_EQ(incarnations.object(kComponents), incarnationObject(kComponents, 1u));
   CHECK_EQ(incarnations.object(second), incarnationObject(second, 1u));
   CHECK_EQ(incarnations.object(third), incarnationObject(third, 0u));
@@ -274,11 +275,11 @@ void test_components_taken_from_the_pool_get_new_keys() {
 // An animation node popped off the free list carries its component at +8.
 void test_an_animation_node_popped_again_gets_a_new_key() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   const std::uint32_t component = kNode + crashbash::guest::kAnimationNodeComponent;
   CHECK(drawObject(core, component, kEvenBuffer));
   core.mem_w32(crashbash::guest::kAnimationNodeFreeList, kNode);
-  CHECK(callGuest(core, crashbash::guest::kAnimationNodeCreateType0, 0u, 0u, 0u));
+  CHECK(callGuest(core, crashbash::guest::kAnimationNodeCreateType0, {0u, 0u, 0u, 0u}));
   CHECK(drawObject(core, component, kOddBuffer));
   CHECK(core.emission.identityFor(kOddBuffer) == faceKey(component, 0u, 1u));
 }
@@ -288,23 +289,22 @@ class ModelScene {
 public:
   ModelScene() : game(makeGame()) {}
 
-  // `shift` moves the vertices, `cameraX` the camera; `culled` flips the second face's winding flag.
   psx::present::FrameRecord
   draw(std::uint32_t object, std::uint32_t buffer, int shift, bool culled = false, int cameraX = 0) {
-    loadScene(game->core, buffer, shift, culled, cameraX);
-    if (!runModelDraw(game->core, object, buffer)) {
+    loadScene(game->core(), buffer, ScenePose{shift, culled, cameraX});
+    if (!runModelDraw(game->core(), object, buffer)) {
       std::abort();
     }
     if (afterGuest) {
       afterGuest();
     }
-    crashbash::frameDriver(game->core).packetCollector().commit(game->core);
-    return crashbash::test::OrderingTableModel(game->core).walk();
+    crashbash::session(game->core()).packetCollector.commit(game->core());
+    return crashbash::test::OrderingTableModel(game->core()).walk();
   }
 
   // Overwrites everything a render could read besides its state.
   void scramble(std::uint32_t buffer) {
-    Core &core = game->core;
+    Core &core = game->core();
     crashbash::test::OrderingTableModel(core).scramble();
     for (std::uint32_t word = 0; word < 3u * kFacePacketBytes / 4u; ++word) {
       core.mem_w32(buffer + word * 4u, 0xA5A5A5A5u);
@@ -315,7 +315,7 @@ public:
     crashbash::test::setCamera(0x1234);
   }
 
-  std::unique_ptr<Game> game;
+  std::unique_ptr<crashbash::test::TitleGame> game;
   // Runs between the guest's draw and the display's DrawOTag, where the guest can still change the table.
   std::function<void()> afterGuest;
 };
@@ -323,7 +323,7 @@ public:
 void checkModelRender(const std::function<psx::present::FrameRecord(ModelScene &, int)> &draw) {
   ModelScene scene;
   crashbash::test::checkStateRender(
-      scene.game->core,
+      scene.game->core(),
       crashbash::guest::kModelDraw,
       incarnationObject(kObjectA, 0u),
       [&](int shift) {
@@ -351,9 +351,9 @@ void test_the_render_at_t_reprojects_through_a_moved_camera() {
 // A culled face has no packet on the walk; a face that comes into view appears at the later state.
 void test_a_culled_face_is_not_drawn_and_a_new_face_appears_at_t_one() {
   ModelScene scene;
-  Core &core = scene.game->core;
+  Core &core = scene.game->core();
   const auto id = psx::present::ObjectId{crashbash::guest::kModelDraw, incarnationObject(kObjectA, 0u)};
-  const psx::present::StateProducer *render = core.stateProducers.find(id.producer);
+  const psx::present::StateProducer *render = core.runtime.stateProducer(core, id.producer);
   CHECK(render != nullptr);
   const psx::present::FrameRecord full = scene.draw(kObjectA, kOddBuffer, 0);
   CHECK_EQ(crashbash::test::primitivesOf(full, id.producer).size(), 3u);
@@ -362,11 +362,17 @@ void test_a_culled_face_is_not_drawn_and_a_new_face_appears_at_t_one() {
   CHECK_EQ(crashbash::test::primitivesOf(withoutMiddle, id.producer).size(), 2u);
   const psx::present::FrameState fewer = core.frameStates.collect(withoutMiddle);
 
+  const auto allState = all.find(id);
+  const auto fewerState = fewer.find(id);
+  CHECK(allState && fewerState);
+  if (!allState || !fewerState) {
+    return;
+  }
   crashbash::test::CollectedSink grown;
-  render->render(*fewer.find(id), *all.find(id), 1.0f, grown);
+  render->render({*fewerState, *allState, 1.0f}, grown);
   CHECK_EQ(grown.drawn.size(), 3u);
   crashbash::test::CollectedSink shrunk;
-  render->render(*all.find(id), *fewer.find(id), 1.0f, shrunk);
+  render->render({*allState, *fewerState, 1.0f}, shrunk);
   CHECK_EQ(shrunk.drawn.size(), 2u);
 }
 
@@ -386,7 +392,7 @@ void unlinkFarthestPacket(Core &core) {
 // A packet another draw relinked away after its own scope ended is not on the walk, so it is not in the state.
 void test_a_packet_unlinked_after_its_scope_is_not_saved() {
   ModelScene scene;
-  Core &core = scene.game->core;
+  Core &core = scene.game->core();
   const auto id = psx::present::ObjectId{crashbash::guest::kModelDraw, incarnationObject(kObjectA, 0u)};
   scene.afterGuest = [&] {
     unlinkFarthestPacket(core);
@@ -397,7 +403,7 @@ void test_a_packet_unlinked_after_its_scope_is_not_saved() {
   const auto saved = state.find(id);
   CHECK(saved.has_value());
   crashbash::test::CollectedSink drawn;
-  core.stateProducers.find(id.producer)->render(*saved, *saved, 1.0f, drawn);
+  core.runtime.stateProducer(core, id.producer)->render({*saved, *saved, 1.0f}, drawn);
   CHECK_EQ(drawn.drawn.size(), 2u);
 }
 
@@ -405,7 +411,7 @@ void test_a_packet_unlinked_after_its_scope_is_not_saved() {
 // cleared; it is not on the walk of the table in use.
 void test_a_face_linked_in_the_other_table_is_not_saved() {
   ModelScene scene;
-  Core &core = scene.game->core;
+  Core &core = scene.game->core();
   const auto id = psx::present::ObjectId{crashbash::guest::kModelDraw, incarnationObject(kObjectA, 0u)};
   scene.afterGuest = [&] {
     core.mem_w32(crashbash::guest::kOrderingTablePointer, crashbash::guest::kOrderingTableB);
@@ -414,6 +420,57 @@ void test_a_face_linked_in_the_other_table_is_not_saved() {
   CHECK(!core.frameStates.collect(record).find(id).has_value());
 }
 
+std::vector<std::uint32_t> objectDrawKeys;
+
+// FUN_80019F1C stand-in: the key a model draw of the component in a0 would carry.
+void objectDrawCapture(Core *core) {
+  objectDrawKeys.push_back(crashbash::session(*core).componentIncarnations.object(core->r[4]));
+}
+
+void test_the_boot_scratch_draw_keys_each_entry_and_keeps_it_across_frames() {
+  auto game = makeGame();
+  Core &core = game->core();
+  namespace guest = crashbash::guest;
+  constexpr GuestAddressRange kBoot{0x78C90u, 0xA7490u};
+  constexpr std::uint32_t kContext = 0x80170000u;
+  auto &execution = crashbash::session(core).execution;
+  execution.bindAuthenticatedImage(
+      crashbash::runtime::GuestImage::Boot, core.imageCatalog().activate("synthetic-boot", kBoot, 2u), kBoot);
+  crashbash::runtime::registerNativeOverride(
+      core, crashbash::runtime::GuestImage::Resident, guest::kObjectDraw, "test-object-draw", objectDrawCapture);
+  core.mem_w32(guest::kDrawContextPointer, kContext);
+  core.mem_w32(kContext + 0x18u, 0x140u);
+  core.mem_w32(guest::kBootModelScale, 0x2000u);
+  core.mem_w32(guest::kBootScratchEntryCount, 2u);
+  for (std::uint32_t entry = 0; entry < 2u; ++entry) {
+    const std::uint32_t record = guest::kBootScratchEntries + entry * guest::kBootScratchEntryBytes;
+    core.mem_w16(record, 0x200Bu + entry);
+    core.mem_w32(record + 4u, entry);
+    core.mem_w32(record + 8u, 0x80180000u + entry);
+    const std::uint32_t row = guest::kBootModelRows + entry * guest::kBootModelRowBytes;
+    core.mem_w32(row, 0x10u + entry);
+    core.mem_w32(row + 4u, static_cast<std::uint32_t>(-0x20));
+    core.mem_w32(row + 8u, 0x30u);
+    core.mem_w16(row + 0xCu, 0x55u + entry);
+  }
+  objectDrawKeys.clear();
+  CHECK(callGuest(core, guest::kBootScratchComponentDraw, {0u, 0u, 0u, 0u}));
+  CHECK(callGuest(core, guest::kBootScratchComponentDraw, {0u, 0u, 0u, 0u}));
+  CHECK_EQ(objectDrawKeys.size(), 4u);
+  CHECK(objectDrawKeys[0] != objectDrawKeys[1]);
+  CHECK_EQ(objectDrawKeys[2], objectDrawKeys[0]);
+  CHECK_EQ(objectDrawKeys[3], objectDrawKeys[1]);
+  // The component holds the last entry, filled as the guest fills it.
+  const std::uint32_t component = guest::kBootScratchComponent;
+  CHECK_EQ(core.mem_r32(component), 0x03008000u);
+  CHECK_EQ(core.mem_r16(component + 0x74u), 0x200Cu);
+  CHECK_EQ(core.mem_r32(component + 0x6Cu), 0x80180001u);
+  CHECK_EQ(core.mem_r16(component + 0x10u), 0x22u);
+  CHECK_EQ(core.mem_r16(component + 0x12u), 0xFFC0u);
+  CHECK_EQ(core.mem_r16(component + 0x68u), 0x56u);
+  CHECK_EQ(core.mem_r32(component + 0x8u), core.mem_r32(guest::kRenderTemplate + 0x8u));
+  CHECK_EQ(core.gte().readControl(psx::gte::kH), 0x140u);
+}
 } // namespace
 
 int main() {
@@ -430,5 +487,6 @@ int main() {
   RUN(a_culled_face_is_not_drawn_and_a_new_face_appears_at_t_one);
   RUN(a_packet_unlinked_after_its_scope_is_not_saved);
   RUN(a_face_linked_in_the_other_table_is_not_saved);
+  RUN(the_boot_scratch_draw_keys_each_entry_and_keeps_it_across_frames);
   return pt_summary();
 }

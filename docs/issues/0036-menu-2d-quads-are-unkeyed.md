@@ -19,7 +19,7 @@ carried one text (MENU overlay `0x800B3xxx`, BOOT `0x800AExxx`, resident `0x8004
 `0x800AEDAC` is drawn by two components per frame, so the component, not the string, is the object.
 
 Fix: `game/render/ui_producer.{h,cpp}`: the three component callbacks are producers keyed by the
-component's incarnation; `callNamed` on the leaves names each element from the call site it returns to
+component's incarnation; `underName` on the leaves names each element from the call site it returns to
 (glyph byte, panel part, digit place), and the BOOT sites open their owner's key (record, place).
 Tests: `tests/test_ui_producer.cpp` (9 cases through the shipping overrides; 7 fail without them).
 

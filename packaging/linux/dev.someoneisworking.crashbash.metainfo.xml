@@ -13,7 +13,7 @@
   </description>
   <launchable type="desktop-id">dev.someoneisworking.crashbash.desktop</launchable>
   <provides>
-    <binary>crashbash-launcher</binary>
+    <binary>crashbash_port</binary>
   </provides>
   <categories>
     <category>Game</category>

@@ -9,7 +9,7 @@ real SIO0 pad chain, so every transition below is the guest's own.
 
 A file is either unkeyed (masks at absolute frames from boot) or **phase-keyed v1**: a chain of
 segments, each keyed by the title's input phase — for Crash Bash the scene record `0x8009F658`
-packed with the active menu screen at `0x8009F8A4`, produced by `game/input/crashbash_input_phase.{h,cpp}`.
+packed with the active menu screen at `0x8009F8A4`, produced by `game/input/recording_phase.{h,cpp}`.
 A phase-keyed file delivers each segment's masks relative to the guest entering that phase, so a
 shorter handoff on the receiving build moves the segment boundary and the presses inside it with it.
 That is what keeps `polar-push-control.pad` on its route after S020 collapsed the handoffs: the former

@@ -1,6 +1,6 @@
-#include "menu_image.h"
+#include "boot/menu_image.h"
 
-#include "menu_image_identity.h"
+#include "execution/menu_image_identity.h"
 
 namespace crashbash {
 namespace {

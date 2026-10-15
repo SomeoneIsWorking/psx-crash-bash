@@ -1,4 +1,4 @@
-#include "crashbash_touch_controls.h"
+#include "input/touch_controls.h"
 
 #include <algorithm>
 #include <array>
@@ -117,11 +117,11 @@ std::span<const TouchPoint> glyphPath(TouchGlyph glyph) {
   return {};
 }
 
-CrashBashTouchControls::CrashBashTouchControls() {
+TouchControls::TouchControls() {
   rebuildLayout();
 }
 
-void CrashBashTouchControls::configure(TouchViewport viewport) {
+void TouchControls::configure(TouchViewport viewport) {
   cancelAll();
   viewport.width = std::max(viewport.width, 0.0F);
   viewport.height = std::max(viewport.height, 0.0F);
@@ -134,7 +134,7 @@ void CrashBashTouchControls::configure(TouchViewport viewport) {
   rebuildLayout();
 }
 
-void CrashBashTouchControls::setEnabled(bool enabled) {
+void TouchControls::setEnabled(bool enabled) {
   if (enabled_ == enabled) {
     return;
   }
@@ -142,7 +142,7 @@ void CrashBashTouchControls::setEnabled(bool enabled) {
   cancelAll();
 }
 
-void CrashBashTouchControls::setPhysicalControllerConnected(bool connected) {
+void TouchControls::setPhysicalControllerConnected(bool connected) {
   if (physicalControllerConnected_ == connected) {
     return;
   }
@@ -150,19 +150,19 @@ void CrashBashTouchControls::setPhysicalControllerConnected(bool connected) {
   cancelAll();
 }
 
-bool CrashBashTouchControls::visible() const {
+bool TouchControls::visible() const {
   return enabled_ && !physicalControllerConnected_ && layoutValid_;
 }
 
-std::uint16_t CrashBashTouchControls::activeLowMask() const {
+std::uint16_t TouchControls::activeLowMask() const {
   return static_cast<std::uint16_t>(~pressedHighMask_);
 }
 
-std::span<const TouchVisual> CrashBashTouchControls::visuals() const {
+std::span<const TouchVisual> TouchControls::visuals() const {
   return visuals_;
 }
 
-bool CrashBashTouchControls::touchDown(std::int64_t fingerId, TouchPoint point) {
+bool TouchControls::touchDown(std::int64_t fingerId, TouchPoint point) {
   if (!visible()) {
     return false;
   }
@@ -192,7 +192,7 @@ bool CrashBashTouchControls::touchDown(std::int64_t fingerId, TouchPoint point) 
   return true;
 }
 
-bool CrashBashTouchControls::touchMove(std::int64_t fingerId, TouchPoint point) {
+bool TouchControls::touchMove(std::int64_t fingerId, TouchPoint point) {
   TrackedTouch *touch = findTouch(fingerId);
   if (touch == nullptr) {
     return false;
@@ -202,7 +202,7 @@ bool CrashBashTouchControls::touchMove(std::int64_t fingerId, TouchPoint point) 
   return true;
 }
 
-bool CrashBashTouchControls::touchUp(std::int64_t fingerId) {
+bool TouchControls::touchUp(std::int64_t fingerId) {
   TrackedTouch *touch = findTouch(fingerId);
   if (touch == nullptr) {
     return false;
@@ -212,18 +212,18 @@ bool CrashBashTouchControls::touchUp(std::int64_t fingerId) {
   return true;
 }
 
-bool CrashBashTouchControls::touchCancel(std::int64_t fingerId) {
+bool TouchControls::touchCancel(std::int64_t fingerId) {
   return touchUp(fingerId);
 }
 
-void CrashBashTouchControls::cancelAll() {
+void TouchControls::cancelAll() {
   for (TrackedTouch &touch : touches_) {
     touch = {};
   }
   recomputeOutput();
 }
 
-std::uint16_t CrashBashTouchControls::buttonsAt(TouchPoint point, TouchDomain domain) const {
+std::uint16_t TouchControls::buttonsAt(TouchPoint point, TouchDomain domain) const {
   if (!layoutValid_) {
     return 0;
   }
@@ -306,7 +306,7 @@ std::uint16_t CrashBashTouchControls::buttonsAt(TouchPoint point, TouchDomain do
   return 0;
 }
 
-void CrashBashTouchControls::rebuildLayout() {
+void TouchControls::rebuildLayout() {
   const float left = viewport_.safeInsets.left;
   const float top = viewport_.safeInsets.top;
   const float right = viewport_.width - viewport_.safeInsets.right;
@@ -437,7 +437,7 @@ void CrashBashTouchControls::rebuildLayout() {
   recomputeOutput();
 }
 
-void CrashBashTouchControls::recomputeOutput() {
+void TouchControls::recomputeOutput() {
   pressedHighMask_ = 0;
   for (const TrackedTouch &touch : touches_) {
     if (touch.active) {
@@ -489,7 +489,7 @@ void CrashBashTouchControls::recomputeOutput() {
   }
 }
 
-CrashBashTouchControls::TrackedTouch *CrashBashTouchControls::findTouch(std::int64_t fingerId) {
+TouchControls::TrackedTouch *TouchControls::findTouch(std::int64_t fingerId) {
   for (TrackedTouch &touch : touches_) {
     if (touch.active && touch.fingerId == fingerId) {
       return &touch;
@@ -498,7 +498,7 @@ CrashBashTouchControls::TrackedTouch *CrashBashTouchControls::findTouch(std::int
   return nullptr;
 }
 
-CrashBashTouchControls::TrackedTouch *CrashBashTouchControls::firstFreeTouch() {
+TouchControls::TrackedTouch *TouchControls::firstFreeTouch() {
   for (TrackedTouch &touch : touches_) {
     if (!touch.active) {
       return &touch;

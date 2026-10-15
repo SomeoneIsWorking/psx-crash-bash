@@ -1,8 +1,8 @@
-#include "dev_pause.h"
+#include "debug/dev_pause.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
 #include "pad_input.h"
+#include "title/guest.h"
 
 #include <cstdio>
 #include <cstring>
@@ -47,12 +47,12 @@ bool modeSceneIsCurrent(Core &core) {
 
 } // namespace
 
-bool DevPause::handle(Core &core, const char *cmd, const char *line, std::string &reply) {
-  if (std::strcmp(cmd, "pause") != 0) {
+bool DevPause::handle(Core &core, const psx::game::TitleCommandLine &input, std::string &reply) {
+  if (std::strcmp(input.command, "pause") != 0) {
     return false;
   }
   char argument[16] = {0};
-  if (std::sscanf(line, "%*s %15s", argument) != 1) {
+  if (std::sscanf(input.line, "%*s %15s", argument) != 1) {
     reply = kUsage;
     return true;
   }

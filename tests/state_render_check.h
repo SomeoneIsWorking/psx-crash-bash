@@ -3,15 +3,17 @@
 #pragma once
 
 #include "core.h"
-#include "crashbash_guest.h"
 #include "frame_composer.h"
 #include "frame_record.h"
 #include "frame_state.h"
+#include "game_runtime.h"
 #include "gte_control.h"
 #include "guest_call.h"
 #include "ordering_table.h"
+#include "runtime/session.h"
 #include "state_producer.h"
 #include "testutil.h"
+#include "title/guest.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -164,7 +166,7 @@ inline void checkStateRender(Core &core,
                              std::uint32_t object,
                              const std::function<psx::present::FrameRecord(int)> &draw,
                              const std::function<void()> &scramble) {
-  const psx::present::StateProducer *render = core.stateProducers.find(producer);
+  const psx::present::StateProducer *render = core.runtime.stateProducer(core, producer);
   CHECK(render != nullptr);
   const psx::present::ObjectId id{producer, object};
 
@@ -175,16 +177,17 @@ inline void checkStateRender(Core &core,
   const std::vector<psx::present::DrawPrimitive> walked = primitivesOf(record, producer);
   CHECK(!walked.empty());
   CollectedSink exact;
-  render->render(*saved, *saved, 1.0f, exact);
+  render->render({*saved, *saved, 1.0f}, exact);
   CHECK(sameFrame(exact.drawn, walked));
 
-  const auto composed = psx::present::composeFrame(record, nullptr, state, 1.0f, core.stateProducers);
+  const auto composed =
+      psx::present::composeFrame(record, nullptr, state, 1.0f, crashbash::session(core).stateProducers);
   CHECK(composed.has_value());
   CHECK(composed.has_value() && sameFrame(primitivesOf(*composed, producer), walked));
 
   scramble();
   CollectedSink scrambled;
-  render->render(*saved, *saved, 1.0f, scrambled);
+  render->render({*saved, *saved, 1.0f}, scrambled);
   CHECK(sameFrame(scrambled.drawn, walked));
 
   const psx::present::FrameState earlier = core.frameStates.collect(draw(0));
@@ -195,11 +198,11 @@ inline void checkStateRender(Core &core,
   CHECK(from.has_value() && to.has_value());
   if (from && to) {
     CollectedSink between;
-    render->render(*from, *to, 0.5f, between);
+    render->render({*from, *to, 0.5f}, between);
     const std::vector<psx::present::DrawPrimitive> expected = primitivesOf(midway, producer);
     CHECK(sameFrame(between.drawn, expected));
     CollectedSink atEarlier;
-    render->render(*from, *to, 0.0f, atEarlier);
+    render->render({*from, *to, 0.0f}, atEarlier);
     CHECK(!sameFrame(between.drawn, atEarlier.drawn));
   }
 }

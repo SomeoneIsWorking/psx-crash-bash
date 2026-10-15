@@ -1,12 +1,13 @@
-#include "guest_execution.h"
+#include "execution/guest_execution.h"
 
 #include "core.h"
+#include "execution/image_identity_state.h"
 #include "execution_control.h"
 #include "image_identity.h"
-#include "image_identity_state.h"
 #include "lightrec_executor.h"
 #include "native_dispatch.h"
 #include "resumable_guest_call.h"
+#include "runtime/session.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -17,11 +18,7 @@ namespace crashbash::runtime {
 namespace {
 
 GuestExecution &execution(Core &core) {
-  if (!core.gameCtx) {
-    lucent::error("crashbash-runtime", "guest execution requires the title's per-Core context");
-    std::abort();
-  }
-  return *static_cast<GuestExecution *>(core.gameCtx);
+  return session(core).execution;
 }
 
 double displayFields(const Core &core, std::uint64_t cycles) {
@@ -52,18 +49,12 @@ const char *imageName(GuestImage image) {
 
 } // namespace
 
-GuestExecution::GuestExecution(Core &core) : core_(core), statePort_(std::make_unique<ImageIdentityState>(*this)) {
-  if (core.gameCtx) {
-    throw std::logic_error("Crash Bash Core already has a title context");
-  }
-  core.gameCtx = this;
-}
+GuestExecution::GuestExecution(Core &core) : core_(core), statePort_(std::make_unique<ImageIdentityState>(*this)) {}
 
 GuestExecution::~GuestExecution() {
   for (const auto &binding : bindings_) {
     removeRegistrations(binding);
   }
-  core_.gameCtx = nullptr;
 }
 
 void GuestExecution::removeRegistrations(const Binding &binding) {
@@ -76,6 +67,12 @@ void GuestExecution::removeRegistrations(const Binding &binding) {
   }
 }
 
+bool GuestExecution::registers(GuestImage image, std::uint32_t address) const {
+  return std::any_of(registrations_.begin(), registrations_.end(), [=](const Registration &entry) {
+    return entry.image == image && entry.address == address;
+  });
+}
+
 void GuestExecution::registerOverride(GuestImage image,
                                       std::uint32_t address,
                                       std::string_view name,
@@ -84,9 +81,7 @@ void GuestExecution::registerOverride(GuestImage image,
   if (!function || name.empty() || (address & 3u) != 0u) {
     throw std::invalid_argument("Crash Bash native override is incomplete or unaligned");
   }
-  if (std::any_of(registrations_.begin(), registrations_.end(), [=](const Registration &entry) {
-        return entry.image == image && entry.address == address;
-      })) {
+  if (registers(image, address)) {
     throw std::invalid_argument("Crash Bash native override is already registered");
   }
   const auto binding = std::find_if(bindings_.begin(), bindings_.end(), [image](const Binding &entry) {

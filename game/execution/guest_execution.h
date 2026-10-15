@@ -20,7 +20,7 @@ class ImageIdentityState;
 
 // Crash Bash reuses guest address ranges for unrelated modules, so image identity is part of every
 // override key.
-enum class GuestImage {
+enum class GuestImage : std::uint8_t {
   Resident,
   Boot,
   Menu,
@@ -44,8 +44,8 @@ struct BoundImageRecord {
   std::vector<GuestAddressRange> residentRanges;
 };
 
-// Per-Core title context. The loader authenticates and activates the ImageCatalog residency
-// before binding here, and unbinds before unloading.
+// Per-Core image bindings, a Session member. The loader authenticates and activates the ImageCatalog
+// residency before binding here, and unbinds before unloading.
 class GuestExecution final {
 public:
   explicit GuestExecution(Core &core);
@@ -55,9 +55,8 @@ public:
   GuestExecution(GuestExecution &&) = delete;
   GuestExecution &operator=(GuestExecution &&) = delete;
 
-  std::size_t registeredOverrideCount() const {
-    return registrations_.size();
-  }
+  // Whether an owner is registered for `address` in `image`, bound or waiting for its image.
+  bool registers(GuestImage image, std::uint32_t address) const;
 
   // A producer override opens its emission scope around every call (psxport presentation.md, Frame model).
   void registerOverride(GuestImage image,

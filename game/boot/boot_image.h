@@ -1,6 +1,6 @@
 #pragma once
 
-#include "authenticated_module_image.h"
+#include "boot/authenticated_module_image.h"
 
 #include <cstdint>
 

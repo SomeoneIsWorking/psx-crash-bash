@@ -1,21 +1,21 @@
 // The UI producers key text glyphs, panel parts and HUD digits by their element, and render the components and
 // BOOT's HUD and menu items from saved state, through the shipping overrides and native bodies, with guest
 // stand-ins at the component callbacks and the BOOT call sites.
-#include "component_incarnation.h"
 #include "core.h"
-#include "crashbash_frame_driver.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
 #include "guest_stub.h"
-#include "leaf_packets.h"
-#include "ordering_table_slots.h"
-#include "packet_collector.h"
+#include "render/component_incarnation.h"
+#include "render/leaf_packets.h"
+#include "render/ordering_table_slots.h"
+#include "render/packet_collector.h"
+#include "render/state_renders.h"
+#include "render/ui_producer.h"
+#include "runtime/session.h"
 #include "state_render_check.h"
-#include "state_renders.h"
 #include "testutil.h"
-#include "title_adapter.h"
-#include "ui_producer.h"
+#include "title/guest.h"
+#include "title_game.h"
 
 #include <cstdlib>
 #include <initializer_list>
@@ -108,8 +108,6 @@ void writeString(Core &core, std::uint32_t address, const char *text) {
   }
 }
 
-crashbash::TitleAdapter runtime;
-
 using crashbash::runtime::GuestImage;
 
 // The texture record at `address`: 8 by 12 with a page, a palette and four texture coordinates.
@@ -157,22 +155,21 @@ void writeFont(Core &core) {
 }
 
 // `upper` is the image bound over BOOT's addresses.
-std::unique_ptr<Game> makeGame(GuestImage upper = GuestImage::Boot) {
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+std::unique_ptr<crashbash::test::TitleGame> makeGame(GuestImage upper = GuestImage::Boot) {
+  auto game = crashbash::test::makeTitleGame();
+  Core &core = game->core();
   stubGuest(core);
   writeFont(core);
   writeString(core, kStringA, "AB");
   writeString(core, kStringB, "XYZ");
   writeString(core, kStringMixed, "XQR");
-  auto *execution = static_cast<crashbash::runtime::GuestExecution *>(core.gameCtx);
-  execution->bindAuthenticatedImage(
+  crashbash::runtime::GuestExecution &execution = crashbash::session(core).execution;
+  execution.bindAuthenticatedImage(
       GuestImage::Resident, core.imageCatalog().activate("synthetic-resident", kResidentRange, 1u), kResidentRange);
-  execution->bindAuthenticatedImage(upper, core.imageCatalog().activate("synthetic-upper", kBootRange, 1u), kBootRange);
+  execution.bindAuthenticatedImage(upper, core.imageCatalog().activate("synthetic-upper", kBootRange, 1u), kBootRange);
   crashbash::render::registerUiProducers(core);
   crashbash::render::nameOrderingTables(core);
-  crashbash::render::registerStateRenders(core);
+  crashbash::render::registerStateRenders(core, crashbash::session(core).stateProducers);
   crashbash::test::OrderingTableModel(core).begin();
   crashbash::test::warmUpExecutor(core, 0x80018100u);
   return game;
@@ -216,7 +213,7 @@ RecordKey glyphKey(std::uint32_t component, std::uint32_t string, std::uint32_t 
 
 void test_each_glyph_is_keyed_by_its_component_and_byte() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(drawText(core, kComponentA, kStringB));
   for (std::uint32_t glyph = 0; glyph < 3u; ++glyph) {
     CHECK(core.emission.identityFor(kPackets + glyph * kQuadBytes) == glyphKey(kComponentA, kStringB, glyph));
@@ -227,7 +224,7 @@ void test_each_glyph_is_keyed_by_its_component_and_byte() {
 // Two components showing one string, drawn in either order, keep distinct keys of their own.
 void test_glyph_keys_follow_the_component_not_the_order() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   const auto packet = [](std::uint32_t index) {
     return kPackets + index * kQuadBytes;
   };
@@ -244,7 +241,7 @@ void test_glyph_keys_follow_the_component_not_the_order() {
 // A component switched to another string names other glyphs, so nothing pairs across the switch.
 void test_a_new_string_in_a_component_gets_new_keys() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(drawText(core, kComponentA, kStringB));
   CHECK(!(glyphKey(kComponentA, kStringB, 0u) == glyphKey(kComponentA, kStringA, 0u)));
   CHECK(core.emission.identityFor(kPackets) == glyphKey(kComponentA, kStringB, 0u));
@@ -253,7 +250,7 @@ void test_a_new_string_in_a_component_gets_new_keys() {
 // A glyph with no texture draws nothing and does not advance the next one's key.
 void test_a_glyph_without_a_texture_draws_no_packet() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   writeString(core, kStringB, "PY");
   CHECK(drawText(core, kComponentA, kStringB));
   CHECK(core.emission.identityFor(kPackets) == glyphKey(kComponentA, kStringB, 1u));
@@ -276,7 +273,7 @@ void writePanelRecord(Core &core, int x, int y, int right, int bottom) {
 
 void test_each_panel_part_is_its_own_element() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   writePanelRecord(core, 40, 50, 100, 90);
   CHECK(call(core, guest::kPanelComponentDraw, {{4u, kComponentA}, {5u, kAttributes}}));
   const PanelPart parts[] = {PanelPart::Body, PanelPart::Left, PanelPart::Right, PanelPart::Top, PanelPart::Bottom};
@@ -291,7 +288,7 @@ void test_each_panel_part_is_its_own_element() {
 // Outside a component the string renderer has no object to name glyphs of.
 void test_a_string_outside_any_owner_stays_unkeyed() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(call(core, guest::kStringDraw, {{4u, 20u}, {5u, 30u}, {6u, kStringA}}));
   CHECK(!core.emission.identityFor(kPackets));
 }
@@ -302,7 +299,7 @@ RecordKey hudKey(std::uint32_t record, DigitPlace place) {
 
 void test_hud_digits_are_keyed_by_player_record_and_place() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(call(core, guest::kBootHudTwoDigitReturns[0] - 8u, {{kS4, kHudRecord}}));
   CHECK(call(core, guest::kBootHudTwoDigitReturns[1] - 8u, {{kS4, kHudRecord}}));
   CHECK(call(core, guest::kBootHudThreeDigitReturns[2] - 8u, {{kS4, kHudRecord}}));
@@ -313,7 +310,7 @@ void test_hud_digits_are_keyed_by_player_record_and_place() {
 
 void test_hud_icons_are_keyed_by_their_record() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(call(core, guest::kBootHudIconReturns[2] - 8u, {{16u, 0x8009AD5Cu}}));
   CHECK(core.emission.identityFor(kPackets) == hudKey(0x8009AD5Cu, DigitPlace::Units));
 }
@@ -321,7 +318,7 @@ void test_hud_icons_are_keyed_by_their_record() {
 // A menu item's number names its three digits by element, under one object.
 void test_a_menu_item_number_is_keyed_by_item_and_place() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(call(core, guest::kBootMenuNumberReturn - 8u, {{kS4, kMenuItem}}));
   const DigitPlace order[] = {DigitPlace::Hundreds, DigitPlace::Tens, DigitPlace::Units};
   for (std::uint32_t i = 0; i < std::size(order); ++i) {
@@ -335,36 +332,42 @@ void test_a_menu_item_number_is_keyed_by_item_and_place() {
 // The BOOT sites name nothing while another image holds those addresses.
 void test_boot_sites_need_the_boot_image() {
   auto game = makeGame(GuestImage::Dat22510);
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(call(core, guest::kBootHudTwoDigitReturns[0] - 8u, {{kS4, kHudRecord}}));
   CHECK(!core.emission.identityFor(kPackets));
 }
 
 // A component draw through the shipping bodies and leaf bodies, over memory a test fills with what the guest
 // would have there: a record for the text and panel bodies, corners and colours for the shaded leaf.
+// A screen position, in the guest's layout units.
+struct ScreenAt {
+  int x = 0;
+  int y = 0;
+};
+
 class UiScene {
 public:
-  UiScene() : game(makeGame()), table(game->core) {
-    Core &core = game->core;
+  UiScene() : game(makeGame()), table(game->core()) {
+    Core &core = game->core();
     place(core, guest::kQuadComponentDraw, {move(kS4, kRa), j(guest::kQuadComponentReturn - 8u), nop()});
     callThenReturn(core, guest::kQuadComponentReturn, guest::kShadedQuad, kS4);
   }
 
   // "XQR" through the text component: a quad, a sprite and a raised sprite, at one position.
   psx::present::FrameRecord drawText(int shift) {
-    return drawTextAt(20 + shift, 30 + shift, 0u);
+    return drawTextAt({20 + shift, 30 + shift}, 0u);
   }
 
   // The same string centred on the screen; only its height moves.
   psx::present::FrameRecord drawCentredText(int shift) {
-    return drawTextAt(0x8000, 30 + shift, 0u);
+    return drawTextAt({0x8000, 30 + shift}, 0u);
   }
 
   // Centred with an offset, and tinted by the frame counter.
   psx::present::FrameRecord drawTintedText(int shift) {
     core().mem_w32(guest::kTintCounter, 0u);
     core().mem_w16(guest::kTintTable + 0xC00u * 4u + 2u, 0x180u);
-    return drawTextAt(0x8000 | 40, 30 + shift, 1u);
+    return drawTextAt({0x8000 | 40, 30 + shift}, 1u);
   }
 
   // The panel body and its four borders: five Gouraud quads in 2D, with a draw mode.
@@ -381,13 +384,13 @@ public:
 
   // One Gouraud quad projected through the GTE; the camera moves it.
   psx::present::FrameRecord drawProjectedQuad(int shift) {
-    writeCorners(-40, -30, 400);
+    writeCorners({-40, -30}, 400);
     crashbash::test::setCamera(shift * 8);
     return run(guest::kQuadComponentDraw, {{4u, kComponentA}, {5u, crashbash::render::kDrawn}});
   }
 
   psx::present::FrameRecord drawQuad(int shift) {
-    writeCorners(60 + shift, 70 + shift);
+    writeCorners({60 + shift, 70 + shift});
     return run(guest::kQuadComponentDraw, {{4u, kComponentA}, {5u, kAttributes}});
   }
 
@@ -450,15 +453,15 @@ public:
   }
 
   Core &core() {
-    return game->core;
+    return game->core();
   }
 
-  std::unique_ptr<Game> game;
+  std::unique_ptr<crashbash::test::TitleGame> game;
   crashbash::test::OrderingTableModel table;
 
 private:
-  psx::present::FrameRecord drawTextAt(int x, int y, std::uint32_t tint) {
-    writeTextRecord(core(), kComponentA, x, y, kStringMixed);
+  psx::present::FrameRecord drawTextAt(ScreenAt at, std::uint32_t tint) {
+    writeTextRecord(core(), kComponentA, at.x, at.y, kStringMixed);
     core().mem_w32(kStackSlot, 0x00404040u);
     core().mem_w32(kStackSlot2, tint);
     return run(guest::kTextComponentDraw, {{4u, kComponentA}});
@@ -470,19 +473,19 @@ private:
     // A draw after a scramble finds the guest's data where it was.
     writeFont(core());
     writeString(core(), kStringMixed, "XQR");
-    if (!call(game->core, entry, registers)) {
+    if (!call(game->core(), entry, registers)) {
       std::abort();
     }
-    crashbash::frameDriver(game->core).packetCollector().commit(game->core);
+    crashbash::session(game->core()).packetCollector.commit(game->core());
     return table.walk();
   }
 
-  // Four corners 16 by 10 from (x, y) and their colours, in the 0x30-byte layout the shaded leaf reads.
-  void writeCorners(int x, int y, int z = 0) {
+  // Four corners 16 by 10 from `at` and their colours, in the 0x30-byte layout the shaded leaf reads.
+  void writeCorners(ScreenAt at, int z = 0) {
     Core &c = core();
     const int offsets[4][2] = {{0, 0}, {16, 0}, {0, 10}, {16, 10}};
     for (std::uint32_t corner = 0; corner < 4u; ++corner) {
-      c.mem_w32(kComponentA + corner * 8u, pointWord(x + offsets[corner][0], y + offsets[corner][1]));
+      c.mem_w32(kComponentA + corner * 8u, pointWord(at.x + offsets[corner][0], at.y + offsets[corner][1]));
       c.mem_w32(kComponentA + corner * 8u + 4u, static_cast<std::uint32_t>(z));
       c.mem_w32(kComponentA + 0x20u + corner * 4u, 0x00304050u + corner * 0x101010u);
     }

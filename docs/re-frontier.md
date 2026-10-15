@@ -15,8 +15,8 @@ remain diagnostics for finding causes, not completion conditions.
 - deps:
 - evidence: The tracked emitter integration, seed file, generated-registry installer, and static-only
   verifiers are deleted. The ignored generated corpus, static build tree, and static product binaries
-  are absent. The source-policy tests reject their return.
-- where: `CMakeLists.txt`, `tools/source_policy.py`, `tests/test_source_policy.py`
+  are absent.
+- where: `CMakeLists.txt`
 - gap:
 - notes: CMake names the single missing psxport Lightrec adapter boundary. There is no compatibility
   product, selector, or fallback.
@@ -152,7 +152,7 @@ remain diagnostics for finding causes, not completion conditions.
   whenever the render template `0x8005A830` is copied into it; the complete copier set (every image
   scanned for `addiu …, 0xA830` and calls to the copiers) is `0x80018F3C`, `0x8001D3B0`, `0x8001D48C`,
   `0x8001D6B4`, `0x8001E0A8`, `0x80021A1C`, `0x80021798`, `0x8002128C` and BOOT's `0x8007EB68`,
-  `0x8009440C`. The briefing page builder `0x80095BEC` re-fills layer components at
+  `0x8009440C` (native: one incarnation per scratch entry). The briefing page builder `0x80095BEC` re-fills layer components at
   `0x800A13F4 + layer * 0x1500` through `0x8001D3B0`, then `0x800952F8` sets each from the page record.
 - where: `game/render/model_face_producer.{h,cpp}`
 - gap: none for models. Large steps of `0x800A28F4`'s off-screen faces are the guest's own motion

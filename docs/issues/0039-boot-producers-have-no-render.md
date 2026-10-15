@@ -7,10 +7,10 @@ Done: `0x800798A4` and `0x800809A0` open a `PacketCollector::Scope` at their cal
 (`text_bodies`, `panel_bodies`) that the overrides run and the renders re-run on saved component fields.
 Unit tests (`tests/test_ui_producer.cpp`) cover t=1 at 4:3 against the guest walk with scrambled memory and
 t=0.5 against a frame drawn halfway. The override differential matches all four bodies on Polar Push, and
-Polar Push recordcheck at 4:3 is 0 mismatched with fps60 off and on. `tools/source_policy.py` now expects 37
-override registrations (was 35) and 11 original calls (was 12).
+Polar Push recordcheck at 4:3 is 0 mismatched with fps60 off and on. `crashbash_runtime_test` checks named
+overrides by image.
 
-Reached with the title `pause` command (`game/debug/dev_pause.{h,cpp}`; codemap, Debug control channel). In a live
+Reached with the title `pause` command (`game/debug/dev_pause.{h,cpp}`; `docs/features.md`, F-DEBUG). In a live
 match it presses Start through the pad and the guest's own dispatcher `FUN_8007F314` opens the pause page (state word
 `0x8005A624` bit 0); `pause up|down|left|right|confirm` then walks its pages. The BOOT menu page `0x800809A0` is called
 from `FUN_80080FBC` once per frame from there, with the table of the open page.

@@ -114,13 +114,13 @@ struct TouchVisual {
 // Normalized hand-authored icon vertices, scaled into TouchVisual::bounds; Circle is an analytic ring with no path.
 [[nodiscard]] std::span<const TouchPoint> glyphPath(TouchGlyph glyph);
 
-class CrashBashTouchControls {
+class TouchControls {
 public:
   static constexpr std::uint16_t kReleasedMask = 0xFFFFU;
   static constexpr std::size_t kControlCount = static_cast<std::size_t>(TouchControl::Count);
   static constexpr std::size_t kMaxTouches = 10;
 
-  CrashBashTouchControls();
+  TouchControls();
 
   // Rebuilds the landscape layout inside the safe-area insets; touch coordinates share this viewport's pixel space.
   void configure(TouchViewport viewport);

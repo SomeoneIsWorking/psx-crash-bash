@@ -1,10 +1,11 @@
-#include "dev_arena.h"
+#include "debug/dev_arena.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
-#include "measured_guest_call.h"
+#include "frame/measured_guest_call.h"
 #include "pad_input.h"
+#include "title/guest.h"
 
+#include <charconv>
 #include <cstdio>
 #include <cstring>
 #include <lucent/log.h>
@@ -84,14 +85,14 @@ Entry findEntry(Core &core, std::uint32_t arena, std::uint32_t wantedMode) {
 
 } // namespace
 
-bool DevArena::handle(Core &core, const char *cmd, const char *line, std::FILE *out) {
-  if (std::strcmp(cmd, "arena") != 0) {
+bool DevArena::handle(Core &core, const psx::game::TitleCommandLine &input, std::FILE *out) {
+  if (std::strcmp(input.command, "arena") != 0) {
     return false;
   }
 
   char argument[32] = {0};
   char mode[32] = {0};
-  const int fields = std::sscanf(line, "%*31s %31s %31s", argument, mode);
+  const int fields = std::sscanf(input.line, "%*31s %31s %31s", argument, mode);
 
   if (fields < 1 || std::strcmp(argument, "list") == 0) {
     const Page first = arenaPage(core, 0);
@@ -130,7 +131,9 @@ bool DevArena::handle(Core &core, const char *cmd, const char *line, std::FILE *
   }
 
   unsigned requested = 0;
-  if (std::sscanf(argument, "%u", &requested) != 1) {
+  const char *argumentEnd = argument + std::strlen(argument);
+  const auto parsed = std::from_chars(argument, argumentEnd, requested);
+  if (parsed.ec != std::errc{} || parsed.ptr != argumentEnd) {
     std::fprintf(out, "usage: arena list | arena <id> [battle|tournament]\n");
     return true;
   }

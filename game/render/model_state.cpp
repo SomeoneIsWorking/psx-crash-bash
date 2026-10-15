@@ -1,11 +1,11 @@
-#include "model_state.h"
+#include "render/model_state.h"
 
 #include "blend.h"
 #include "core.h"
 #include "frame_state.h"
-#include "model_face_producer.h"
-#include "ordering_table_slots.h"
-#include "packet_decode.h"
+#include "render/model_face_producer.h"
+#include "render/ordering_table_slots.h"
+#include "render/packet_decode.h"
 
 #include <algorithm>
 #include <optional>
@@ -56,7 +56,7 @@ struct FaceState {
 // Takes the faces a render of the saved state links: the saved packet with the points the GTE projected.
 class HostFaceSink final : public FaceSink {
 public:
-  explicit HostFaceSink(const std::vector<SavedFace> &saved) : saved_(saved), byFace_() {
+  HostFaceSink(Core &core, const std::vector<SavedFace> &saved) : core_(core), saved_(saved), byFace_() {
     for (std::size_t index = 0; index < saved.size(); ++index) {
       if (saved[index].face >= byFace_.size()) {
         byFace_.resize(saved[index].face + 1u, kNone);
@@ -72,7 +72,7 @@ public:
     Emitted emitted{face.bucket, saved_[byFace_[face.face]].words};
     const auto points = facePointWords(face.layout);
     for (std::uint32_t point = 0; point < 3u; ++point) {
-      emitted.words[points[point]] = gte_read_data(psx::gte::kSxy0 + point);
+      emitted.words[points[point]] = core_.gte().readData(psx::gte::kSxy0 + point);
     }
     linked.push_back(emitted);
   }
@@ -85,6 +85,7 @@ public:
 
 private:
   static constexpr std::size_t kNone = ~std::size_t{0};
+  Core &core_;
   const std::vector<SavedFace> &saved_;
   std::vector<std::size_t> byFace_;
 };
@@ -184,8 +185,9 @@ void renderFaceState(Core &core,
       }
     }
   }
-  HostFaceSink host(state.faces);
+  HostFaceSink host(core, state.faces);
   {
+    core.gte().bind();
     const psx::present::GteGuard guard;
     psx::present::writeGteControl(control);
     projectFaces(core, FaceInputs{state.list, vertices, state.header.zBias, state.header.zLimit}, host);

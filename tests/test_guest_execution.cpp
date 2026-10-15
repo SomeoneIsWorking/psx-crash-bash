@@ -1,12 +1,14 @@
-#include "guest_execution.h"
+#include "execution/guest_execution.h"
 
+#include "execution/image_identity_state.h"
 #include "game.h"
-#include "game_runtime.h"
-#include "image_identity_state.h"
 #include "lightrec_executor.h"
 #include "native_dispatch.h"
+#include "runtime/session.h"
 #include "state_blob.h"
+#include "stub_game_runtime.h"
 #include "testutil.h"
+#include "typed_config.h"
 
 #include <memory>
 #include <optional>
@@ -20,31 +22,20 @@ constexpr std::uint32_t kEntry = 0x80010000u;
 constexpr std::uint32_t kReturn = 0x80010100u;
 constexpr GuestAddressRange kRange{0x10000u, 0x10200u};
 
-class Runtime final : public GameRuntime {
+// A title session with none of Crash Bash's owners registered.
+class Runtime final : public psx::test::StubGameRuntime {
 public:
-  void *createContext(Core &core) override {
-    return new GuestExecution(core);
-  }
-  void destroyContext(void *context) override {
-    delete static_cast<GuestExecution *>(context);
-  }
-  void registerOverrides(Game &) override {}
-  void bootInit(Core &) override {}
-  RenderCapabilities renderCapabilities() const override {
-    return RenderCapabilities::direct();
-  }
-  bool guestVramIsPicture(const Game &) const override {
-    return false;
+  std::unique_ptr<psx::game::TitleSessionState> createSession(Game &game) override {
+    return std::make_unique<crashbash::Session>(game.core);
   }
 };
 
 std::unique_ptr<Game> makeGame(Runtime &runtime) {
-  psxport_install_game(runtime);
-  return std::make_unique<Game>();
+  return std::make_unique<Game>(runtime, psx::config::Config{});
 }
 
 GuestExecution &context(Core &core) {
-  return *static_cast<GuestExecution *>(core.gameCtx);
+  return crashbash::session(core).execution;
 }
 
 void nativeValue(Core *core) {
@@ -264,18 +255,29 @@ void test_restored_identities_replace_the_session_and_keep_their_retired_ranges(
   CHECK(execution.ownsEveryActiveResidency());
   const auto polar = core.currentImageIdentity(kPolarEntry);
   CHECK(polar.has_value());
+  if (!polar) {
+    return;
+  }
   CHECK(*polar != menu);
   CHECK(*polar != savedPolar); // a fresh generation: nothing keyed to the old one can match it
-  CHECK(core.imageCatalog().describe(*polar)->name == "polar");
+  CHECK(core.imageCatalog().describe(*polar).value_or(psx::cpu::ImageDescription{}).name == "polar");
   CHECK(core.nativeDispatcher().isInstalled({*polar, kPolarEntry}));
   CHECK(execution.activeKey(GuestImage::Dat22510, kPolarEntry).has_value());
   CHECK(!execution.activeKey(GuestImage::Menu, kPolarEntry));
   // BOOT comes back with the slot still retired, so the slot has exactly one owner.
   const auto boot = core.currentImageIdentity(0x80010000u);
   CHECK(boot.has_value());
-  CHECK(core.imageCatalog().describe(*boot)->name == "boot");
-  CHECK_EQ(core.imageCatalog().describe(*boot)->ranges.size(), 1u);
-  CHECK(core.imageCatalog().describe(*boot)->ranges[0].end == kSlot.begin);
+  if (!boot) {
+    return;
+  }
+  const auto bootImage = core.imageCatalog().describe(*boot);
+  CHECK(bootImage.has_value());
+  if (!bootImage) {
+    return;
+  }
+  CHECK(bootImage->name == "boot");
+  CHECK_EQ(bootImage->ranges.size(), 1u);
+  CHECK(bootImage->ranges[0].end == kSlot.begin);
   CHECK(core.currentImageIdentity(0x80001000u).has_value());
 }
 
@@ -300,9 +302,17 @@ void test_image_identity_records_refuse_what_no_title_writes() {
   CHECK(refused({resident, {GuestImage::Boot, "boot", 8u, {0x10000u, 0x10400u}, {{0x10000u, 0x10500u}}}}));
   CHECK(refused({resident, {GuestImage::Boot, "boot", 8u, {0x1F0000u, 0x210000u}, {{0x1F0000u, 0x200000u}}}}));
   CHECK(refused({resident, resident}));
-  BoundImageRecord unknown = resident;
-  unknown.image = static_cast<GuestImage>(static_cast<std::uint32_t>(GuestImage::Dat28382) + 1u);
-  CHECK(refused({resident, unknown}));
+  {
+    // The first record's image word, little-endian after the count, rewritten to one past the last image.
+    psx::state::BlobWriter out;
+    crashbash::runtime::writeBoundImages(out, {resident});
+    std::vector<std::uint8_t> unknown = out.bytesOut();
+    unknown[4] = static_cast<std::uint8_t>(static_cast<std::uint32_t>(GuestImage::Dat28382) + 1u);
+    psx::state::BlobReader in(unknown);
+    std::string error;
+    CHECK(!crashbash::runtime::readBoundImages(in, error).has_value());
+    CHECK(error.find("lacks") != std::string::npos);
+  }
 
   psx::state::BlobWriter out;
   crashbash::runtime::writeBoundImages(out, {resident});

@@ -5,8 +5,8 @@
 // override runs it over the guest's pool, a render over the same inputs with the position moved.
 #pragma once
 
-#include "draw_globals.h"
-#include "leaf_port.h"
+#include "render/draw_globals.h"
+#include "render/leaf_port.h"
 #include "state_bytes.h"
 
 #include <cstdint>
@@ -20,9 +20,8 @@ namespace crashbash::render {
 struct GlyphEntry {
   std::int16_t texture = 0; // -1: the byte draws nothing
   std::uint8_t character = 0;
-  std::int8_t advance = 0;
   std::uint8_t flags = 0; // 1 sprite, 2 combining mark, 4 raised
-  std::uint8_t reserved = 0;
+  std::int32_t advance = 0;
 };
 
 struct StringBody {

@@ -1,4 +1,4 @@
-#include "crashbash_touch_controls.h"
+#include "input/touch_controls.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -6,10 +6,10 @@
 namespace {
 
 using crashbash::input::buttonMask;
-using crashbash::input::CrashBashTouchControls;
 using crashbash::input::glyphPath;
 using crashbash::input::PsxButton;
 using crashbash::input::TouchControl;
+using crashbash::input::TouchControls;
 using crashbash::input::TouchPoint;
 using crashbash::input::TouchViewport;
 
@@ -21,7 +21,7 @@ using crashbash::input::TouchViewport;
     }                                                                                                                  \
   } while (false)
 
-const crashbash::input::TouchVisual &visual(const CrashBashTouchControls &controls, TouchControl control) {
+const crashbash::input::TouchVisual &visual(const TouchControls &controls, TouchControl control) {
   return controls.visuals()[static_cast<std::size_t>(control)];
 }
 
@@ -29,8 +29,8 @@ bool pressed(std::uint16_t activeLowMask, PsxButton button) {
   return (activeLowMask & buttonMask(button)) == 0;
 }
 
-CrashBashTouchControls configuredControls() {
-  CrashBashTouchControls controls;
+TouchControls configuredControls() {
+  TouchControls controls;
   controls.configure(TouchViewport{
       .width = 1280.0F,
       .height = 720.0F,
@@ -41,9 +41,9 @@ CrashBashTouchControls configuredControls() {
 }
 
 void test_layout_stays_inside_safe_area() {
-  const CrashBashTouchControls controls = configuredControls();
+  const TouchControls controls = configuredControls();
   CHECK(controls.visible());
-  CHECK(controls.visuals().size() == CrashBashTouchControls::kControlCount);
+  CHECK(controls.visuals().size() == TouchControls::kControlCount);
   for (const auto &item : controls.visuals()) {
     CHECK(item.bounds.left >= 42.0F);
     CHECK(item.bounds.top >= 18.0F);
@@ -53,20 +53,20 @@ void test_layout_stays_inside_safe_area() {
 }
 
 void test_direction_pad_supports_diagonal_and_dead_zone() {
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   const auto bounds = visual(controls, TouchControl::DirectionPad).bounds;
   const TouchPoint center = bounds.center();
   const float offset = bounds.width * 0.32F;
 
   CHECK(controls.touchDown(1, center));
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
   CHECK(controls.touchMove(1, {center.x + offset, center.y - offset}));
   CHECK(pressed(controls.activeLowMask(), PsxButton::Right));
   CHECK(pressed(controls.activeLowMask(), PsxButton::Up));
   CHECK(!pressed(controls.activeLowMask(), PsxButton::Left));
   CHECK(!pressed(controls.activeLowMask(), PsxButton::Down));
   CHECK(controls.touchMove(1, visual(controls, TouchControl::Cross).bounds.center()));
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
   CHECK(controls.touchUp(1));
   CHECK(!controls.touchDown(2, {640.0F, 360.0F}));
 }
@@ -89,19 +89,19 @@ void test_every_authored_button_maps_to_its_psx_bit() {
       {TouchControl::Start, PsxButton::Start},
   };
 
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   std::int64_t fingerId = 100;
   for (const ExpectedMapping &mapping : kMappings) {
     CHECK(controls.touchDown(fingerId, visual(controls, mapping.control).bounds.center()));
     CHECK(pressed(controls.activeLowMask(), mapping.button));
     CHECK(controls.touchUp(fingerId));
-    CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+    CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
     ++fingerId;
   }
 }
 
 void test_multitouch_uses_the_shared_active_low_pad_contract() {
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   const TouchPoint cross = visual(controls, TouchControl::Cross).bounds.center();
   const TouchPoint square = visual(controls, TouchControl::Square).bounds.center();
 
@@ -116,11 +116,11 @@ void test_multitouch_uses_the_shared_active_low_pad_contract() {
   CHECK(!pressed(controls.activeLowMask(), PsxButton::Cross));
   CHECK(pressed(controls.activeLowMask(), PsxButton::Square));
   CHECK(controls.touchCancel(11));
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
 }
 
 void test_motion_can_slide_between_face_buttons_without_a_stuck_press() {
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   CHECK(controls.touchDown(20, visual(controls, TouchControl::Cross).bounds.center()));
   CHECK(pressed(controls.activeLowMask(), PsxButton::Cross));
 
@@ -129,18 +129,18 @@ void test_motion_can_slide_between_face_buttons_without_a_stuck_press() {
   CHECK(pressed(controls.activeLowMask(), PsxButton::Circle));
 
   CHECK(controls.touchMove(20, {640.0F, 360.0F}));
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
   CHECK(controls.touchUp(20));
 }
 
 void test_physical_controller_hides_and_releases_touch_input() {
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   CHECK(controls.touchDown(30, visual(controls, TouchControl::Start).bounds.center()));
   CHECK(pressed(controls.activeLowMask(), PsxButton::Start));
 
   controls.setPhysicalControllerConnected(true);
   CHECK(!controls.visible());
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
   CHECK(!controls.touchDown(31, visual(controls, TouchControl::Cross).bounds.center()));
 
   controls.setPhysicalControllerConnected(false);
@@ -148,17 +148,17 @@ void test_physical_controller_hides_and_releases_touch_input() {
   CHECK(controls.touchDown(32, visual(controls, TouchControl::Cross).bounds.center()));
   controls.setEnabled(false);
   CHECK(!controls.visible());
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
 }
 
 void test_invalid_or_changed_layout_cannot_leave_buttons_held() {
-  CrashBashTouchControls controls = configuredControls();
+  TouchControls controls = configuredControls();
   CHECK(controls.touchDown(40, visual(controls, TouchControl::L1).bounds.center()));
   CHECK(pressed(controls.activeLowMask(), PsxButton::L1));
 
   controls.configure(TouchViewport{.width = 200.0F, .height = 100.0F, .pixelsPerDp = 2.0F});
   CHECK(!controls.visible());
-  CHECK(controls.activeLowMask() == CrashBashTouchControls::kReleasedMask);
+  CHECK(controls.activeLowMask() == TouchControls::kReleasedMask);
   CHECK(!controls.touchMove(40, {10.0F, 10.0F}));
 }
 

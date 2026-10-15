@@ -1,10 +1,10 @@
-#include "boot_logo_skip.h"
+#include "boot/boot_logo_skip.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
+#include "frame/measured_guest_call.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "measured_guest_call.h"
+#include "title/guest.h"
 
 #include <cstdint>
 

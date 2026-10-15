@@ -1,11 +1,11 @@
-#include "polar_push_contact.h"
+#include "gameplay/polar_push_contact.h"
 
 #include "core.h"
-#include "crashbash_frame_driver.h"
+#include "execution/guest_execution.h"
 #include "execution_services.h"
+#include "frame/measured_guest_call.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "measured_guest_call.h"
+#include "runtime/session.h"
 
 #include <array>
 #include <bit>
@@ -122,11 +122,6 @@ std::int32_t signedWord(std::uint32_t value) {
   return std::bit_cast<std::int32_t>(value);
 }
 
-std::int32_t lowProductShift(std::int32_t left, std::int32_t right, std::uint32_t shift) {
-  const std::uint32_t low = static_cast<std::uint32_t>(static_cast<std::int64_t>(left) * right);
-  return signedWord(low) >> shift;
-}
-
 std::uint32_t lowProduct(std::int32_t left, std::int32_t right) {
   return static_cast<std::uint32_t>(static_cast<std::int64_t>(left) * right);
 }
@@ -187,27 +182,29 @@ void emitEvent(Core &core, std::uint32_t event, std::uint32_t returnAddress) {
 void configureEffectRecord(Core &core, std::uint32_t record, std::uint32_t angle, const EffectRecipe &recipe) {
   core.mem_w8(record + 0x0Du, 30u);
   core.mem_w16(record + 0x0Eu,
-               static_cast<std::uint16_t>(lowProductShift(
-                   signedSine(core, angle + recipe.directionOffset), recipe.sineMultiplier, recipe.sineShift)));
+               static_cast<std::uint16_t>(
+                   (signedWord(lowProduct(signedSine(core, angle + recipe.directionOffset), recipe.sineMultiplier)) >>
+                    recipe.sineShift)));
   core.mem_w16(record + 0x16u, static_cast<std::uint16_t>(recipe.forwardOffset));
   core.mem_w16(record + 0x18u, static_cast<std::uint16_t>(recipe.verticalOffset));
   core.mem_w16(record + 0x1Au, 3u);
   core.mem_w16(record + 0x20u, static_cast<std::uint16_t>(recipe.sideOffset));
   core.mem_w16(record + 0x22u,
-               static_cast<std::uint16_t>(lowProductShift(
-                   signedSine(core, angle + recipe.lateralOffset), recipe.sineMultiplier, recipe.sineShift)));
+               static_cast<std::uint16_t>(
+                   (signedWord(lowProduct(signedSine(core, angle + recipe.lateralOffset), recipe.sineMultiplier)) >>
+                    recipe.sineShift)));
   core.mem_w16(record + 0x2Au, static_cast<std::uint16_t>(recipe.choreographyOffset));
 }
 
-void configureFirstEffect(Core &core, std::uint32_t result, std::uint32_t angle) {
-  if (result == 0u) {
+void configureFirstEffect(const EffectResultView &effect, std::uint32_t angle) {
+  if (effect.address == 0u) {
     return;
   }
-  const EffectResultView effect{core, result};
+  Core &core = effect.core;
   const std::uint32_t record = effect.record();
   if (record != 0) {
     const std::uint32_t random = measuredGuestCall(core, kRandomTo, 0x800C0B44u, 2u, 3u);
-    configureEffectRecord(core, record, angle, effectRecipe(0));
+    configureEffectRecord(core, record, angle, kEffectRecipes[0]);
     if (random == 0u) {
       emitEvent(core, 0x46Au, 0x800C0BE8u);
     }
@@ -221,14 +218,13 @@ void configureFirstEffect(Core &core, std::uint32_t result, std::uint32_t angle)
   effect.markChoreography(angle);
 }
 
-void configureEffect(Core &core, std::uint32_t result, std::uint32_t angle, std::uint32_t ordinal) {
-  if (result == 0u) {
+void configureEffect(const EffectResultView &effect, std::uint32_t angle, const EffectRecipe &recipe) {
+  if (effect.address == 0u) {
     return;
   }
-  const EffectResultView effect{core, result};
   const std::uint32_t record = effect.record();
   if (record != 0) {
-    configureEffectRecord(core, record, angle, effectRecipe(ordinal));
+    configureEffectRecord(effect.core, record, angle, recipe);
   }
   effect.markChoreography(angle);
 }
@@ -268,7 +264,7 @@ void reportCensus(const ContactCensus &totals, const ContactCensus &call) {
 }
 
 void polarPushArenaContactUpdate(Core *core) {
-  ContactCensus &gCensus = frameDriver(*core).polarContactCensus();
+  ContactCensus &gCensus = session(*core).polarContactCensus;
   ContactCensus call{};
   ++gCensus.invocations;
   core->r[29] -= 72u;
@@ -348,13 +344,14 @@ void polarPushArenaContactUpdate(Core *core) {
     const std::uint32_t entity = player.entity();
     const std::int32_t impulse = static_cast<std::int32_t>(kContactRadius) -
                                  (signedWord(guestSquareRoot(*core, distanceSquared, 0x800C09B8u, 12u)) >> 6);
+    core->mem_w32(entity + 0x10u,
+                  static_cast<std::uint32_t>(
+                      signedWord(core->mem_r32(entity + 0x10u)) -
+                      (signedWord(lowProduct(impulse, signedSine(*core, collisionAngle - 0x400u))) >> 12u)));
     core->mem_w32(
-        entity + 0x10u,
-        static_cast<std::uint32_t>(signedWord(core->mem_r32(entity + 0x10u)) -
-                                   lowProductShift(impulse, signedSine(*core, collisionAngle - 0x400u), 12u)));
-    core->mem_w32(entity + 0x18u,
-                  static_cast<std::uint32_t>(signedWord(core->mem_r32(entity + 0x18u)) -
-                                             lowProductShift(impulse, signedSine(*core, collisionAngle), 12u)));
+        entity + 0x18u,
+        static_cast<std::uint32_t>(signedWord(core->mem_r32(entity + 0x18u)) -
+                                   (signedWord(lowProduct(impulse, signedSine(*core, collisionAngle))) >> 12u)));
     const std::uint32_t motionAngle =
         guestAngle(*core, signedWord(core->mem_r32(entity + 0x10u)), 0x800C0A24u, 27u) & 0xFFFu;
     const std::uint32_t motionAddress = player.motion();
@@ -373,8 +370,8 @@ void polarPushArenaContactUpdate(Core *core) {
     const MotionView motion{*core, motionAddress};
     const std::uint32_t motionLengthSquared = lowProduct(motion.x(), motion.x()) + lowProduct(motion.z(), motion.z());
     const std::int32_t motionSpeed = signedWord(guestSquareRoot(*core, motionLengthSquared, 0x800C0A5Cu, 10u)) >> 6;
-    motion.setX(-lowProductShift(motionSpeed, signedSine(*core, 0x400u - motionAngle), 13u));
-    motion.setZ(-lowProductShift(motionSpeed, signedSine(*core, -motionAngle), 13u));
+    motion.setX(-(signedWord(lowProduct(motionSpeed, signedSine(*core, 0x400u - motionAngle))) >> 13u));
+    motion.setZ(-(signedWord(lowProduct(motionSpeed, signedSine(*core, -motionAngle))) >> 13u));
     const std::uint32_t configurationTable = core->mem_r32(kConfigurationTablePointer);
     const std::uint16_t configurationValue = core->mem_r16(configurationTable + player.configurationIndex() * 6u);
     ticks(*core, 42u);
@@ -390,11 +387,11 @@ void polarPushArenaContactUpdate(Core *core) {
     }
 
     const std::uint32_t first = spawnEffect(*core, contact, 0x800C0B20u);
-    configureFirstEffect(*core, first, motionAngle);
+    configureFirstEffect({*core, first}, motionAngle);
     const std::uint32_t second = spawnEffect(*core, contact, 0x800C0C80u);
-    configureEffect(*core, second, motionAngle, 1u);
+    configureEffect({*core, second}, motionAngle, kEffectRecipes[1]);
     const std::uint32_t third = spawnEffect(*core, contact, 0x800C0D58u);
-    configureEffect(*core, third, motionAngle, 2u);
+    configureEffect({*core, third}, motionAngle, kEffectRecipes[2]);
     contact.clearActive();
     ticks(*core, 4u);
     ++call.consumed;
@@ -433,40 +430,6 @@ std::int32_t contactThreshold(std::uint16_t configurationValue) {
 
 bool crossesContactThreshold(std::uint16_t configurationValue, std::int32_t motionSpeed, std::int16_t motionLimit) {
   return contactThreshold(configurationValue) < signedWord(lowProduct(motionSpeed, motionLimit));
-}
-
-const EffectRecipe &effectRecipe(std::uint32_t ordinal) {
-  static constexpr std::array<EffectRecipe, 3> kRecipes{{
-      {.directionOffset = -0x200,
-       .lateralOffset = 0x200,
-       .forwardOffset = -0x100,
-       .verticalOffset = -0x20,
-       .sideOffset = -0x80,
-       .choreographyOffset = 0x100,
-       .sineMultiplier = 17,
-       .sineShift = 11},
-      {.directionOffset = 0,
-       .lateralOffset = 0x400,
-       .forwardOffset = 0x100,
-       .verticalOffset = -0x2A,
-       .sideOffset = 0x80,
-       .choreographyOffset = -0x100,
-       .sineMultiplier = 11,
-       .sineShift = 10},
-      {.directionOffset = -0x400,
-       .lateralOffset = 0,
-       .forwardOffset = 0x100,
-       .verticalOffset = -0x48,
-       .sideOffset = -0x80,
-       .choreographyOffset = 0x100,
-       .sineMultiplier = 11,
-       .sineShift = 10},
-  }};
-  if (ordinal >= kRecipes.size()) {
-    lucent::error("crashbash-polar", "invalid Polar Push effect recipe {}", ordinal);
-    std::abort();
-  }
-  return kRecipes[ordinal];
 }
 
 void registerPolarPushContactOverride(Core &core) {

@@ -18,7 +18,7 @@ checking that it works and looks correct.
 
 ## G001 — A faithful, portable Crash Bash PC port
 
-Crash Bash should run from a user-supplied verified USA disc through the default launcher, preserving
+Crash Bash should run from a user-supplied verified USA disc through the default product entry, preserving
 the retail game's observable simulation, input, audio, and presentation behavior.
 
 Success conditions:
@@ -28,7 +28,7 @@ Success conditions:
 - psxport dynamically translates every non-native guest path through its pinned Lightrec revision.
 - Gameplay is dynarec-first, with nonzero translated execution and bounded fallback counts by reason.
   Interpreter-only selection is diagnostic and never the product default.
-- Every native override installation stays active (`tools/source_policy.py` counts them). Every call from a native owner to a
+- Every native override installation stays active (`crashbash_runtime_test` checks them by address). Every call from a native owner to a
   guest implementation use psxport's scoped runtime original-call operation, which bypasses
   only the current override and executes the authenticated guest body through Lightrec.
 - The static generator, generated corpus, dispatcher, seeds, and static-only checks are absent before

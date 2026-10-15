@@ -9,8 +9,8 @@
 #pragma once
 
 #include "frame_record.h"
-#include "leaf_state.h"
-#include "model_state.h"
+#include "render/leaf_state.h"
+#include "render/model_state.h"
 
 #include <vector>
 

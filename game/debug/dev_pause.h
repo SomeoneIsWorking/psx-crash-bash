@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game_runtime.h"
+
 #include <cstdint>
 #include <string>
 
@@ -15,7 +17,7 @@ namespace crashbash::debug {
 class DevPause {
 public:
   // Returns true when `cmd` was this title's command; the reply text is left in `reply`.
-  bool handle(Core &core, const char *cmd, const char *line, std::string &reply);
+  bool handle(Core &core, const psx::game::TitleCommandLine &input, std::string &reply);
 
   // Called at every frame boundary, before the pad is serviced.
   void applyArmed(Core &core, Pad &pad, std::uint32_t frame);
@@ -25,7 +27,7 @@ public:
   }
 
 private:
-  enum class Action : std::uint32_t {
+  enum class Action : std::uint8_t {
     None = 0,
     Open = 1,
     // One press of `button` while the page is open.

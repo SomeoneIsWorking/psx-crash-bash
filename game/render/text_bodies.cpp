@@ -1,9 +1,9 @@
-#include "text_bodies.h"
+#include "render/text_bodies.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
-#include "placement_blend.h"
-#include "ui_producer.h"
+#include "render/placement_blend.h"
+#include "render/ui_producer.h"
+#include "title/guest.h"
 #include <lucent/log.h>
 
 #include <algorithm>
@@ -118,18 +118,21 @@ std::uint32_t pack(std::int32_t y, std::int32_t x) {
   return (static_cast<std::uint32_t>(y) << 16) | (static_cast<std::uint32_t>(x) & 0xFFFFu);
 }
 
-LeafCall glyphCall(const StringBody &body,
-                   const GlyphEntry &glyph,
-                   std::uint32_t position,
-                   std::uint32_t colour,
-                   std::uint32_t colour2) {
+// The font's signed advance byte at `index`, sign-extended as the guest's lb loads it.
+std::int32_t fontAdvance(Core &core, std::uint32_t index) {
+  return static_cast<std::int32_t>(core.mem_r8(guest::kFontAdvance + index) ^ 0x80u) - 0x80;
+}
+
+// A glyph at `position` in the colours the string has reached.
+LeafCall
+glyphCall(const StringBody &body, const GlyphEntry &glyph, std::uint32_t position, const StringOutcome &colours) {
   LeafCall call;
   call.kind = (glyph.flags & kFlagSprite) == 0u ? LeafKind::Quad : LeafKind::Sprite;
   call.textureAddress =
       body.textureBase + (static_cast<std::uint32_t>(glyph.texture) & 0xFFFu) * guest::kTextureRecordBytes;
   call.position = position;
   if (call.kind == LeafKind::Quad) {
-    call.colours = {colour, colour, colour2, colour2};
+    call.colours = {colours.colour, colours.colour, colours.colour2, colours.colour2};
   } else {
     call.colours[0] = kSpriteColour;
   }
@@ -153,7 +156,7 @@ StringBody readStringBody(Core &core) {
     body.tintScale = static_cast<std::int16_t>(core.mem_r16(guest::kTintTable + index * 4u + 2u));
   }
   const std::uint32_t row = body.fontIndex * 0x100u;
-  body.lineHeight = static_cast<std::int8_t>(core.mem_r8(guest::kFontAdvance + row));
+  body.lineHeight = fontAdvance(core, row);
   for (std::uint32_t at = 0;; ++at) {
     if (at == kLongestString) {
       lucent::error("text-bodies", "string at 0x{:08X} has no terminator in {} bytes", body.address, kLongestString);
@@ -174,7 +177,7 @@ StringBody readStringBody(Core &core) {
     }
     GlyphEntry glyph;
     glyph.character = character;
-    glyph.advance = static_cast<std::int8_t>(core.mem_r8(guest::kFontAdvance + row + character));
+    glyph.advance = fontAdvance(core, row + character);
     glyph.flags = core.mem_r8(guest::kFontFlags + row + character);
     glyph.texture = static_cast<std::int16_t>(core.mem_r16(guest::kFontTexture + row * 2u + character * 2u));
     draws = draws || glyph.texture != -1;
@@ -232,7 +235,7 @@ StringOutcome runString(const StringBody &body, const DrawGlobals &globals, Leaf
       const std::uint32_t drawAt = raised ? pack(static_cast<std::int16_t>(position >> 16) - kRaise,
                                                  static_cast<std::int32_t>(position & 0xFFFFu))
                                           : position;
-      const LeafExecution done = port.draw(glyphCall(body, glyph, drawAt, outcome.colour, outcome.colour2), element);
+      const LeafExecution done = port.draw(glyphCall(body, glyph, drawAt, outcome), element);
       if (done.setsSecond) {
         registers.v1 = static_cast<std::int32_t>(done.second);
       }

@@ -1,4 +1,4 @@
-"""Hermetic tests for the shipping Crash Bash launcher path."""
+"""Hermetic tests for the Crash Bash bootstrap path."""
 
 from __future__ import annotations
 

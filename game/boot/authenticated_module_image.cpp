@@ -1,10 +1,11 @@
-#include "authenticated_module_image.h"
+#include "boot/authenticated_module_image.h"
 
 #include "core.h"
-#include "image_content_identity.h"
+#include "execution/image_content_identity.h"
 #include "image_identity.h"
 #include "invalidation.h"
 #include "lightrec_executor.h"
+#include "runtime/session.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -62,8 +63,7 @@ ModuleImageReadResult completeModuleImageRead(Core &core,
   psx::cpu::notifyExecutableWrite(core, range, psx::cpu::ExecutableWriteSource::ModuleLoad);
 
   const auto image = core.imageCatalog().activate(spec.name, range, imageContentIdentity(digest));
-  auto &execution = *static_cast<runtime::GuestExecution *>(core.gameCtx);
-  execution.bindAuthenticatedImage(spec.image, image, range);
+  session(core).execution.bindAuthenticatedImage(spec.image, image, range);
   lucent::info("crashbash-module",
                "authenticated {} image generation {} at 0x{:08X}: {} sector(s), {} byte(s), {} — sha256 {}",
                spec.name,

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Build a reproducible x86_64 Crash Bash AppImage without game files.
 
-The release artifact contains the built port, the shared CHD extractor, redistributable
-framework UI assets, and the native first-run setup launcher. The launcher asks for and validates
-the player's own North American CHD, then stores only its path plus the extracted executable in XDG
-user data. AppImage construction uses checksum-pinned linuxdeploy, appimagetool, and type-2 runtime
+The release artifact contains the built port and the redistributable framework UI assets. The port's
+own first-run screen asks for and authenticates the player's North American CHD, then keeps only its
+path and the extracted executable in the user-data directory. AppImage construction uses checksum-pinned linuxdeploy, appimagetool, and type-2 runtime
 inputs from ``appimage-tools.json``.
 
 Exit 0 means a complete AppDir or AppImage was built and audited. Exit 1 means an input contradicted
@@ -35,7 +34,6 @@ WORK = ROOT / "build" / "package" / "appimage"
 APPDIR = WORK / "AppDir"
 DOWNLOADS = WORK / "downloads"
 EXTRACTED_TOOLS = WORK / "tools"
-DEFAULT_LAUNCHER = ROOT / "build" / "maintainer" / "crashbash-launcher"
 TOOLS_MANIFEST = PACKAGING / "appimage-tools.json"
 EXECUTABLE_MANIFEST = ROOT / "titles" / "crashbash" / "executable.json"
 MODULE_MANIFESTS = tuple(sorted((ROOT / "titles" / "crashbash").glob("*_module.json")))
@@ -43,18 +41,8 @@ DESKTOP = LINUX / "dev.someoneisworking.crashbash.desktop"
 ICON = LINUX / "dev.someoneisworking.crashbash.svg"
 METAINFO = LINUX / "dev.someoneisworking.crashbash.metainfo.xml"
 DEFAULT_BINARY = ROOT / "build" / "bin" / "crashbash_port"
-DEFAULT_DISCDUMP = (
-    ROOT / "build" / "maintainer" / "psxport_build" / "tools" / "discdump"
-)
-FALLBACK_DISCDUMP = ROOT / "build" / "psxport_build" / "tools" / "discdump"
 ASSETS = ROOT / "external" / "psxport" / "assets"
 COPYING = ROOT / "COPYING"
-SHA256SUM = Path(shutil.which("sha256sum") or "/usr/bin/sha256sum")
-LAUNCHER_SOURCES = (
-    LINUX / "launcher_main.cpp",
-    LINUX / "install_media.cpp",
-    LINUX / "user_paths.cpp",
-)
 
 
 class Mismatch(RuntimeError):
@@ -263,31 +251,6 @@ def _extract_appimage(tool: Tool) -> Path:
     return target / "AppRun"
 
 
-def _existing_launcher(path: Path) -> Path:
-    missing = [str(source) for source in LAUNCHER_SOURCES if not source.is_file()]
-    if missing:
-        raise Refused("missing AppImage launcher source: " + ", ".join(missing))
-    return _existing_executable(
-        path,
-        "CMake-built AppImage launcher (build target crashbash_appimage_launcher)",
-    )
-
-
-def _identity_text(identity: MediaIdentity) -> str:
-    fields = {
-        "executable_name": identity.executable_name,
-        "executable_size": str(identity.executable_size),
-        "executable_sha256": identity.executable_sha256,
-        "data_path": identity.data_path,
-        "data_size": str(identity.data_size),
-        "data_sha256": identity.data_sha256,
-    }
-    for name, value in fields.items():
-        if not value or any(character in value for character in "\r\n="):
-            raise Refused(f"media identity field {name} cannot be encoded")
-    return "".join(f"{name}={value}\n" for name, value in fields.items())
-
-
 def _existing_executable(path: Path, description: str) -> Path:
     if not path.is_file() or not os.access(path, os.X_OK):
         raise Refused(f"{description} is missing or not executable at {path}")
@@ -350,11 +313,8 @@ def _run_checked(
         raise Refused(f"{' '.join(command)} failed:\n{detail or 'no diagnostic'}")
 
 
-def prepare_appdir(
-    binary: Path, discdump: Path, launcher: Path, tools: Mapping[str, Tool]
-) -> MediaIdentity:
+def prepare_appdir(binary: Path, tools: Mapping[str, Tool]) -> MediaIdentity:
     identity = media_identity()
-    sha256sum = _existing_executable(SHA256SUM, "SHA-256 verifier")
     linuxdeploy = _extract_appimage(tools["linuxdeploy"])
     _reset_directory(APPDIR)
     deploy_environment = os.environ.copy()
@@ -366,12 +326,6 @@ def prepare_appdir(
             str(APPDIR),
             "--executable",
             str(binary),
-            "--executable",
-            str(discdump),
-            "--executable",
-            str(launcher),
-            "--executable",
-            str(sha256sum),
             "--desktop-file",
             str(DESKTOP),
             "--icon-file",
@@ -380,12 +334,8 @@ def prepare_appdir(
         environment=deploy_environment,
     )
 
-    share = APPDIR / "usr" / "share" / "crashbash"
-    share.mkdir(parents=True, exist_ok=True)
-    (share / "media-identity.conf").write_text(
-        _identity_text(identity), encoding="ascii"
-    )
-    _copy_runtime_assets(share / "assets")
+    # The port reads its assets from <APPDIR>/usr/share/psxport (psx::config::applyPackagedDefaults).
+    _copy_runtime_assets(APPDIR / "usr" / "share" / "psxport" / "assets")
     if not COPYING.is_file():
         raise Refused(f"project license is missing at {COPYING}")
     licenses = APPDIR / "usr" / "share" / "licenses" / "crashbash"
@@ -397,17 +347,15 @@ def prepare_appdir(
 
     app_run = APPDIR / "AppRun"
     app_run.unlink(missing_ok=True)
-    app_run.symlink_to("usr/bin/crashbash-launcher")
+    app_run.symlink_to("usr/bin/crashbash_port")
     directory_icon = APPDIR / ".DirIcon"
     directory_icon.unlink(missing_ok=True)
     directory_icon.symlink_to("dev.someoneisworking.crashbash.svg")
     audit_appdir(identity)
 
-    launcher_in_appdir = APPDIR / "usr" / "bin" / "crashbash-launcher"
     environment = os.environ.copy()
-    app_libraries = APPDIR / "usr" / "lib"
-    environment["LD_LIBRARY_PATH"] = str(app_libraries)
-    _run_checked([str(launcher_in_appdir), "--selftest"], environment=environment)
+    environment["LD_LIBRARY_PATH"] = str(APPDIR / "usr" / "lib")
+    _run_checked([str(APPDIR / "AppRun"), "--help"], environment=environment)
     return identity
 
 
@@ -510,27 +458,15 @@ def verify_artifact(artifact: Path) -> None:
             "cannot extract the completed AppImage for verification: "
             + (completed.stderr or completed.stdout or "no diagnostic").strip()
         )
-    _run_checked([str(extracted / "AppRun"), "--selftest"])
+    _run_checked([str(extracted / "AppRun"), "--help"])
     _remove_directory(check)
-    print("[appimage] artifact selftest: extracted AppRun passed 6/6 checks")
+    print("[appimage] artifact check: extracted AppRun answered --help")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--binary", type=Path, default=DEFAULT_BINARY, help="built crashbash_port"
-    )
-    parser.add_argument(
-        "--discdump",
-        type=Path,
-        default=DEFAULT_DISCDUMP if DEFAULT_DISCDUMP.is_file() else FALLBACK_DISCDUMP,
-        help="built psxport discdump",
-    )
-    parser.add_argument(
-        "--launcher",
-        type=Path,
-        default=DEFAULT_LAUNCHER,
-        help="CMake-built crashbash_appimage_launcher",
     )
     parser.add_argument("--version", help="release version; defaults to git describe")
     parser.add_argument(
@@ -553,16 +489,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         binary = _existing_executable(args.binary, "Crash Bash port")
-        discdump = _existing_executable(args.discdump, "psxport disc extractor")
-        launcher = _existing_launcher(args.launcher)
         version, epoch = _release_version(args.version, args.allow_dirty)
         tools = _load_tools()
-        prepare_appdir(binary, discdump, launcher, tools)
+        prepare_appdir(binary, tools)
         print(f"[appimage] AppDir: {APPDIR}")
         if not args.appdir_only:
             build_appimage(args.output, version, epoch, tools)
-        print("[appimage] setup: native Browse flow + XDG config/data/state paths")
-        print("[appimage] media: direct CHD or one-level nested ZIP, verified before selection")
         return 0
     except Mismatch as error:
         print(f"MISMATCH: {error}", file=sys.stderr)

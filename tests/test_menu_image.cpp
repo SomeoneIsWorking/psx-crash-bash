@@ -1,15 +1,16 @@
-#include "boot_image.h"
-#include "boot_image_identity.h"
-#include "cd_file_read.h"
+#include "boot/boot_image.h"
+#include "boot/menu_image.h"
 #include "core.h"
-#include "crashbash_guest.h"
+#include "disc/cd_file_read.h"
+#include "execution/boot_image_identity.h"
+#include "execution/guest_execution.h"
+#include "execution/menu_image_identity.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "menu_image.h"
-#include "menu_image_identity.h"
 #include "native_dispatch.h"
+#include "runtime/session.h"
 #include "testutil.h"
-#include "title_adapter.h"
+#include "title/guest.h"
+#include "title_game.h"
 
 #include <algorithm>
 #include <fstream>
@@ -18,19 +19,17 @@
 
 namespace {
 
-crashbash::TitleAdapter runtime;
 std::vector<std::uint8_t> bootBytes;
 std::vector<std::uint8_t> menuBytes;
 
-std::unique_ptr<Game> makeGame() {
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  runtime.registerOverrides(*game);
+std::unique_ptr<crashbash::test::TitleGame> makeGame() {
+  auto game = crashbash::test::makeTitleGame();
+  game->runtime().registerOverrides(game->game());
   return game;
 }
 
 crashbash::runtime::GuestExecution &execution(Core &core) {
-  return *static_cast<crashbash::runtime::GuestExecution *>(core.gameCtx);
+  return crashbash::session(core).execution;
 }
 
 void copyMenuRead(Core &core, const std::vector<std::uint8_t> &bytes) {
@@ -44,7 +43,7 @@ void copyMenuRead(Core &core, const std::vector<std::uint8_t> &bytes) {
 
 void test_wrong_tuple_and_unauthenticated_ram_refuse() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(!crashbash::isMenuImageRead(
       crashbash::menu_image::kDiscLba + 1u, crashbash::menu_image::kLoadAddress, crashbash::menu_image::kSectorCount));
   CHECK(!crashbash::isMenuImageRead(
@@ -67,7 +66,7 @@ void test_wrong_tuple_and_unauthenticated_ram_refuse() {
 
 void test_real_menu_publication_preserves_boot_fragments_and_reloads() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK_EQ(bootBytes.size(), crashbash::boot_image::kPayloadBytes);
   CHECK_EQ(menuBytes.size(), crashbash::menu_image::kPayloadBytes);
   const std::uint32_t physicalBoot = crashbash::boot_image::kLoadAddress & 0x1fffffffu;

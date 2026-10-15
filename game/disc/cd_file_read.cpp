@@ -1,13 +1,13 @@
-#include "cd_file_read.h"
+#include "disc/cd_file_read.h"
 
-#include "boot_image.h"
+#include "boot/boot_image.h"
+#include "boot/menu_image.h"
+#include "boot/nested_module_image.h"
 #include "core.h"
-#include "crashbash_guest.h"
 #include "disc.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "menu_image.h"
-#include "nested_module_image.h"
+#include "title/guest.h"
 
 #include <array>
 #include <cstdint>

@@ -1,16 +1,17 @@
-#include "cd_file_read.h"
+#include "boot/nested_module_image.h"
 #include "core.h"
-#include "crashbash_guest.h"
-#include "dat22510_image_identity.h"
-#include "dat28136_image_identity.h"
-#include "dat28241_image_identity.h"
-#include "dat28272_image_identity.h"
-#include "dat28382_image_identity.h"
+#include "disc/cd_file_read.h"
+#include "execution/dat22510_image_identity.h"
+#include "execution/dat28136_image_identity.h"
+#include "execution/dat28241_image_identity.h"
+#include "execution/dat28272_image_identity.h"
+#include "execution/dat28382_image_identity.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "nested_module_image.h"
+#include "runtime/session.h"
 #include "testutil.h"
-#include "title_adapter.h"
+#include "title/guest.h"
+#include "title_game.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -23,21 +24,18 @@
 
 namespace {
 
-crashbash::TitleAdapter runtime;
-
 // Provisioned overlays arrive on argv: CTest runs in the build tree, so repo-relative paths do not resolve.
 std::string nestedOverlayPath;
 std::string compareOverlayPath;
 
-std::unique_ptr<Game> makeGame() {
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  runtime.registerOverrides(*game);
+std::unique_ptr<crashbash::test::TitleGame> makeGame() {
+  auto game = crashbash::test::makeTitleGame();
+  game->runtime().registerOverrides(game->game());
   return game;
 }
 
 crashbash::runtime::GuestExecution &execution(Core &core) {
-  return *static_cast<crashbash::runtime::GuestExecution *>(core.gameCtx);
+  return crashbash::session(core).execution;
 }
 
 // DAT28272 installs its behaviour table at 0x8005AA70 first; this is its initializer.
@@ -47,7 +45,7 @@ void copySectors(Core &core, const std::vector<std::uint8_t> &bytes, std::uint32
   const std::uint32_t physical = destination & 0x1fffffffu;
   for (std::size_t offset = 0; offset < bytes.size(); offset += 2048u) {
     crashbash::retireImagesForCdSectorWrite(core, destination + static_cast<std::uint32_t>(offset));
-    std::copy_n(bytes.begin() + offset, 2048u, core.ram + physical + offset);
+    std::copy_n(bytes.data() + offset, 2048u, core.ram + physical + offset);
   }
 }
 
@@ -81,7 +79,7 @@ void test_every_tracked_spec_is_usable_and_unambiguous() {
 // A read matching no tracked module stays Unrelated; most reads are asset loads.
 void test_only_an_exact_module_read_is_offered() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(!crashbash::NestedModuleImage::isNestedModuleRead(crashbash::dat28272_image::kDiscLba + 1u,
                                                           crashbash::dat28272_image::kLoadAddress,
                                                           crashbash::dat28272_image::kSectorCount));
@@ -112,7 +110,7 @@ void test_real_nested_module_publication_gives_its_code_an_identity() {
     std::exit(2);
   }
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
 
   CHECK(!core.currentImageIdentity(kDat28272Initializer));
 
@@ -140,7 +138,7 @@ void test_real_nested_module_publication_gives_its_code_an_identity() {
 // Hermetic: the exact tuple over unwritten RAM is rejected and publishes nothing.
 void test_exact_tuple_over_unwritten_ram_is_rejected() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(!core.currentImageIdentity(kDat28272Initializer));
   CHECK_EQ(crashbash::NestedModuleImage::offer(core,
                                                crashbash::dat28272_image::kDiscLba,
@@ -161,7 +159,7 @@ void test_corrupt_nested_bytes_are_rejected_without_disturbing_the_prior_image()
     std::exit(2);
   }
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   copySectors(core, good, crashbash::dat28272_image::kLoadAddress);
   CHECK_EQ(crashbash::NestedModuleImage::offer(core,
                                                crashbash::dat28272_image::kDiscLba,

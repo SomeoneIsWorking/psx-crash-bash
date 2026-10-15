@@ -1,10 +1,10 @@
-#include "memory_card_startup.h"
+#include "boot/memory_card_startup.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
 #include "execution_services.h"
-#include "guest_execution.h"
-#include "measured_guest_call.h"
+#include "frame/measured_guest_call.h"
+#include "title/guest.h"
 
 #include <cstdint>
 #include <lucent/log.h>

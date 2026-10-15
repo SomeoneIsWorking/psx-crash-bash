@@ -7,9 +7,9 @@
 // state, and the state kept, into the bucket the body gives it.
 #pragma once
 
-#include "draw_globals.h"
-#include "face_projection.h"
 #include "gte_control.h"
+#include "render/draw_globals.h"
+#include "render/face_projection.h"
 #include "state_bytes.h"
 #include "state_producer.h"
 

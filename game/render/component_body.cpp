@@ -1,4 +1,4 @@
-#include "component_body.h"
+#include "render/component_body.h"
 
 #include <lucent/log.h>
 

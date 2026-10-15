@@ -1,6 +1,6 @@
 #pragma once
 
-#include "guest_program_image.h"
+#include "guest_address_range.h"
 
 #include <cstdint>
 
@@ -79,6 +79,20 @@ inline constexpr std::uint32_t kBootStaticComponentInit = 0x8007EB68u;
 inline constexpr std::uint32_t kBootStaticComponent = 0x8009AD94u;
 inline constexpr std::uint32_t kBootScratchComponentDraw = 0x8009440Cu;
 inline constexpr std::uint32_t kBootScratchComponent = 0x800A0C74u;
+// 0x8009440C's entries: {u16 mesh code, u32 model row, u32 component +0x6C} records, count at 0x800A0C70.
+inline constexpr std::uint32_t kBootScratchEntries = 0x800A0C10u;
+inline constexpr std::uint32_t kBootScratchEntryCount = 0x800A0C70u;
+inline constexpr std::uint32_t kBootScratchEntryBytes = 12u;
+// 20-byte model rows: scaled x, y, z words, then the halfword stored at component +0x68.
+inline constexpr std::uint32_t kBootModelRows = 0x800A02D8u;
+inline constexpr std::uint32_t kBootModelRowBytes = 20u;
+inline constexpr std::uint32_t kBootModelScale = 0x8004E0D8u;
+// The render template 0x8005A830 is 0xA8 bytes.
+inline constexpr std::uint32_t kRenderTemplate = 0x8005A830u;
+inline constexpr std::uint32_t kRenderTemplateBytes = 0xA8u;
+// The current draw context; +0x18 is its projection distance H, +0x74 its object-draw argument.
+inline constexpr std::uint32_t kDrawContextPointer = 0x800569E0u;
+inline constexpr std::uint32_t kObjectDraw = 0x80019F1Cu;
 
 // UI component draw callbacks (component+0x54), each called with the component in a0: text (string at
 // +0x6C through 0x8001A82C), panel (body and border quads through 0x8001A6D4), and screen quad.

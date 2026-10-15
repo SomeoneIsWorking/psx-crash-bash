@@ -1,11 +1,11 @@
-#include "boot_object_callbacks.h"
+#include "boot/boot_object_callbacks.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
 #include "execution_services.h"
+#include "frame/measured_guest_call.h"
 #include "game.h"
-#include "guest_execution.h"
-#include "measured_guest_call.h"
+#include "title/guest.h"
 
 #include <cstdint>
 #include <lucent/log.h>
@@ -53,8 +53,12 @@ std::uint32_t hsyncSample(Core &core, std::uint32_t instructionTicks) {
 
 // 0x8008ADA4: per-channel animation advance. `state`: 1 requests a reset, answered with 2 at the end.
 // Both retail VSync samples are dead: 0x8008B260/0x8008B264 are overwritten by the load at 0x8008B268.
-std::uint32_t
-animateChannels(Core &core, std::uint32_t object, std::uint32_t node, std::uint32_t channel, std::uint32_t state) {
+// The retail arguments arrive in a0-a3: object, node, channel and state slot.
+std::uint32_t animateChannels(Core &core) {
+  const std::uint32_t object = core.r[4];
+  const std::uint32_t node = core.r[5];
+  const std::uint32_t channel = core.r[6];
+  const std::uint32_t state = core.r[7];
   std::uint32_t keyframe = core.mem_r32(channel + 0x30u);
   const std::uint32_t deltas = core.mem_r32(channel + 0x34u);
   static_cast<void>(hsyncSample(core, 21u)); // dead retail sample
@@ -213,17 +217,23 @@ animateChannels(Core &core, std::uint32_t object, std::uint32_t node, std::uint3
 // 0x8008BB48: object update callback, slot [0x13] of each object (scene walk 0x8007976C); mode 1 defers to 0x8008ADA4.
 // Its VSync samples cannot affect state: the entry return value is unused, the exit one at 0x8008C330 is lost.
 
+// The return addresses of the two HeapFree calls at one retail release site.
+struct ReleaseSite {
+  std::uint32_t keysReturn;
+  std::uint32_t deltasReturn;
+};
+
 // Both heap buffers of every channel go back to the frame arena.
-void releaseChannelBuffers(Core &core, std::uint32_t sequence, std::uint32_t firstReturn, std::uint32_t secondReturn) {
+void releaseChannelBuffers(Core &core, std::uint32_t sequence, const ReleaseSite &site) {
   std::uint32_t offset = 0x2Cu;
   for (std::int32_t index = 0; index < s32(core.mem_r32(sequence + 0x3ACu)); ++index) {
     const std::uint32_t keys = core.mem_r32(sequence + offset + 0x30u);
     if (keys != 0) {
-      measuredGuestCall(core, kHeapFree, firstReturn, 2u, keys, kFrameHeap);
+      measuredGuestCall(core, kHeapFree, site.keysReturn, 2u, keys, kFrameHeap);
     }
     const std::uint32_t deltas = core.mem_r32(sequence + offset + 0x34u);
     if (deltas != 0) {
-      measuredGuestCall(core, kHeapFree, secondReturn, 2u, deltas, kFrameHeap);
+      measuredGuestCall(core, kHeapFree, site.deltasReturn, 2u, deltas, kFrameHeap);
     }
     offset += 0x38u;
   }
@@ -362,7 +372,7 @@ std::uint32_t objectUpdate(Core &core, std::uint32_t object) {
               const std::uint32_t loops = core.mem_r32(sequence + 0x24u) + 1u;
               core.mem_w32(sequence + 0x24u, loops);
               if (s32(core.mem_r32(sequence + 0x28u)) < s32(loops)) {
-                releaseChannelBuffers(core, sequence, 0x8008C26Cu, 0x8008C284u);
+                releaseChannelBuffers(core, sequence, {.keysReturn = 0x8008C26Cu, .deltasReturn = 0x8008C284u});
                 const std::uint32_t retired = measuredGuestCall(core, kRetireObject, 0x8008C29Cu, 3u, object);
                 core.r[29] += 0x50u;
                 return retired;
@@ -385,7 +395,7 @@ std::uint32_t objectUpdate(Core &core, std::uint32_t object) {
                      (s32(core.mem_r32(sequence + 0x1Cu)) << 8) <= s32(core.mem_r32(sequence + 0x14u)) ? 1u : 0u);
         node = measuredGuestCall(core, kAnimateChannels, 0x8008BC50u, 4u, sequence, node, channel, stateSlot);
         if (core.mem_r32(object + 0x50u) == 0 && core.mem_r32(stateSlot) == 2u) {
-          releaseChannelBuffers(core, sequence, 0x8008BCA8u, 0x8008BCC0u);
+          releaseChannelBuffers(core, sequence, {.keysReturn = 0x8008BCA8u, .deltasReturn = 0x8008BCC0u});
           const std::uint32_t retired = measuredGuestCall(core, kRetireObject, 0x8008C29Cu, 3u, object);
           core.r[29] += 0x50u;
           return retired;
@@ -407,7 +417,7 @@ std::uint32_t objectUpdate(Core &core, std::uint32_t object) {
 }
 
 void bootAnimateChannelsOwned(Core *core) {
-  core->r[2] = animateChannels(*core, core->r[4], core->r[5], core->r[6], core->r[7]);
+  core->r[2] = animateChannels(*core);
 }
 
 void bootObjectUpdateOwned(Core *core) {

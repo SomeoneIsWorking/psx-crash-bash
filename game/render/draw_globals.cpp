@@ -1,7 +1,7 @@
-#include "draw_globals.h"
+#include "render/draw_globals.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "title/guest.h"
 
 namespace crashbash::render {
 

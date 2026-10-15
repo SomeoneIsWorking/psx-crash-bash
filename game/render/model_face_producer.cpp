@@ -1,13 +1,13 @@
-#include "model_face_producer.h"
+#include "render/model_face_producer.h"
 
-#include "component_incarnation.h"
 #include "core.h"
-#include "crashbash_frame_driver.h"
-#include "crashbash_guest.h"
-#include "face_projection.h"
-#include "guest_execution.h"
-#include "model_state.h"
-#include "packet_collector.h"
+#include "execution/guest_execution.h"
+#include "render/component_incarnation.h"
+#include "render/face_projection.h"
+#include "render/model_state.h"
+#include "render/packet_collector.h"
+#include "runtime/session.h"
+#include "title/guest.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -16,15 +16,15 @@ namespace crashbash::render {
 namespace {
 
 void modelDraw(Core *core) {
-  const auto object = core->emission.instance(frameDriver(*core).componentIncarnations().object(core->r[7]));
-  PacketCollector::Scope packets(frameDriver(*core).packetCollector());
+  const auto object = core->emission.instance(session(*core).componentIncarnations.object(core->r[7]));
+  PacketCollector::Scope packets(session(*core).packetCollector);
   runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kModelDraw);
   packets.save(*core);
 }
 
 void meshFaceEmit(Core *core) {
   FaceCall call = readFaceCall(*core);
-  GuestFaceSink sink(*core, call.packets, call.globals.otBase);
+  GuestFaceSink sink(*core, FaceTarget{call.packets, call.globals.otBase});
   projectFaces(*core, FaceInputs{call.list, call.vertices, call.globals.zBias, call.globals.zLimit}, sink);
   call.linked = sink.linked();
   // The body ends on the count that terminated the list, in both result registers.
@@ -48,7 +48,7 @@ void meshFaceEmit(Core *core) {
     const auto element = core->emission.element(meshFaceElement(faceList, face));
     core->emission.bindPacket(call.packets + face * kFacePacketBytes);
   }
-  frameDriver(*core).packetCollector().noteFaces(std::move(call));
+  session(*core).packetCollector.noteFaces(std::move(call));
 }
 
 } // namespace

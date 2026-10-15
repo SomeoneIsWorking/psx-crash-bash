@@ -1,14 +1,15 @@
-#include "boot_image.h"
+#include "boot/boot_image.h"
 
-#include "boot_image_identity.h"
-#include "cd_file_read.h"
 #include "core.h"
-#include "crashbash_guest.h"
+#include "disc/cd_file_read.h"
+#include "execution/boot_image_identity.h"
+#include "execution/guest_execution.h"
 #include "game.h"
-#include "guest_execution.h"
 #include "native_dispatch.h"
+#include "runtime/session.h"
 #include "testutil.h"
-#include "title_adapter.h"
+#include "title/guest.h"
+#include "title_game.h"
 
 #include <algorithm>
 #include <fstream>
@@ -17,25 +18,23 @@
 
 namespace {
 
-crashbash::TitleAdapter runtime;
 std::vector<std::uint8_t> bootBytes;
 
-std::unique_ptr<Game> makeGame() {
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  runtime.registerOverrides(*game);
+std::unique_ptr<crashbash::test::TitleGame> makeGame() {
+  auto game = crashbash::test::makeTitleGame();
+  game->runtime().registerOverrides(game->game());
   return game;
 }
 
 crashbash::runtime::GuestExecution &execution(Core &core) {
-  return *static_cast<crashbash::runtime::GuestExecution *>(core.gameCtx);
+  return crashbash::session(core).execution;
 }
 
 void syntheticMenuOwner(Core *) {}
 
 void test_unrelated_read_does_not_publish_and_bad_boot_bytes_refuse() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK(!crashbash::isBootImageRead(
       crashbash::boot_image::kDiscLba + 1u, crashbash::boot_image::kLoadAddress, crashbash::boot_image::kSectorCount));
   CHECK(!crashbash::isBootImageRead(
@@ -80,7 +79,7 @@ void test_unrelated_read_does_not_publish_and_bad_boot_bytes_refuse() {
   CHECK(core.imageCatalog().deactivate(menu));
   CHECK(!core.currentImageIdentity(0x800B4000u));
 
-  const auto resident = runtime.guestProgramImage()->residentText;
+  const auto resident = crashbash::kResidentCodeRange;
   const auto residentImage = core.imageCatalog().activate("synthetic-resident", resident, 3u);
   execution(core).bindAuthenticatedImage(crashbash::runtime::GuestImage::Resident, residentImage, resident);
   CHECK_EQ(core.imageCatalog().activeCount(), 2u);
@@ -93,9 +92,9 @@ void test_unrelated_read_does_not_publish_and_bad_boot_bytes_refuse() {
 
 void test_authenticated_boot_publication_and_corrupt_reload() {
   auto game = makeGame();
-  Core &core = game->core;
+  Core &core = game->core();
   CHECK_EQ(bootBytes.size(), crashbash::boot_image::kPayloadBytes);
-  const GuestAddressRange resident = runtime.guestProgramImage()->residentText;
+  const GuestAddressRange resident = crashbash::kResidentCodeRange;
   const auto residentImage = core.imageCatalog().activate("resident", resident, 1u);
   execution(core).bindAuthenticatedImage(crashbash::runtime::GuestImage::Resident, residentImage, resident);
   const auto physical = crashbash::boot_image::kLoadAddress & 0x1fffffffu;

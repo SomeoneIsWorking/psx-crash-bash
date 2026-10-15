@@ -6,8 +6,8 @@
 #pragma once
 
 #include "frame_record.h"
-#include "leaf_packets.h"
-#include "leaf_port.h"
+#include "render/leaf_packets.h"
+#include "render/leaf_port.h"
 #include "state_bytes.h"
 
 #include <cstdint>

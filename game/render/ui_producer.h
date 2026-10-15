@@ -7,7 +7,7 @@
 // record and is a producer of its own, its draws saved as that record's state.
 #pragma once
 
-#include "component_incarnation.h"
+#include "render/component_incarnation.h"
 
 #include <cstdint>
 
@@ -20,10 +20,10 @@ constexpr std::uint32_t glyphElement(std::uint32_t glyphByte) {
   return glyphByte & 0x1FFFFFu;
 }
 
-enum class PanelPart : std::uint32_t { Body, Left, Right, Top, Bottom };
+enum class PanelPart : std::uint8_t { Body, Left, Right, Top, Bottom };
 
 // Digit places, counted from the units.
-enum class DigitPlace : std::uint32_t { Units, Tens, Hundreds };
+enum class DigitPlace : std::uint8_t { Units, Tens, Hundreds };
 
 // The object a BOOT call site names: the record, and for a number's digits a place of it. Each is its own object, so
 // each saves a state of its own.

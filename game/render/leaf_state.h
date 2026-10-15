@@ -8,9 +8,9 @@
 // a host packet per leaf and putting it where the leaf body links it.
 #pragma once
 
-#include "component_body.h"
 #include "frame_record.h"
-#include "leaf_packets.h"
+#include "render/component_body.h"
+#include "render/leaf_packets.h"
 #include "state_producer.h"
 
 #include <cstddef>

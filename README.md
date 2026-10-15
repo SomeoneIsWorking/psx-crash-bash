@@ -26,10 +26,11 @@ The intended default remains `./run.sh`, with an optional explicit USA CHD:
 ./run.sh "/path/to/Crash Bash (USA).chd"
 ```
 
-The launcher provisions the authenticated executable and modules, then launches the
-player entry. It never emits or compiles guest source. Disc resolution is
-explicit argument, `PSXPORT_CRASHBASH_DISC`, `PSXPORT_DISC`, the same keys in `.env`, then one
-root-level `.chd`. Original game content remains untracked.
+`run.sh` provisions the authenticated executable and modules, then starts `crashbash_port`. It never
+emits or compiles guest source. Disc resolution is explicit argument, `PSXPORT_CRASHBASH_DISC`,
+`PSXPORT_DISC`, the same keys in `.env`, the disc chosen on psxport's first-run screen, then one
+root-level `.chd`. The AppImage (`packaging/appimage.py`) ships `crashbash_port` alone; with no disc it
+shows that first-run screen. Original game content remains untracked.
 
 `run.sh` is only a stable root handoff to `uv run --frozen python bootstrap.py`. Python owns
 dependency discovery, provisioning, build policy, and launch behavior; it passes the locked
@@ -37,8 +38,8 @@ interpreter through to project tools.
 
 ## Verification
 
-The canonical asset-free verifier builds the real native title adapter, runs every Crash Bash CTest
-(including formatting, clang-tidy, launcher, provisioning, and source-policy contracts), and checks
+The canonical asset-free verifier builds the real native runtime, runs every Crash Bash CTest
+(including formatting, clang-tidy and provisioning contracts), and checks
 the linked artifact for retired execution paths:
 
 ```sh
@@ -49,12 +50,12 @@ CC=clang CXX=clang++ uv run --frozen python tools/verify.py
 `ConsumerVerifier`. Builds use `build/migration/` and the locked Python interpreter. Linux CI consumes
 the same framework's pinned setup action and runs this command without any game assets.
 
-The source-policy check reports all 17 registrations and 5 original calls and rejects the retired
-translator and dispatch paths. A local real-executable check exercises the same resident loader:
+`crashbash_runtime_test` checks that named overrides `Runtime::registerOverrides` installs are bound to their images. A local
+real-executable check exercises the same resident loader:
 
 ```sh
-PSXPORT_CARD=scratch/title-adapter-test/card.mcr uv run --frozen python -c \
-  'import subprocess; subprocess.run(["build/migration/crashbash_title_adapter_test", "scratch/bin/crashbash/SCUS_945.70"], check=True)'
+PSXPORT_CARD=scratch/runtime-test/card.mcr uv run --frozen python -c \
+  'import subprocess; subprocess.run(["build/migration/crashbash_runtime_test", "scratch/bin/crashbash/SCUS_945.70"], check=True)'
 ```
 
 This authenticates and publishes the resident image; it does not execute retail boot or gameplay.

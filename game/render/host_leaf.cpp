@@ -1,10 +1,10 @@
-#include "host_leaf.h"
+#include "render/host_leaf.h"
 
 #include "blend.h"
 #include "core.h"
 #include "emit_memory.h"
 #include "gte_control.h"
-#include "packet_decode.h"
+#include "render/packet_decode.h"
 #include <lucent/log.h>
 
 #include <algorithm>

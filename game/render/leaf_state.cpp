@@ -1,10 +1,10 @@
-#include "leaf_state.h"
+#include "render/leaf_state.h"
 
 #include "blend.h"
 #include "core.h"
 #include "frame_state.h"
-#include "host_leaf.h"
-#include "ordering_table_slots.h"
+#include "render/host_leaf.h"
+#include "render/ordering_table_slots.h"
 #include "state_bytes.h"
 
 #include <algorithm>
@@ -16,20 +16,20 @@ namespace {
 
 static_assert(std::is_trivially_copyable_v<LeafCall>);
 
-constexpr std::uint32_t kWordBytes = 4u;
+constexpr std::size_t kWordBytes = 4u;
 
 struct UiStateHeader {
   std::uint32_t tag = kLeafStateTag;
   std::uint32_t items = 0;
 };
 
-std::uint32_t vertexWord(const LeafCall &call, std::uint32_t index) {
+std::uint32_t vertexWord(const LeafCall &call, std::size_t index) {
   std::uint32_t word = 0;
   std::memcpy(&word, call.vertices.data() + index * kWordBytes, sizeof(word));
   return word;
 }
 
-void setVertexWord(LeafCall &call, std::uint32_t index, std::uint32_t word) {
+void setVertexWord(LeafCall &call, std::size_t index, std::uint32_t word) {
   std::memcpy(call.vertices.data() + index * kWordBytes, &word, sizeof(word));
 }
 
@@ -53,10 +53,10 @@ LeafCall blendCall(const LeafCall &from, const LeafCall &to, float t) {
   call.globals.originX = psx::present::lerpInt(from.globals.originX, to.globals.originX, t);
   call.globals.originY = psx::present::lerpInt(from.globals.originY, to.globals.originY, t);
   // Corners are an xy word and a z word each; the z word's high half is not a coordinate.
-  for (std::uint32_t corner = 0; corner < 4u; ++corner) {
-    const std::uint32_t xy = corner * 2u;
+  for (std::size_t corner = 0; corner < 4u; ++corner) {
+    const std::size_t xy = corner * 2u;
     setVertexWord(call, xy, psx::present::lerpHalves(vertexWord(from, xy), vertexWord(to, xy), t));
-    const std::uint32_t z = xy + 1u;
+    const std::size_t z = xy + 1u;
     setVertexWord(call,
                   z,
                   (vertexWord(to, z) & 0xFFFF0000u) |
@@ -68,7 +68,7 @@ LeafCall blendCall(const LeafCall &from, const LeafCall &to, float t) {
   return call;
 }
 
-enum class ItemKind : std::uint32_t { Leaf, Body };
+enum class ItemKind : std::uint8_t { Leaf, Body };
 
 struct UiItem {
   ItemKind kind = ItemKind::Leaf;
@@ -147,6 +147,7 @@ void renderLeafState(Core &core,
     earlier = UiState::read(from);
   }
   const bool blend = earlier.items.size() == later.items.size();
+  core.gte().bind();
   const psx::present::GteGuard guard;
   std::vector<Emission> drawn;
   for (std::size_t index = 0; index < later.items.size(); ++index) {

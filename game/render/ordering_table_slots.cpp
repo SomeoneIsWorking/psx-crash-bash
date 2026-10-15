@@ -1,8 +1,8 @@
-#include "ordering_table_slots.h"
+#include "render/ordering_table_slots.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
 #include "ordering_table.h"
+#include "title/guest.h"
 
 namespace crashbash::render {
 namespace {
@@ -22,7 +22,8 @@ std::uint32_t nodeAt(std::uint32_t link) {
 // The head word of the bucket below the packet's own: its slot, or none when the chain ends first.
 struct Tail {
   bool ended = false;
-  std::uint32_t link = 0; // the link field that names it
+  std::uint32_t link = 0;   // the link field that names it
+  std::uint32_t bucket = 0; // the bucket of the slot it names, when not ended
 };
 
 std::optional<Tail> followToTail(Core &core, std::uint32_t packet) {
@@ -32,8 +33,8 @@ std::optional<Tail> followToTail(Core &core, std::uint32_t packet) {
     if (endsChain(link)) {
       return Tail{true, link};
     }
-    if (core.otTables.slotOf(nodeAt(link))) {
-      return Tail{false, link};
+    if (const auto slot = core.otTables.slotOf(nodeAt(link))) {
+      return Tail{false, link, slot->index};
     }
     at = nodeAt(link);
   }
@@ -69,7 +70,7 @@ std::optional<psx::present::OtSlot> linkedSlot(Core &core, std::uint32_t packet)
     if (below < table || below >= table + guest::kOrderingTableBuckets * kWordBytes) {
       return std::nullopt;
     }
-    bucket = core.otTables.slotOf(below)->index + 1u;
+    bucket = tail->bucket + 1u;
     head = below + kWordBytes;
   }
   if (bucket >= guest::kOrderingTableBuckets) {

@@ -1,15 +1,14 @@
-#include "crashbash_frame_driver.h"
+#include "frame/frame_driver.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
-#include "dev_arena.h"
-#include "dev_pause.h"
+#include "execution/guest_execution.h"
 #include "execution_services.h"
+#include "frame/measured_guest_call.h"
 #include "game.h"
-#include "guest_execution.h"
 #include "logic_frame.h"
-#include "measured_guest_call.h"
+#include "runtime/session.h"
 #include "snapshot.h"
+#include "title/guest.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -17,9 +16,9 @@
 
 namespace crashbash {
 
-CrashBashFrameDriver::CrashBashFrameDriver(Game &game) : game_(game) {}
+FrameDriver::FrameDriver(Game &game) : game_(game) {}
 
-void CrashBashFrameDriver::enterProcessState(Core &core, std::uint32_t state) {
+void FrameDriver::enterProcessState(Core &core, std::uint32_t state) {
   activeState_ = state;
   core.r[16] = state;
   core.mem_w32(guest::kCurrentProcessState, state);
@@ -42,7 +41,7 @@ void CrashBashFrameDriver::enterProcessState(Core &core, std::uint32_t state) {
                core.mem_r32(state + 8u));
 }
 
-void CrashBashFrameDriver::deliverDisplayFields(Core &core, std::uint32_t fields) {
+void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t fields) {
   if (fields == 0 || fields > 4) {
     lucent::error("crashbash-frame", "retail display requested {} fields; expected a bounded positive cadence", fields);
     std::abort();
@@ -71,15 +70,16 @@ void CrashBashFrameDriver::deliverDisplayFields(Core &core, std::uint32_t fields
   }
 }
 
-void CrashBashFrameDriver::finishUpdateSlice(Core &core) {
+void FrameDriver::finishUpdateSlice(Core &core) {
   measuredGuestCall(core, presentFn_, kPresentReturnPc, 4u);
   psx::cpu::accountGuestInstructions(core, 4u);
 }
 
-void CrashBashFrameDriver::stepFrame(Core &core, std::uint32_t frame) {
+void FrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   // Developer request, applied at the frame boundary.
-  devArena_.applyArmed(core, game_.pad, frame);
-  devPause_.applyArmed(core, game_.pad, frame);
+  Session &title = session(core);
+  title.devArena.applyArmed(core, game_.pad, frame);
+  title.devPause.applyArmed(core, game_.pad, frame);
   // Per-frame profiler (`PSXPORT_DEBUG=perf`).
   game_.perf.frameBegin();
   game_.timing.frameTick();
@@ -127,7 +127,7 @@ void CrashBashFrameDriver::stepFrame(Core &core, std::uint32_t frame) {
     }
     updateFn_ = update;
     presentFn_ = present;
-    measuredGuestCallSetup(core, kUpdateReturnPc, 4u);
+    measuredGuestCallSetup(core, MeasuredCallSite{kUpdateReturnPc, 4u});
     runtime::runGuestCallToReturn(core, update, kUpdateReturnPc, "Crash Bash process update", std::nullopt);
     finishUpdateSlice(core);
   }
@@ -139,14 +139,14 @@ void CrashBashFrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   if (deliveredFields_ == 0) {
     game_.presentation.commitUnpresented(&core);
   } else {
-    frameCut_.noteFrameEnded(core);
-    game_.presentation.commit(&core, static_cast<int>(deliveredFields_), game_.temporalPresentation.get());
+    title.frameCut.noteFrameEnded(core);
+    game_.presentation.commit(&core, static_cast<int>(deliveredFields_));
   }
   game_.perf.phaseEnd(GpuPerf::Phase::Present);
   game_.perf.frameEnd();
 }
 
-void CrashBashFrameDriver::reportProgress(Core &core, std::uint32_t frame) {
+void FrameDriver::reportProgress(Core &core, std::uint32_t frame) {
   // The nested root scene (set once by the resident main at 0x800101CC); the mode machine is the scene record below.
   const std::uint32_t mode = core.mem_r32(guest::kAppModeVtable);
   if (mode != appMode_) {
@@ -223,12 +223,12 @@ void CrashBashFrameDriver::reportProgress(Core &core, std::uint32_t frame) {
                scene_);
 }
 
-CrashBashFrameDriver &frameDriver(Core &core) {
+FrameDriver &frameDriver(Core &core) {
   if (!core.game || !core.game->frameDriver) {
     lucent::error("crashbash-frame", "Crash Bash runtime has no FrameDriver");
     std::abort();
   }
-  return static_cast<CrashBashFrameDriver &>(*core.game->frameDriver);
+  return static_cast<FrameDriver &>(*core.game->frameDriver);
 }
 
 } // namespace crashbash

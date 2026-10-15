@@ -1,6 +1,6 @@
 #pragma once
 
-#include "guest_execution.h"
+#include "execution/guest_execution.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +28,7 @@ constexpr bool hasEntryWitness(const AuthenticatedModuleSpec &spec) {
   return spec.entry != 0u;
 }
 
-enum class ModuleImageReadResult { Unrelated, Published, Rejected };
+enum class ModuleImageReadResult : std::uint8_t { Unrelated, Published, Rejected };
 
 constexpr bool validModuleSpec(const AuthenticatedModuleSpec &spec) {
   constexpr std::size_t kSectorBytes = 2048u;

@@ -1,9 +1,9 @@
-#include "gpu_timeout.h"
+#include "frame/gpu_timeout.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "execution/guest_execution.h"
 #include "execution_services.h"
-#include "guest_execution.h"
+#include "title/guest.h"
 
 #include <cstdint>
 #include <lucent/log.h>
@@ -83,17 +83,13 @@ void gpuTransferOwned(Core *core) {
   }
   core->r[3] = core->r[18] & 0xFFFFu;
   core->r[2] |= core->r[3];
-  gte_hold_src(core, 5, core->r[16]);
   core->r[5] = core->mem_r32(core->r[16]);
   core->r[3] = core->mem_r32(kGpuDriver);
   core->r[4] = kGpuTransferCommand;
   core->mem_w32(core->r[4] + 4u, core->r[2]);
   core->mem_w32(core->r[4], core->r[5]);
-  gte_copy_pz(core, 5, core->r[4]);
-  gte_hold_src(core, 2, core->r[16] + 4u);
   core->r[2] = core->mem_r32(core->r[16] + 4u);
   core->mem_w32(core->r[4] + 8u, core->r[2]);
-  gte_copy_pz(core, 2, core->r[4] + 8u);
   core->r[2] = core->mem_r32(core->r[3] + 24u);
   core->r[31] = 0x80031784u;
   core->r[4] -= 8u;

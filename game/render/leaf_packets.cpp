@@ -1,7 +1,7 @@
-#include "leaf_packets.h"
+#include "render/leaf_packets.h"
 
 #include "core.h"
-#include "crashbash_guest.h"
+#include "title/guest.h"
 #include <lucent/log.h>
 
 #include <cstdlib>
@@ -195,21 +195,22 @@ LeafResult buildShaded(const psx::present::EmitMemory &memory, std::uint32_t pac
   }
   std::int32_t depth = 0;
   if ((attributes & kFlatLayout) == 0u) {
-    gte_write_data(psx::gte::kVxy0, vertexWord(call, 0));
-    gte_write_data(psx::gte::kVz0, vertexWord(call, 4));
-    gte_write_data(psx::gte::kVxy1, vertexWord(call, 8));
-    gte_write_data(psx::gte::kVz1, vertexWord(call, 12));
-    gte_write_data(psx::gte::kVxy2, vertexWord(call, 16));
-    gte_write_data(psx::gte::kVz2, vertexWord(call, 20));
-    gte_op(&memory.core(), psx::gte::kRtpt);
-    gte_op(&memory.core(), psx::gte::kAvsz3);
-    depth = static_cast<std::int32_t>(gte_read_data(psx::gte::kOtz));
+    psx::cpu::Gte &gte = memory.core().gte();
+    gte.writeData(psx::gte::kVxy0, vertexWord(call, 0));
+    gte.writeData(psx::gte::kVz0, vertexWord(call, 4));
+    gte.writeData(psx::gte::kVxy1, vertexWord(call, 8));
+    gte.writeData(psx::gte::kVz1, vertexWord(call, 12));
+    gte.writeData(psx::gte::kVxy2, vertexWord(call, 16));
+    gte.writeData(psx::gte::kVz2, vertexWord(call, 20));
+    gte.execute(psx::gte::kRtpt);
+    gte.execute(psx::gte::kAvsz3);
+    depth = static_cast<std::int32_t>(gte.readData(psx::gte::kOtz));
     memory.storeGteXy(packet + 0x10, psx::gte::kSxy0);
     memory.storeGteXy(packet + 0x18, psx::gte::kSxy1);
     memory.storeGteXy(packet + 0x20, psx::gte::kSxy2);
-    gte_write_data(psx::gte::kVxy0, vertexWord(call, 24));
-    gte_write_data(psx::gte::kVz0, vertexWord(call, 28));
-    gte_op(&memory.core(), psx::gte::kRtps);
+    gte.writeData(psx::gte::kVxy0, vertexWord(call, 24));
+    gte.writeData(psx::gte::kVz0, vertexWord(call, 28));
+    gte.execute(psx::gte::kRtps);
     memory.storeGteXy(packet + 0x28, psx::gte::kSxy2);
   } else {
     constexpr std::uint32_t kCorners[4] = {0u, 8u, 16u, 24u};
@@ -228,9 +229,9 @@ LeafResult buildShaded(const psx::present::EmitMemory &memory, std::uint32_t pac
   return result;
 }
 
-// Links `packet` at the head of the bucket; returns its header as linked.
-std::uint32_t link(Core &core, std::uint32_t packet, std::uint32_t otBase, std::uint32_t bucket) {
-  const std::uint32_t slot = otBase + bucket * kWordBytes;
+// Links `packet` at the head of the bucket in the globals' table slice; returns its header as linked.
+std::uint32_t link(Core &core, std::uint32_t packet, const DrawGlobals &globals, std::uint32_t bucket) {
+  const std::uint32_t slot = globals.otBase + bucket * kWordBytes;
   const std::uint32_t header = (core.mem_r32(packet) & ~kLinkMask) | (core.mem_r32(slot) & kLinkMask);
   core.mem_w32(packet, header);
   core.mem_w32(slot, (core.mem_r32(slot) & ~kLinkMask) | (packet & kLinkMask));
@@ -324,7 +325,7 @@ LeafExecution executeLeaf(Core &core, const LeafCall &call) {
   const std::uint32_t words = call.kind == LeafKind::Sprite ? 10u : call.kind == LeafKind::Quad ? 13u : kShadedWords;
   core.mem_w32(cursorAt, packet + words * kWordBytes);
   const LeafResult result = buildLeaf(psx::present::EmitMemory(core), packet, call);
-  const std::uint32_t header = result.bucket ? link(core, packet, call.globals.otBase, *result.bucket) : 0u;
+  const std::uint32_t header = result.bucket ? link(core, packet, call.globals, *result.bucket) : 0u;
   LeafExecution done;
   done.setsSecond = true;
   done.packet = result.bucket ? packet : 0u;

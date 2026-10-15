@@ -21,7 +21,7 @@ namespace crashbash::render {
 
 // Face flags 0 and 1 pick the packet shape: a textured triangle whose vertices sit at words 2, 5, 8 and whose
 // length the body sets, or a Gouraud triangle behind a draw mode word, vertices at words 4, 6, 8.
-enum class FaceLayout : std::uint32_t { Textured, Shaded };
+enum class FaceLayout : std::uint8_t { Textured, Shaded };
 
 inline constexpr std::uint32_t kFacePacketWords = 10u;
 // The count that ends a face list.
@@ -59,12 +59,17 @@ std::uint32_t faceCount(std::span<const std::uint8_t> list);
 
 void projectFaces(Core &core, const FaceInputs &inputs, FaceSink &sink);
 
-// Writes each visible face into the packet buffer at `packets` and links it into the table slice at `otBase`
-// as the guest function does, and remembers which faces it linked.
+// Where the guest function writes faces: its packet buffer and its ordering table slice.
+struct FaceTarget {
+  std::uint32_t packets = 0;
+  std::uint32_t otBase = 0;
+};
+
+// Writes each visible face into the target's packet buffer and links it into its table slice as the guest
+// function does, and remembers which faces it linked.
 class GuestFaceSink final : public FaceSink {
 public:
-  GuestFaceSink(Core &core, std::uint32_t packets, std::uint32_t otBase)
-      : core_(core), packets_(packets), otBase_(otBase) {}
+  GuestFaceSink(Core &core, FaceTarget target) : core_(core), target_(target) {}
 
   void emit(const FaceEmit &face) override;
   const std::vector<FaceEmit> &linked() const {
@@ -73,8 +78,7 @@ public:
 
 private:
   Core &core_;
-  std::uint32_t packets_;
-  std::uint32_t otBase_;
+  FaceTarget target_;
   std::vector<FaceEmit> linked_;
 };
 
