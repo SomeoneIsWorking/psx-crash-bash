@@ -5,7 +5,6 @@
 #include "pad_input.h"
 #include "title/guest.h"
 
-#include <charconv>
 #include <cstdio>
 #include <cstring>
 #include <lucent/log.h>
@@ -90,11 +89,10 @@ bool DevArena::handle(Core &core, const psx::game::TitleCommandLine &input, std:
     return false;
   }
 
-  char argument[32] = {0};
-  char mode[32] = {0};
-  const int fields = std::sscanf(input.line, "%*31s %31s %31s", argument, mode);
+  const std::string_view argument = input.args.word(1);
+  const std::string_view mode = input.args.word(2);
 
-  if (fields < 1 || std::strcmp(argument, "list") == 0) {
+  if (argument.empty() || argument == "list") {
     const Page first = arenaPage(core, 0);
     if (!first.valid) {
       std::fprintf(out,
@@ -130,13 +128,12 @@ bool DevArena::handle(Core &core, const psx::game::TitleCommandLine &input, std:
     return true;
   }
 
-  unsigned requested = 0;
-  const char *argumentEnd = argument + std::strlen(argument);
-  const auto parsed = std::from_chars(argument, argumentEnd, requested);
-  if (parsed.ec != std::errc{} || parsed.ptr != argumentEnd) {
+  const std::optional<std::uint32_t> parsed = input.args.number(1);
+  if (!parsed) {
     std::fprintf(out, "usage: arena list | arena <id> [battle|tournament]\n");
     return true;
   }
+  const std::uint32_t requested = *parsed;
   if (requested >= kLevelTableBound || levelType(core, requested) == 0) {
     std::fprintf(out, "refused: arena %u is not in the guest's level table at 0x%08X\n", requested, guest::kArenaTable);
     return true;
@@ -144,15 +141,15 @@ bool DevArena::handle(Core &core, const psx::game::TitleCommandLine &input, std:
 
   ArenaMode selected = ArenaMode::Battle;
   std::uint32_t wantedMode = 0;
-  if (fields >= 2 && mode[0] != 0) {
-    if (std::strcmp(mode, "battle") == 0) {
+  if (!mode.empty()) {
+    if (mode == "battle") {
       selected = ArenaMode::Battle;
       wantedMode = 1;
-    } else if (std::strcmp(mode, "tournament") == 0) {
+    } else if (mode == "tournament") {
       selected = ArenaMode::Tournament;
       wantedMode = 2;
     } else {
-      std::fprintf(out, "refused: unknown mode '%s' (battle or tournament)\n", mode);
+      std::fprintf(out, "refused: unknown mode '%.*s' (battle or tournament)\n", static_cast<int>(mode.size()), mode.data());
       return true;
     }
   }

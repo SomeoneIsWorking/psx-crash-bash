@@ -51,12 +51,12 @@ bool DevPause::handle(Core &core, const psx::game::TitleCommandLine &input, std:
   if (std::strcmp(input.command, "pause") != 0) {
     return false;
   }
-  char argument[16] = {0};
-  if (std::sscanf(input.line, "%*s %15s", argument) != 1) {
+  const std::string_view argument = input.args.word(1);
+  if (argument.empty()) {
     reply = kUsage;
     return true;
   }
-  if (std::strcmp(argument, "open") == 0) {
+  if (argument == "open") {
     if (pauseIsOpen(core)) {
       reply = "refused: the pause page is already open";
       return true;
@@ -66,7 +66,7 @@ bool DevPause::handle(Core &core, const psx::game::TitleCommandLine &input, std:
     return true;
   }
   for (const Named &press : kPresses) {
-    if (std::strcmp(argument, press.word) != 0) {
+    if (argument != press.word) {
       continue;
     }
     if (!pauseIsOpen(core)) {

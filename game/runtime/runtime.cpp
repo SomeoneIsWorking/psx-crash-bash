@@ -38,19 +38,7 @@
 namespace crashbash {
 namespace {
 
-// Recovered SCUS_945.70 CRT0 group; Crt0Boot re-checks it against the guest bytes at boot.
-constexpr psx::game::Crt0Image kCrt0{
-    .bss = {kResidentBssBegin, boot_image::kLoadAddress},
-    .stackTopWordAddress = 0x8002E860u,
-    .stackReserveWordAddress = 0x8006D8B4u,
-    .heapBase = boot_image::kLoadAddress,
-    .heapSizeStoreAddress = 0,
-    .heapBaseStoreAddress = 0,
-    .globalPointer = 0x8006E9ECu,
-    .libcInitEntry = 0x8003ACCCu,
-    .crt0Entry = identity::kEntry,
-    .stackBias = {.declared = true, .bytes = 0},
-};
+constexpr psx::game::Crt0Image kCrt0{.entry = identity::kEntry};
 
 // Packet pool bounds published by the renderer setup (0x800274FC, 0x800276C4): {base, end} per parity.
 constexpr psx::gpu::GuestPacketPoolWindows kPacketPool{

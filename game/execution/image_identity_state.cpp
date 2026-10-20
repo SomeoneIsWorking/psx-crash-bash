@@ -1,6 +1,6 @@
 #include "execution/image_identity_state.h"
 
-#include "state_blob.h"
+#include "blob_codec.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -24,12 +24,12 @@ bool ramRange(GuestAddressRange range) {
   return range.begin < range.end && range.end <= kMainRamBytes;
 }
 
-void writeRange(psx::state::BlobWriter &out, GuestAddressRange range) {
+void writeRange(psx::platform::BlobWriter &out, GuestAddressRange range) {
   out.u32(range.begin);
   out.u32(range.end);
 }
 
-GuestAddressRange readRange(psx::state::BlobReader &in) {
+GuestAddressRange readRange(psx::platform::BlobReader &in) {
   const std::uint32_t begin = in.u32();
   const std::uint32_t end = in.u32();
   return {begin, end};
@@ -58,7 +58,7 @@ bool validRecord(const BoundImageRecord &record, std::string &error) {
 
 } // namespace
 
-void writeBoundImages(psx::state::BlobWriter &out, const std::vector<BoundImageRecord> &records) {
+void writeBoundImages(psx::platform::BlobWriter &out, const std::vector<BoundImageRecord> &records) {
   out.u32(static_cast<std::uint32_t>(records.size()));
   for (const BoundImageRecord &record : records) {
     out.u32(static_cast<std::uint32_t>(record.image));
@@ -73,7 +73,7 @@ void writeBoundImages(psx::state::BlobWriter &out, const std::vector<BoundImageR
   }
 }
 
-std::optional<std::vector<BoundImageRecord>> readBoundImages(psx::state::BlobReader &in, std::string &error) {
+std::optional<std::vector<BoundImageRecord>> readBoundImages(psx::platform::BlobReader &in, std::string &error) {
   const std::uint32_t count = in.u32();
   if (!in.ok() || count == 0u || count > kMaxRecords) {
     error = "the image-identity section names " + std::to_string(count) + " images";
@@ -126,7 +126,7 @@ std::optional<std::vector<BoundImageRecord>> readBoundImages(psx::state::BlobRea
   return records;
 }
 
-bool ImageIdentityState::save(psx::state::BlobWriter &out, std::string &error) const {
+bool ImageIdentityState::save(psx::platform::BlobWriter &out, std::string &error) const {
   if (!execution_.ownsEveryActiveResidency()) {
     error = "an active image residency is not one of this title's bindings, so the image identity is not "
             "the title's to record";
@@ -136,7 +136,7 @@ bool ImageIdentityState::save(psx::state::BlobWriter &out, std::string &error) c
   return true;
 }
 
-bool ImageIdentityState::load(psx::state::BlobReader &in, std::string &error) {
+bool ImageIdentityState::load(psx::platform::BlobReader &in, std::string &error) {
   staged_.reset();
   if (!execution_.ownsEveryActiveResidency()) {
     error = "an active image residency is not one of this title's bindings, so restoring the title's would "
