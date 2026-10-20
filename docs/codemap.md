@@ -41,7 +41,7 @@ and state renders in `docs/presentation.md`; the framework side is `external/psx
 | AppImage | `packaging/appimage.py`, `packaging/linux/` (desktop entry, icon, metainfo) | Packages `crashbash_port` alone; the first-run disc screen and packaged defaults are psxport's `FirstRunSetup` (issue 0042) |
 | Android | `platform/android/` | Activity and SAF media import |
 | provisioning | `tools/provision.py`, `tools/loaded_module.py` | Extracting and authenticating the executable and modules from the disc |
-| framework fetch, packaging | `bootstrap.py:prepare_product`, `tools/android_package.py` | The `external/psxport` fetch (psxport `tools/psxport_fetch.py`), the Android package |
+| launcher, packaging | `bootstrap.py`, `tools/run.py`, `tools/android_package.py` | The `external/psxport` fetch, provisioning, build and exec on psxport `tools/port/launcher.py`, the Android package |
 | tests | `tests/` | Runtime bindings and admission, guest execution and module images, the frame cut, input phase, dev pause, draw base, producers and their renders; `title_game.h` builds a `Game` over its own `Runtime` |
 | replays | `replays/flow/` | Front-end flows into Polar Push, Crash Ball, Pogo Painter and Crate Crush (battle and tournament) |
 
