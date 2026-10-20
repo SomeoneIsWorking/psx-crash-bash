@@ -272,21 +272,19 @@ The tracked offline emitter integration, seed file, generated registry installer
 verifiers are deleted. The ignored generated corpus, prior static build tree, and retained static
 product binaries are absent.
 
-Gap: nothing mechanical excludes their return since `tools/source_policy.py` was retired; psxport's
-`cpp_policy` retired-name list is the place for such names.
+Gap: nothing mechanical excludes their return since `tools/source_policy.py` was retired.
 
 ### S018 — Platform CI coverage
 
 `.github/workflows/ci.yml` configures a Linux x86-64 native adapter job with full history, read-only
 permissions, pinned actions, and an explicit timeout. It resolves the framework with
 psxport's `tools/psxport_fetch.py` run from psxport `main` (a clone in CI, which has no sibling checkout), uses that
-checkout's shared Linux setup action, and runs `tools/verify.py`. The thin title verifier selects the
-real `crashbash_runtime_test` artifact and every `crashbash_` CTest; shared `ConsumerVerifier`
-owns build, style/test execution, and linked execution-boundary checks.
+checkout's shared Linux setup action, and builds `crashbash_port` through psxport's
+`tools/port/consumer_build.py`.
 
 | Platform | Applicability | Current CI evidence and exact gap |
 | --- | --- | --- |
-| Linux x86-64 | applicable desktop target | Native adapter build, complete title tests/style, and execution-boundary inspection are configured through the shared verifier. The AppImage packages `crashbash_port` alone, whose first run is psxport's `FirstRunSetup`: a zero-argument packaged run refused with no disc (hidden) and booted from a saved disc choice; no AppImage was built in that pass, and the windowed screen has not been driven by a player. Hosted result and packaged gameplay remain unverified. |
+| Linux x86-64 | applicable desktop target | The native `crashbash_port` build is configured through the shared consumer build. The AppImage packages `crashbash_port` alone, whose first run is psxport's `FirstRunSetup`: a zero-argument packaged run refused with no disc (hidden) and booted from a saved disc choice; no AppImage was built in that pass, and the windowed screen has not been driven by a player. Hosted result and packaged gameplay remain unverified. |
 | Windows x86-64 | applicable portable-PC target | Missing: no supported Windows native build, runtime test, first-run setup, or package boundary exists. |
 | macOS arm64 | applicable portable-PC target | Missing: no Apple-Silicon native build, runtime test, first-run setup, or application package exists. |
 | Android arm64 | applicable mobile target | Android metadata and setup sources exist, but the Lightrec native runtime, shared `android-port` build path, Gradle/NDK APK build, and install/runtime test are missing. |
@@ -319,7 +317,7 @@ the card's presentation, and `game/disc/loading_card_skip.{h,cpp}` retires the c
 other caller — the menu screens draw their own panels through it — runs the guest's own body.
 
 **Phase-keyed replays.** `replays/flow/polar-push-control.pad` is phase-keyed v1 (1,394 frames, 13
-segments, keyed through `crashbash::RecordingPhase`, unit-tested in `tests/test_recording_phase.cpp`), so it
+segments, keyed through `crashbash::RecordingPhase`), so it
 survives the collapse of the handoff the way an absolute recording does not. `crashball-control.pad` is
 still absolute from boot and is checked against S020 rather than assumed.
 

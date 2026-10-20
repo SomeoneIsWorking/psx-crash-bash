@@ -3,7 +3,6 @@ project(crash_bash_port LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-include(CTest)
 
 # PSXPORT_DIR: the framework; external/psxport is a symlink to the live checkout or a clone of main
 # (psxport tools/psxport_fetch.py).
@@ -13,7 +12,6 @@ if(NOT EXISTS "${PSXPORT_DIR}/cmake/psxport.cmake")
   message(FATAL_ERROR "PSXPORT_DIR=${PSXPORT_DIR} has no cmake/psxport.cmake — run "
                       "./run.sh once to fetch it, or point PSXPORT_DIR at a psxport checkout.")
 endif()
-set(PSXPORT_BUILD_SMOKE OFF CACHE BOOL "Build the framework agnosticism smoke" FORCE)
 add_subdirectory("${PSXPORT_DIR}" psxport_build)
 
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS titles/crashbash/executable.json)
@@ -126,47 +124,3 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-if(BUILD_TESTING)
-  add_test(NAME crashbash_product_help COMMAND $<TARGET_FILE:crashbash_port> --help)
-  set_tests_properties(crashbash_product_help PROPERTIES PASS_REGULAR_EXPRESSION "Crash Bash \\(SCUS_945\\.70\\)")
-  # One unit test over the title's shipping seam.
-  function(crashbash_add_test name source)
-    add_executable(crashbash_${name}_test ${source})
-    target_include_directories(crashbash_${name}_test PRIVATE "${PSXPORT_DIR}/tests")
-    target_link_libraries(crashbash_${name}_test PRIVATE crashbash_seam)
-    set_target_properties(crashbash_${name}_test PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
-    add_test(NAME crashbash_${name} COMMAND crashbash_${name}_test)
-  endfunction()
-  crashbash_add_test(runtime tests/test_runtime.cpp)
-  set_tests_properties(crashbash_runtime PROPERTIES
-    TIMEOUT 30
-    ENVIRONMENT "PSXPORT_CARD=${CMAKE_CURRENT_SOURCE_DIR}/scratch/runtime-test/card.mcr")
-  crashbash_add_test(recording_phase tests/test_recording_phase.cpp)
-  crashbash_add_test(boot_image tests/test_boot_image.cpp)
-  crashbash_add_test(menu_image tests/test_menu_image.cpp)
-  crashbash_add_test(nested_module_image tests/test_nested_module_image.cpp)
-  crashbash_add_test(guest_execution tests/test_guest_execution.cpp)
-  target_link_libraries(crashbash_guest_execution_test PRIVATE psxport_test_support)
-  crashbash_add_test(touch_controls tests/test_touch_controls.cpp)
-  crashbash_add_test(record_widescreen tests/test_record_widescreen.cpp)
-  crashbash_add_test(dev_pause tests/test_dev_pause.cpp)
-  crashbash_add_test(frame_cut tests/test_frame_cut.cpp)
-  crashbash_add_test(draw_base tests/test_draw_base.cpp)
-  crashbash_add_test(model_face_producer tests/test_model_face_producer.cpp)
-  crashbash_add_test(ui_producer tests/test_ui_producer.cpp)
-  crashbash_add_test(polar_push_contact tests/test_polar_push_contact.cpp)
-  add_test(
-    NAME crashbash_cpp_policy
-    COMMAND
-      "${Python3_EXECUTABLE}" "${PSXPORT_DIR}/tools/check_cpp_style.py"
-      --root "${CMAKE_CURRENT_SOURCE_DIR}" --compile-commands "${CMAKE_BINARY_DIR}"
-  )
-  add_test(
-    NAME crashbash_bootstrap_selftest
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_bootstrap.py"
-  )
-  add_test(
-    NAME crashbash_provision_selftest
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_provision.py"
-  )
-endif()

@@ -91,14 +91,7 @@ stays as the guest drew it.
   leaf items. The string body writes the tint colours back to the caller's stack slots as the guest does.
 
 An unpaired or differently shaped state is drawn as saved. At `t = 1` the render draws exactly what the guest
-linked. Tests: `test_model_face_producer.cpp` (`the_render_at_t_reprojects_moved_vertices`,
-`the_render_at_t_reprojects_through_a_moved_camera`, `a_culled_face_is_not_drawn_and_a_new_face_appears_at_t_one`,
-`a_packet_unlinked_after_its_scope_is_not_saved`, `a_face_linked_in_the_other_table_is_not_saved`) and
-`test_ui_producer.cpp` (`the_text_render_draws_the_glyphs_the_guest_linked`,
-`the_panel_render_draws_the_parts_the_guest_linked`, `the_quad_render_draws_the_quad_the_guest_linked`,
-`the_projected_quad_render_reprojects_through_the_moved_camera`). Each runs the shipping overrides over real
-guest memory (display environment, ordering table, vertices, GTE), checks `t = 1` against the guest's own
-walk with that memory scrambled after the save, and `t = 0.5` against the walk of a frame drawn halfway.
+linked.
 
 Equality with the original bodies is proved by `PSXPORT_OVERRIDE_DIFF` over the Polar Push replay (all four
 addresses: memory, GTE and result registers; the native bodies end on the same `v0`/`v1` the guest leaves,

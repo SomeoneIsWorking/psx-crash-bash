@@ -311,8 +311,6 @@ def configure_arguments(build: Path) -> list[str]:
         str(build),
         f"-DPython3_EXECUTABLE={sys.executable}",
         "-DPython3_FIND_VIRTUALENV=ONLY",
-        "-DBUILD_TESTING=OFF",
-        "-DPSXPORT_BUILD_TESTS=OFF",
     ]
 
 

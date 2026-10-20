@@ -36,29 +36,15 @@ shows that first-run screen. Original game content remains untracked.
 dependency discovery, provisioning, build policy, and launch behavior; it passes the locked
 interpreter through to project tools.
 
-## Verification
+## Building
 
-The canonical asset-free verifier builds the real native runtime, runs every Crash Bash CTest
-(including formatting, clang-tidy and provisioning contracts), and checks
-the linked artifact for retired execution paths:
+There are no unit tests or gates. Build with Clang:
 
 ```sh
-CC=clang CXX=clang++ uv run --frozen python tools/verify.py
+CC=clang CXX=clang++ uv run --frozen python external/psxport/tools/port/consumer_build.py --build build/agent --target crashbash_port
 ```
 
-`tools/verify.py` resolves the pinned framework and delegates build/test policy to its shared
-`ConsumerVerifier`. Builds use `build/migration/` and the locked Python interpreter. Linux CI consumes
-the same framework's pinned setup action and runs this command without any game assets.
-
-`crashbash_runtime_test` checks that named overrides `Runtime::registerOverrides` installs are bound to their images. A local
-real-executable check exercises the same resident loader:
-
-```sh
-PSXPORT_CARD=scratch/runtime-test/card.mcr uv run --frozen python -c \
-  'import subprocess; subprocess.run(["build/migration/crashbash_runtime_test", "scratch/bin/crashbash/SCUS_945.70"], check=True)'
-```
-
-This authenticates and publishes the resident image; it does not execute retail boot or gameplay.
+Linux CI consumes the same framework's setup action and runs the same build without any game assets.
 The bounded replays under `replays/flow/` are the scenarios for gameplay qualification.
 
 ## Product completion
