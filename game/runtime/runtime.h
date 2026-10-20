@@ -40,7 +40,7 @@ public:
   }
   const psx::present::StateProducer *stateProducer(Core &core, std::uint32_t producer) const override;
   bool sealedFrameIsCut(Core &core) const override;
-  const GuestWidescreenProjection *guestWidescreenProjection() const override;
+  const psx::present::GuestWidescreenProjection *guestWidescreenProjection() const override;
 
   // The developer `arena` and `pause` commands.
   bool titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) override;
@@ -55,7 +55,7 @@ private:
   psx::cd::StockLibcd libcd_;
   psx::hle::StockVSync vsync_;
   RecordingPhase recordingPhase_;
-  GuestWidescreenProjection aspectPolicy_;
+  psx::present::GuestWidescreenProjection aspectPolicy_;
 };
 
 } // namespace crashbash
