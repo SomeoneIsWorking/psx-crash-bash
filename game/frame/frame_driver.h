@@ -44,6 +44,5 @@ private:
   std::uint32_t sceneChanges_ = 0;
 };
 
-FrameDriver &frameDriver(Core &core);
 
 } // namespace crashbash

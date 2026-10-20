@@ -22,8 +22,8 @@ public:
   [[nodiscard]] std::uint32_t version() const override {
     return 1;
   }
-  bool save(psx::state::BlobWriter &out, std::string &error) const override;
-  bool load(psx::state::BlobReader &in, std::string &error) override;
+  bool save(psx::platform::BlobWriter &out, std::string &error) const override;
+  bool load(psx::platform::BlobReader &in, std::string &error) override;
   void restored(Core &core) override;
 
 private:
@@ -32,7 +32,7 @@ private:
 };
 
 // `readBoundImages` refuses, via `error`, anything `writeBoundImages` could not have produced.
-void writeBoundImages(psx::state::BlobWriter &out, const std::vector<BoundImageRecord> &records);
-std::optional<std::vector<BoundImageRecord>> readBoundImages(psx::state::BlobReader &in, std::string &error);
+void writeBoundImages(psx::platform::BlobWriter &out, const std::vector<BoundImageRecord> &records);
+std::optional<std::vector<BoundImageRecord>> readBoundImages(psx::platform::BlobReader &in, std::string &error);
 
 } // namespace crashbash::runtime

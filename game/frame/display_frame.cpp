@@ -193,7 +193,7 @@ void displayFrameOwned(Core *core) {
 
     core->mem_w32(kFrameTimerSample, core->game->timing.hSyncCounter());
     const std::uint32_t fields = core->r[18];
-    frameDriver(*core).deliverDisplayFields(*core, fields);
+    core->game->frameDriverAs<FrameDriver>().deliverDisplayFields(*core, fields);
 
     measuredGuestCall(*core, 0x8002F598u, 0x80027398u, 2u, environment.address());
     session(*core).packetCollector.commit(*core);

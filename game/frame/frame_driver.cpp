@@ -132,7 +132,6 @@ void FrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   }
 
   reportProgress(core, frame);
-  core.game->snapshots.tick(core);
   game_.perf.phaseEnd(GpuPerf::Phase::GameLogic);
   game_.perf.phaseBegin(GpuPerf::Phase::Present);
   if (deliveredFields_ == 0) {
@@ -220,14 +219,6 @@ void FrameDriver::reportProgress(Core &core, std::uint32_t frame) {
                core.mem_r32(guest::kVblankCounter),
                appMode_,
                scene_);
-}
-
-FrameDriver &frameDriver(Core &core) {
-  if (!core.game || !core.game->frameDriver) {
-    lucent::error("crashbash-frame", "Crash Bash runtime has no FrameDriver");
-    std::abort();
-  }
-  return static_cast<FrameDriver &>(*core.game->frameDriver);
 }
 
 } // namespace crashbash

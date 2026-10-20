@@ -88,7 +88,7 @@ void GuestExecution::registerOverride(GuestImage image,
     return entry.image == image;
   });
   if (binding != bindings_.end()) {
-    if (!binding->range.containsPhysical(address) || core_.currentImageIdentity(address) != binding->identity) {
+    if (!binding->range.containsPhysical(address) || core_.imageCatalog().resolve(address) != binding->identity) {
       throw std::invalid_argument("Crash Bash override does not belong to the active authenticated image");
     }
     if (!psx::cpu::tryInstallNativeOverride(core_, address, name, function, producer)) {
@@ -101,7 +101,7 @@ void GuestExecution::registerOverride(GuestImage image,
 void GuestExecution::bindAuthenticatedImage(GuestImage image,
                                             psx::cpu::ImageIdentity identity,
                                             GuestAddressRange range) {
-  if (core_.currentImageIdentity(range) != identity || identity.id == 0u || identity.generation == 0u) {
+  if (core_.imageCatalog().resolve(range) != identity || identity.id == 0u || identity.generation == 0u) {
     throw std::invalid_argument("Crash Bash image binding requires one complete active authenticated residency");
   }
   for (const auto &binding : bindings_) {
@@ -240,7 +240,7 @@ void GuestExecution::restoreBoundImages(const std::vector<BoundImageRecord> &rec
 std::optional<psx::cpu::NativeKey> GuestExecution::activeKey(GuestImage image, std::uint32_t address) const {
   for (const auto &binding : bindings_) {
     if (binding.image == image && binding.range.containsPhysical(address) &&
-        core_.currentImageIdentity(address) == binding.identity) {
+        core_.imageCatalog().resolve(address) == binding.identity) {
       return psx::cpu::NativeKey{binding.identity, address};
     }
   }
@@ -286,7 +286,7 @@ void dispatchGuest(Core &core, std::uint32_t address) {
 }
 
 psx::cpu::ExecutionResult dispatchGuestSlice(Core &core, std::uint32_t address, psx::cpu::ExecutionBudget budget) {
-  return psx::cpu::dispatchGuest(core, address, budget);
+  return psx::cpu::dispatchGuest(core, address, budget, "crashbash::runtime::dispatchGuestSlice");
 }
 
 // A refused guest call leaves no valid state to continue in, so it aborts.
@@ -309,7 +309,7 @@ void refuseGuestCall(
 // A resumed original is only suppressed while its image generation is still mapped at the entry;
 // otherwise the guest would re-enter the override it is running inside.
 bool originalStillMapped(Core &core, std::uint32_t entry, const psx::cpu::NativeKey &original, std::string_view owner) {
-  const auto active = core.currentImageIdentity(entry);
+  const auto active = core.imageCatalog().resolve(entry);
   if (active && *active == original.image) {
     return true;
   }
