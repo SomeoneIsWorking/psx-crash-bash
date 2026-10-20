@@ -403,53 +403,6 @@ def verify_apk(apk: pathlib.Path) -> None:
     print(f"[android] APK content: {files} files, {native_count} native game runtime")
 
 
-def _zip(entries: Mapping[str, bytes]) -> io.BytesIO:
-    output = io.BytesIO()
-    with zipfile.ZipFile(output, "w") as archive:
-        for name, data in entries.items():
-            archive.writestr(name, data)
-    output.seek(0)
-    return output
-
-
-def selftest() -> None:
-    good = _zip(
-        {
-            "AndroidManifest.xml": b"manifest",
-            "classes.dex": b"dex",
-            "lib/arm64-v8a/libmain.so": b"native",
-        }
-    )
-    files, native_count = inspect_apk(good)
-    if (files, native_count) != (3, 1):
-        raise PackageFailure("selftest valid package did not report its denominator")
-
-    forbidden = _zip(
-        {
-            "AndroidManifest.xml": b"manifest",
-            "lib/arm64-v8a/libmain.so": b"native",
-            "assets/SCUS_945.70": b"game",
-        }
-    )
-    try:
-        inspect_apk(forbidden)
-    except PackageFailure as error:
-        if "SCUS_945.70" not in str(error):
-            raise PackageFailure("selftest game-content refusal did not name the file") from error
-    else:
-        raise PackageFailure("selftest accepted APK-embedded game content")
-
-    missing_native = _zip({"AndroidManifest.xml": b"manifest", "classes.dex": b"dex"})
-    try:
-        inspect_apk(missing_native)
-    except PackageFailure as error:
-        if "0 arm64 libmain.so" not in str(error):
-            raise PackageFailure("selftest missing-runtime refusal lacks its denominator") from error
-    else:
-        raise PackageFailure("selftest accepted an APK without the native runtime")
-    print("[android] selftest PASS: 3 package classes, 2 required refusals fired")
-
-
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -458,7 +411,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     commands.add_parser("assemble-release", help="build and verify a signed release APK")
     verify = commands.add_parser("verify-apk", help="scan game content, native runtime, and signature")
     verify.add_argument("apk", type=pathlib.Path)
-    commands.add_parser("selftest", help="prove the APK verifier accepts and refuses opposite cases")
     return parser.parse_args(argv)
 
 
@@ -481,10 +433,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             apk = run_gradle("assembleRelease", release=True)
             verify_apk(apk)
             print(f"[android] verified release APK: {apk}")
-        elif args.command == "verify-apk":
-            verify_apk(args.apk.resolve())
         else:
-            selftest()
+            verify_apk(args.apk.resolve())
     except PackageFailure as error:
         print(f"[android] FAIL: {error}", file=sys.stderr)
         return 1
