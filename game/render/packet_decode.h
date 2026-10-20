@@ -9,8 +9,8 @@
 
 namespace crashbash::render {
 
-// `words` are the packet's command words after its header. A packet may lead with a draw mode word (and a
-// no-op pad), which gives an untextured polygon its page and blend mode; a textured polygon carries its own.
+// `words` are the packet's command words after its header. A packet may lead with draw mode words (and no-op
+// pads), applied by psxport's DrawModeTracker.
 std::optional<psx::present::DrawPrimitive> decodePacket(std::span<const std::uint32_t> words);
 
 // `words` is a whole packet: its header, whose high byte counts the command words, then those.

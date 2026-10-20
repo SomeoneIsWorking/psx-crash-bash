@@ -5,24 +5,22 @@
 #include <algorithm>
 
 namespace crashbash::render {
-namespace {
-
-constexpr std::uint32_t kDrawModeCommand = 0xE1u;
-
-} // namespace
 
 std::optional<psx::present::DrawPrimitive> decodePacket(std::span<const std::uint32_t> words) {
+  psx::present::DrawModeTracker drawMode;
+  bool moded = false;
   std::size_t first = 0;
-  std::optional<std::uint16_t> drawMode;
-  while (first < words.size() && (words[first] == 0u || words[first] >> 24 == kDrawModeCommand)) {
-    if (words[first] != 0u) {
-      drawMode = static_cast<std::uint16_t>(words[first]);
+  for (; first < words.size(); ++first) {
+    if (drawMode.take(words.subspan(first, 1))) {
+      moded = true;
+    } else if (words[first] != 0u) {
+      break;
     }
-    ++first;
   }
   auto primitive = psx::gpu::decodePacketPrimitive(words.subspan(first));
-  if (primitive && drawMode && !primitive->textured) {
-    psx::gpu::applyTexPageAttribute(primitive->state, *drawMode);
+  // Without a mode word the packet keeps the GPU's mode, which this decode does not track.
+  if (primitive && moded) {
+    drawMode.apply(*primitive);
   }
   return primitive;
 }
