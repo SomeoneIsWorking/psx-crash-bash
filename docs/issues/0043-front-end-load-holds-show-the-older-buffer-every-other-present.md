@@ -25,3 +25,9 @@ Not established whether the retail loop calls `DisplayFrame` once per pass with 
 (then the flicker between the two buffers is the console's and the §6 "never backwards" bar fails on faithful
 output, as in Tomba! 2 issue 0038) or whether the port's frame driver runs passes the retail game does not.
 Compare the pass sequence at the EUROCOM logo hold against an oracle run.
+
+## Still reproduces (2026-10-21)
+Spyro 1 judder pass 3 ran every title 40 s from boot at real speed (hidden window, no `PSXPORT_NOPACE`) on live
+psxport, three times during the pass and once after its review fixes: each Crash Bash run shows records backwards
+20 and 272 presents without an in-between, at load 13.3, 19.3, 15.1 and 5.8. The psxport changes of that pass
+(sub-pixel places, composer storage) did not move it. The gap above stands.
