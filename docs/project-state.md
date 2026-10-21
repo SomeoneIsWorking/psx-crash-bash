@@ -95,9 +95,6 @@ The numbered facts that matter:
 - `Core::writeGuestMemory` issues one `notifyExecutableWrite` per mapped guest store, so a
   request-count total reads orders of magnitude too large. Quote the revoked-block count, or psxport's
   `invalidation_work` and `invalidations_by_source` lines, never the request count.
-- `PSXPORT_VK_HEADLESS` is genuinely never read and that is correct: the renderer is headless because
-  a window is the switch. A `NOTHING ever read it` audit line is a true report of a no-op, not
-  evidence that the renderer failed to initialise.
 - Quote the frame driver's own `dwelling in state 0x… for N frame(s)` line for this title. Counting
   fields without counting distinct states reports the attract cycle as a large advance.
 - A refused guest call is the product's one refusal route: the reason is logged and the process
