@@ -5,6 +5,7 @@
 #include "emit_memory.h"
 #include "gte_control.h"
 #include "render/packet_decode.h"
+#include "runtime/session.h"
 #include <lucent/log.h>
 
 #include <algorithm>
@@ -37,9 +38,9 @@ void emitLeaf(Core &core, const LeafCall &call, std::vector<Emission> &out) {
   if (call.hasControl != 0u) {
     psx::present::writeGteControl(core.gte(), call.control);
   }
-  psx::present::HostMemory host;
-  host.zero(kHostPacket, kPacketWords * kWordBytes);
-  const psx::present::EmitMemory memory(core, host);
+  const psx::present::Kept<psx::present::HostMemory>::Use host(session(core).leafMemory);
+  host->zero(kHostPacket, kPacketWords * kWordBytes);
+  const psx::present::EmitMemory memory(core, *host);
   const LeafResult result = buildLeaf(memory, kHostPacket, call);
   if (!result.bucket) {
     return;

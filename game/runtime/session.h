@@ -2,6 +2,7 @@
 
 #include "debug/dev_arena.h"
 #include "debug/dev_pause.h"
+#include "emit_memory.h"
 #include "execution/guest_execution.h"
 #include "frame/frame_cut.h"
 #include "game_runtime.h"
@@ -30,6 +31,8 @@ public:
   render::PacketCollector packetCollector;
   FrameCut frameCut;
   psx::present::StateProducerTable stateProducers;
+  // The host memory a render builds each leaf in, kept so renders allocate none.
+  psx::present::Kept<psx::present::HostMemory> leafMemory;
 };
 
 // The session of the Game `core` belongs to; aborts when it has none.
