@@ -6,7 +6,8 @@
 
 namespace crashbash::render {
 
-std::optional<psx::present::DrawPrimitive> decodePacket(std::span<const std::uint32_t> words) {
+std::optional<psx::present::DrawPrimitive> decodePacket(psx::gpu::PacketView packet) {
+  const std::span<const std::uint32_t> words = packet.words;
   psx::present::DrawModeTracker drawMode;
   bool moded = false;
   std::size_t first = 0;
@@ -17,7 +18,8 @@ std::optional<psx::present::DrawPrimitive> decodePacket(std::span<const std::uin
       break;
     }
   }
-  auto primitive = psx::gpu::decodePacketPrimitive(words.subspan(first));
+  auto primitive = psx::gpu::decodePacketPrimitive(
+      {.words = words.subspan(first), .places = packet.places.empty() ? packet.places : packet.places.subspan(first)});
   // Without a mode word the packet keeps the GPU's mode, which this decode does not track.
   if (primitive && moded) {
     drawMode.apply(*primitive);
@@ -25,12 +27,14 @@ std::optional<psx::present::DrawPrimitive> decodePacket(std::span<const std::uin
   return primitive;
 }
 
-std::optional<psx::present::DrawPrimitive> decodeLinkedPacket(std::span<const std::uint32_t> words) {
+std::optional<psx::present::DrawPrimitive> decodeLinkedPacket(psx::gpu::PacketView packet) {
+  const std::span<const std::uint32_t> words = packet.words;
   if (words.empty()) {
     return std::nullopt;
   }
   const std::size_t length = std::min<std::size_t>(words[0] >> 24, words.size() - 1u);
-  return decodePacket(words.subspan(1, length));
+  return decodePacket({.words = words.subspan(1, length),
+                       .places = packet.places.empty() ? packet.places : packet.places.subspan(1, length)});
 }
 
 } // namespace crashbash::render

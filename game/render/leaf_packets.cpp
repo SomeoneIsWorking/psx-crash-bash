@@ -205,13 +205,13 @@ LeafResult buildShaded(const psx::present::EmitMemory &memory, std::uint32_t pac
     gte.execute(psx::gte::kRtpt);
     gte.execute(psx::gte::kAvsz3);
     depth = static_cast<std::int32_t>(gte.readData(psx::gte::kOtz));
-    memory.storeGteXy(packet + 0x10, psx::gte::kSxy0);
-    memory.storeGteXy(packet + 0x18, psx::gte::kSxy1);
-    memory.storeGteXy(packet + 0x20, psx::gte::kSxy2);
+    memory.storeVertex(packet + 0x10, gte.projected(0));
+    memory.storeVertex(packet + 0x18, gte.projected(1));
+    memory.storeVertex(packet + 0x20, gte.projected(2));
     gte.writeData(psx::gte::kVxy0, vertexWord(call, 24));
     gte.writeData(psx::gte::kVz0, vertexWord(call, 28));
     gte.execute(psx::gte::kRtps);
-    memory.storeGteXy(packet + 0x28, psx::gte::kSxy2);
+    memory.storeVertex(packet + 0x28, gte.projected(2));
   } else {
     constexpr std::uint32_t kCorners[4] = {0u, 8u, 16u, 24u};
     constexpr std::uint32_t kPoints[4] = {0x10u, 0x18u, 0x20u, 0x28u};

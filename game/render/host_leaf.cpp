@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
-#include <cstring>
 #include <type_traits>
 
 namespace crashbash::render {
@@ -32,12 +31,6 @@ struct ContextHeader {
   std::uint32_t textures = 0;
 };
 
-std::array<std::uint32_t, kPacketWords> packetWords(const psx::present::HostMemory &host) {
-  std::array<std::uint32_t, kPacketWords> words{};
-  std::memcpy(words.data(), host.view(kHostPacket, kPacketWords * kWordBytes).data(), sizeof(words));
-  return words;
-}
-
 } // namespace
 
 void emitLeaf(Core &core, const LeafCall &call, std::vector<Emission> &out) {
@@ -46,11 +39,16 @@ void emitLeaf(Core &core, const LeafCall &call, std::vector<Emission> &out) {
   }
   psx::present::HostMemory host;
   host.zero(kHostPacket, kPacketWords * kWordBytes);
-  const LeafResult result = buildLeaf(psx::present::EmitMemory(core, host), kHostPacket, call);
+  const psx::present::EmitMemory memory(core, host);
+  const LeafResult result = buildLeaf(memory, kHostPacket, call);
   if (!result.bucket) {
     return;
   }
-  if (const auto primitive = decodeLinkedPacket(packetWords(host))) {
+  std::array<std::uint32_t, kPacketWords> words{};
+  std::array<psx::gte::WordPlace, kPacketWords> places{};
+  memory.readWords(kHostPacket, words);
+  memory.readPlaces(kHostPacket, places);
+  if (const auto primitive = decodeLinkedPacket({.words = words, .places = places})) {
     out.push_back(
         {psx::present::OtSlot{static_cast<std::uint16_t>(call.table), call.baseBucket + *result.bucket}, *primitive});
   }

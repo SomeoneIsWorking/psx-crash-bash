@@ -111,7 +111,7 @@ void GuestFaceSink::emit(const FaceEmit &face) {
   core_.mem_w32(bucket, (core_.mem_r32(bucket) & ~kLinkMask) | (packet & kLinkMask));
   const auto points = facePointWords(face.layout);
   for (std::uint32_t point = 0; point < 3u; ++point) {
-    core_.mem_w32(packet + points[point] * kWordBytes, core_.gte().readData(psx::gte::kSxy0 + point));
+    core_.mem_w32(packet + points[point] * kWordBytes, core_.gte().projected(point).word());
   }
   linked_.push_back(face);
 }

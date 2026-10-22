@@ -69,17 +69,18 @@ public:
     if (face.face >= byFace_.size() || byFace_[face.face] == kNone) {
       return;
     }
-    Emitted emitted{face.bucket, saved_[byFace_[face.face]].words};
+    Emitted emitted{face.bucket, Packet(std::span(saved_[byFace_[face.face]].words))};
     const auto points = facePointWords(face.layout);
     for (std::uint32_t point = 0; point < 3u; ++point) {
-      emitted.words[points[point]] = core_.gte().readData(psx::gte::kSxy0 + point);
+      emitted.words.storeVertex(points[point], core_.gte().projected(point));
     }
     linked.push_back(emitted);
   }
 
+  using Packet = psx::gpu::PacketBuffer<kFacePacketWords>;
   struct Emitted {
     std::uint32_t bucket = 0;
-    FaceWords words{};
+    Packet words;
   };
   std::vector<Emitted> linked;
 
@@ -141,7 +142,7 @@ bool saveFaceState(Core &core, const psx::present::RecordKey &owner, const FaceC
     for (std::uint32_t word = 0; word < kFacePacketWords; ++word) {
       saved.words[word] = core.mem_r32(packet + word * kWordBytes);
     }
-    if (!decodeLinkedPacket(saved.words)) {
+    if (!decodeLinkedPacket({.words = saved.words, .places = {}})) {
       return false;
     }
     faces.push_back(saved);
@@ -193,7 +194,7 @@ void renderFaceState(Core &core,
   }
   // A bucket's walk reaches the packet linked last first.
   for (auto emitted = host.linked.rbegin(); emitted != host.linked.rend(); ++emitted) {
-    const auto primitive = decodeLinkedPacket(emitted->words);
+    const auto primitive = decodeLinkedPacket(emitted->words.view());
     if (primitive) {
       sink.emit(psx::present::OtSlot{static_cast<std::uint16_t>(state.header.table),
                                      state.header.baseBucket + emitted->bucket},
