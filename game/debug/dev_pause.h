@@ -1,7 +1,6 @@
 #pragma once
 
-#include "game_runtime.h"
-
+#include <array>
 #include <cstdint>
 #include <string>
 
@@ -10,14 +9,17 @@ class Pad;
 
 namespace crashbash::debug {
 
-// Control-channel and REPL `pause open|up|down|left|right|confirm`. The command only arms a request; the frame driver
+// The debug menu's `pause open|up|down|left|right|confirm`. Arming only records a request; the frame driver
 // applies it at a frame boundary as a real pad press, so BOOT's pause dispatcher (`FUN_8007F314`) opens and walks its
 // pages itself; every action but `open` needs the page open and presses its button once. `open` needs a live match: it
 // presses Start until the dispatcher sets its pause flag.
 class DevPause {
 public:
-  // Returns true when `cmd` was this title's command; the reply text is left in `reply`.
-  bool handle(Core &core, const psx::game::TitleCommandLine &input, std::string &reply);
+  // The actions `pause` takes, in its parameter's order; `open` first, then the one-press buttons.
+  static constexpr std::array<const char *, 6> kActionNames{"open", "up", "down", "left", "right", "confirm"};
+
+  // Arms action `action` (an index of kActionNames); the returned text answers the client.
+  std::string arm(Core &core, std::uint32_t action);
 
   // Called at every frame boundary, before the pad is serviced.
   void applyArmed(Core &core, Pad &pad, std::uint32_t frame);

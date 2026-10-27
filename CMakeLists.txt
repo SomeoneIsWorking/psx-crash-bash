@@ -72,6 +72,7 @@ set(CRASHBASH_SEAM_SOURCES
   game/frame/frame_driver.cpp
   game/frame/frame_cut.cpp
   game/input/recording_phase.cpp
+  game/debug/debug_menu.cpp
   game/debug/dev_arena.cpp
   game/debug/dev_pause.cpp
   game/frame/display_frame.cpp

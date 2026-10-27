@@ -70,7 +70,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-DEBUG.1 | `game/runtime/runtime.cpp:Runtime::titleCommand` — `arena` (`DevArena`) and `pause` (`DevPause`), applied by `FrameDriver::stepFrame` at a frame boundary |
+| 1 | psxport F-DEBUG.1 | `game/debug/debug_menu.cpp:debug::DebugMenu` — `arenas`, `arena <id> [battle|tournament]` (`DevArena`) and `pause <action>` (`DevPause`), applied by `FrameDriver::stepFrame` at a frame boundary |
 
 ## CB-SKIP (title only)
 

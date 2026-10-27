@@ -1,5 +1,6 @@
 #pragma once
 
+#include "debug/debug_menu.h"
 #include "execution/executable_identity.h"
 #include "game_runtime.h"
 #include "guest_widescreen_projection.h"
@@ -8,7 +9,6 @@
 #include "stock_vsync.h"
 
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 
 namespace crashbash {
@@ -42,8 +42,9 @@ public:
   bool sealedFrameIsCut(Core &core) const override;
   const psx::present::GuestWidescreenProjection *guestWidescreenProjection() const override;
 
-  // The developer `arena` and `pause` commands.
-  bool titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) override;
+  const psx::game::TitleDebugMenu &debugMenu() const override {
+    return debugMenu_;
+  }
   std::uint64_t inputPhase(Core &core) const override {
     return recordingPhase_.of(core);
   }
@@ -56,6 +57,7 @@ private:
   psx::hle::StockVSync vsync_;
   RecordingPhase recordingPhase_;
   psx::present::GuestWidescreenProjection aspectPolicy_;
+  debug::DebugMenu debugMenu_;
 };
 
 } // namespace crashbash
