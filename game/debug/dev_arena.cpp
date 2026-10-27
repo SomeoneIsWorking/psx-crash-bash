@@ -5,15 +5,10 @@
 #include "pad_input.h"
 #include "title/guest.h"
 
-#include <cstdio>
-#include <cstring>
 #include <lucent/log.h>
 
 namespace crashbash::debug {
 namespace {
-
-// The guest level table rejects unknown arena ids.
-constexpr std::uint32_t kLevelTableBound = 32u;
 
 constexpr std::uint32_t kPageBound = 16u;
 
@@ -84,98 +79,67 @@ Entry findEntry(Core &core, std::uint32_t arena, std::uint32_t wantedMode) {
 
 } // namespace
 
-bool DevArena::handle(Core &core, const psx::game::TitleCommandLine &input, std::FILE *out) {
-  if (std::strcmp(input.command, "arena") != 0) {
-    return false;
+std::string DevArena::list(Core &core) {
+  const Page first = arenaPage(core, 0);
+  if (!first.valid) {
+    return lucent::format("the menu overlay is not resident (0x{:08X} holds 0x{:08X}): its arena table at 0x{:08X} is "
+                          "only readable while the menu owns the slot",
+                          guest::kMenuImageBase,
+                          core.mem_r32(guest::kMenuImageBase),
+                          guest::kArenaPageTable);
   }
-
-  const std::string_view argument = input.args.word(1);
-  const std::string_view mode = input.args.word(2);
-
-  if (argument.empty() || argument == "list") {
-    const Page first = arenaPage(core, 0);
-    if (!first.valid) {
-      std::fprintf(out,
-                   "the menu overlay is not resident (0x%08X holds 0x%08X): its arena table at 0x%08X is only readable "
-                   "while the menu owns the slot\n",
-                   guest::kMenuImageBase,
-                   core.mem_r32(guest::kMenuImageBase),
-                   guest::kArenaPageTable);
-      return true;
+  std::string reply =
+      lucent::format("menu arena table at 0x{:08X} / counts 0x{:08X}", guest::kArenaPageTable, guest::kArenaPageCounts);
+  std::uint32_t listed = 0;
+  for (std::uint32_t page = 0; page < kPageBound; ++page) {
+    const Page descriptor = arenaPage(core, page);
+    if (!descriptor.valid) {
+      break;
     }
-    std::fprintf(out, "menu arena table at 0x%08X / counts 0x%08X\n", guest::kArenaPageTable, guest::kArenaPageCounts);
-    std::uint32_t listed = 0;
-    for (std::uint32_t page = 0; page < kPageBound; ++page) {
-      const Page descriptor = arenaPage(core, page);
-      if (!descriptor.valid) {
-        break;
-      }
-      for (std::uint32_t index = 0; index < descriptor.count; ++index) {
-        const std::uint32_t entry = descriptor.base + index * guest::kArenaEntryBytes;
-        std::fprintf(out,
-                     "  arena %2u  page %u index %u  mode %u  name 0x%08X  str 0x%08X  type 0x%04X\n",
-                     core.mem_r32(entry + 4u),
-                     page,
-                     index,
-                     core.mem_r32(entry),
-                     core.mem_r32(entry + 8u),
-                     core.mem_r32(entry + 12u),
-                     levelType(core, core.mem_r32(entry + 4u)));
-        ++listed;
-      }
-    }
-    std::fprintf(out, "%u arena entry(s)\n", listed);
-    return true;
-  }
-
-  const std::optional<std::uint32_t> parsed = input.args.number(1);
-  if (!parsed) {
-    std::fprintf(out, "usage: arena list | arena <id> [battle|tournament]\n");
-    return true;
-  }
-  const std::uint32_t requested = *parsed;
-  if (requested >= kLevelTableBound || levelType(core, requested) == 0) {
-    std::fprintf(out, "refused: arena %u is not in the guest's level table at 0x%08X\n", requested, guest::kArenaTable);
-    return true;
-  }
-
-  ArenaMode selected = ArenaMode::Battle;
-  std::uint32_t wantedMode = 0;
-  if (!mode.empty()) {
-    if (mode == "battle") {
-      selected = ArenaMode::Battle;
-      wantedMode = 1;
-    } else if (mode == "tournament") {
-      selected = ArenaMode::Tournament;
-      wantedMode = 2;
-    } else {
-      std::fprintf(out, "refused: unknown mode '%.*s' (battle or tournament)\n", static_cast<int>(mode.size()), mode.data());
-      return true;
+    for (std::uint32_t index = 0; index < descriptor.count; ++index) {
+      const std::uint32_t entry = descriptor.base + index * guest::kArenaEntryBytes;
+      reply += lucent::format("\n  arena {:2}  page {} index {}  mode {}  name 0x{:08X}  str 0x{:08X}  type 0x{:04X}",
+                              core.mem_r32(entry + 4u),
+                              page,
+                              index,
+                              core.mem_r32(entry),
+                              core.mem_r32(entry + 8u),
+                              core.mem_r32(entry + 12u),
+                              levelType(core, core.mem_r32(entry + 4u)));
+      ++listed;
     }
   }
+  reply += lucent::format("\n{} arena entry(s)", listed);
+  return reply;
+}
 
-  const Entry found = findEntry(core, requested, wantedMode);
+std::string DevArena::arm(Core &core, std::uint32_t arena, std::optional<std::uint32_t> mode) {
+  if (levelType(core, arena) == 0) {
+    return lucent::format("refused: arena {} is not in the guest's level table at 0x{:08X}", arena, guest::kArenaTable);
+  }
+  const ArenaMode selected = mode == 1u ? ArenaMode::Tournament : ArenaMode::Battle;
+  // The table's own mode words: 1 battle, 2 tournament; 0 matches either.
+  const std::uint32_t wantedMode = mode ? *mode + 1u : 0u;
+  const char *modeName = kModeNames[static_cast<std::size_t>(selected)];
+
+  const Entry found = findEntry(core, arena, wantedMode);
   if (found.found) {
-    request_ = Request{true, requested, selected, found.page, found.index, Stage::EnterMenu, 0, false, 0};
-    std::fprintf(out,
-                 "armed: arena %u (%s, table page %u index %u) — the frame driver will run the game's own menu flow "
-                 "and select it\n",
-                 requested,
-                 selected == ArenaMode::Battle ? "battle" : "tournament",
-                 found.page,
-                 found.index);
-    return true;
+    request_ = Request{true, arena, selected, found.page, found.index, Stage::EnterMenu, 0, false, 0};
+    return lucent::format("armed: arena {} ({}, table page {} index {}) — the frame driver will run the game's own "
+                          "menu flow and select it",
+                          arena,
+                          modeName,
+                          found.page,
+                          found.index);
   }
 
   // A nested gameplay module shares the MENU load address, so mid-match the table is absent and the request
   // stays armed until the menu owns the slot again.
-  request_ = Request{true, requested, selected, 0, 0, Stage::EnterMenu, 0, false, 0};
-  std::fprintf(out,
-               "armed: arena %u (%s) — the menu overlay is not resident right now, so the frame driver will select it "
-               "when the menu returns\n",
-               requested,
-               selected == ArenaMode::Battle ? "battle" : "tournament");
-  return true;
+  request_ = Request{true, arena, selected, 0, 0, Stage::EnterMenu, 0, false, 0};
+  return lucent::format("armed: arena {} ({}) — the menu overlay is not resident right now, so the frame driver will "
+                        "select it when the menu returns",
+                        arena,
+                        modeName);
 }
 
 void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {

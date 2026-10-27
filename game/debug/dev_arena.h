@@ -1,22 +1,30 @@
 #pragma once
 
-#include "game_runtime.h"
-
+#include <array>
 #include <cstdint>
-#include <cstdio>
+#include <optional>
+#include <string>
 
 class Core;
 class Pad;
 
 namespace crashbash::debug {
 
-// Control-channel `arena list` / `arena <id> [mode]` (battle|tournament). The command only arms a request;
+// The debug menu's `arenas` and `arena <id> [battle|tournament]`. Arming only records a request;
 // the frame driver advances it at frame boundaries through the guest's own menu flow. SELECT BATTLE TYPE's
 // update (`FUN_800b7458`) reads cursor `DAT_8005a64a/b` to index the arena table at `0x800BA324`.
 class DevArena {
 public:
-  // Returns true when `cmd` was this title's command and the reply has been written to `out`.
-  bool handle(Core &core, const psx::game::TitleCommandLine &input, std::FILE *out);
+  // The modes `arena` takes, in its parameter's order.
+  static constexpr std::array<const char *, 2> kModeNames{"battle", "tournament"};
+  // The guest level table rejects arena ids from here on.
+  static constexpr std::uint32_t kLevelTableBound = 32u;
+
+  // The menu overlay's arena table, one line per entry.
+  static std::string list(Core &core);
+  // Arms arena `arena` in `mode` (an index of kModeNames; none takes the first entry naming it); the returned text
+  // answers the client.
+  std::string arm(Core &core, std::uint32_t arena, std::optional<std::uint32_t> mode);
 
   // Called at every frame boundary; `pad` delivers the real Start press that leaves the attract demo.
   void applyArmed(Core &core, Pad &pad, std::uint32_t frame);

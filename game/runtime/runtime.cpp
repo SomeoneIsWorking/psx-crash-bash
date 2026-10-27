@@ -134,19 +134,6 @@ const psx::present::GuestWidescreenProjection *Runtime::guestWidescreenProjectio
   return &aspectPolicy_;
 }
 
-bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) {
-  Session &title = session(core);
-  if (title.devArena.handle(core, input, reply)) {
-    return true;
-  }
-  std::string text;
-  if (!title.devPause.handle(core, input, text)) {
-    return false;
-  }
-  std::fprintf(reply, "%s\n", text.c_str());
-  return true;
-}
-
 psx::state::NativeStatePort *Runtime::nativeState(Core &core) const {
   return &session(core).execution.statePort();
 }

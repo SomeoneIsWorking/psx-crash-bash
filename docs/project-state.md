@@ -196,7 +196,7 @@ Gap: re-run that frontier through pinned Lightrec and cover every remaining reta
 
 ### S013 — Remaining modes
 
-The control-channel-only `arena <id> [battle|tournament]` command (`game/debug/dev_arena.cpp`, Tomba! 2
+The debug menu's `arena <id> [battle|tournament]` verb (`game/debug/dev_arena.cpp`, Tomba! 2
 `dev_warp` pattern) enters a match at a frame boundary through the menu's own flow step on the located
 battle flow run and the guest's own accepts.
 

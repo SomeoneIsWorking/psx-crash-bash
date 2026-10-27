@@ -4,8 +4,6 @@
 #include "pad_input.h"
 #include "title/guest.h"
 
-#include <cstdio>
-#include <cstring>
 #include <lucent/log.h>
 
 namespace crashbash::debug {
@@ -20,21 +18,9 @@ constexpr std::uint16_t kRightPressed = 0xFFFF & ~0x0020u;
 constexpr std::uint16_t kConfirmPressed = 0xFFFF & ~0x4000u;
 
 constexpr const char *kArmed = "armed: the frame driver presses the pad at the next frame boundary";
-constexpr const char *kUsage = "usage: pause open | up | down | left | right | confirm";
-
-struct Named {
-  const char *word;
-  std::uint16_t mask;
-};
-
-// The one-press actions; the request stores the word's index.
-constexpr Named kPresses[] = {
-    {"up", kUpPressed},
-    {"down", kDownPressed},
-    {"left", kLeftPressed},
-    {"right", kRightPressed},
-    {"confirm", kConfirmPressed},
-};
+// The one-press buttons, after `open` in DevPause::kActionNames.
+constexpr std::array<std::uint16_t, 5> kPresses{kUpPressed, kDownPressed, kLeftPressed, kRightPressed, kConfirmPressed};
+static_assert(kPresses.size() + 1 == DevPause::kActionNames.size());
 
 bool pauseIsOpen(Core &core) {
   return (core.mem_r32(guest::kPauseFlags) & guest::kPauseOpenBit) != 0;
@@ -47,38 +33,19 @@ bool modeSceneIsCurrent(Core &core) {
 
 } // namespace
 
-bool DevPause::handle(Core &core, const psx::game::TitleCommandLine &input, std::string &reply) {
-  if (std::strcmp(input.command, "pause") != 0) {
-    return false;
-  }
-  const std::string_view argument = input.args.word(1);
-  if (argument.empty()) {
-    reply = kUsage;
-    return true;
-  }
-  if (argument == "open") {
+std::string DevPause::arm(Core &core, std::uint32_t action) {
+  if (action == 0) {
     if (pauseIsOpen(core)) {
-      reply = "refused: the pause page is already open";
-      return true;
+      return "refused: the pause page is already open";
     }
-    request_ = Request{Action::Open, 0, "open", 0, false};
-    reply = kArmed;
-    return true;
+    request_ = Request{Action::Open, 0, kActionNames[0], 0, false};
+    return kArmed;
   }
-  for (const Named &press : kPresses) {
-    if (argument != press.word) {
-      continue;
-    }
-    if (!pauseIsOpen(core)) {
-      reply = "refused: the pause page is not open, send `pause open` first";
-      return true;
-    }
-    request_ = Request{Action::Press, press.mask, press.word, 0, false};
-    reply = kArmed;
-    return true;
+  if (!pauseIsOpen(core)) {
+    return "refused: the pause page is not open, send `pause open` first";
   }
-  reply = kUsage;
-  return true;
+  request_ = Request{Action::Press, kPresses[action - 1], kActionNames[action], 0, false};
+  return kArmed;
 }
 
 void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
