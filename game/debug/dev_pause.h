@@ -47,8 +47,8 @@ private:
   static inline constexpr std::uint32_t kFrameBudget = 600u;
   // Frames between Start presses while the pause flag has not come up.
   static inline constexpr std::uint32_t kPressStride = 30u;
-  // Input turns a press is held.
-  static inline constexpr int kPressTurns = 4;
+  // Pad frames a press is held.
+  static inline constexpr int kPressFrames = 4;
 
   Request request_{};
 };
