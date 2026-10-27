@@ -200,7 +200,7 @@ void DevArena::applyArmed(Core &core, std::uint32_t frame) {
     }
     const std::uint32_t waited = frame - request_.firstFrame;
     if (waited % kStartRetryStride == 0) {
-      core.game->hostInput.padButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressTurns);
+      core.game->hostInput.padButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressFrames);
       lucent::info(
           "crashbash-arena",
           "arena {} at f{}: the menu overlay is not resident, so Start was pressed through the pad to leave the "
@@ -278,7 +278,7 @@ void DevArena::applyArmed(Core &core, std::uint32_t frame) {
     core.mem_w8(guest::kArenaCursorIndex, static_cast<std::uint8_t>(request_.index));
     // Screens advance on the game's own accept, a Cross press.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressTurns);
+      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressFrames);
     }
     if (core.mem_r32(guest::kArenaSelection) == request_.arena && request_.stage == Stage::AwaitArenaScreen) {
       request_.stage = Stage::AwaitCommit;
@@ -299,7 +299,7 @@ void DevArena::applyArmed(Core &core, std::uint32_t frame) {
   case Stage::AwaitCommit: {
     // Arena set; the remaining screens advance by the same presses.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressTurns);
+      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressFrames);
     }
     const bool leftMenu = screen < guest::kMenuImageBase || screen >= guest::kMenuImageBase + guest::kMenuImageBytes;
     if (leftMenu) {

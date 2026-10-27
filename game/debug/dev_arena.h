@@ -62,8 +62,8 @@ private:
   static inline constexpr std::uint32_t kWaitReportStride = 120u;
   // Frames between Start presses while the menu has not come up.
   static inline constexpr std::uint32_t kStartRetryStride = 90u;
-  // Input turns a press is held.
-  static inline constexpr int kPressTurns = 4;
+  // Pad frames a press is held.
+  static inline constexpr int kPressFrames = 4;
   // Frames between Cross presses while the flow walks its screens.
   static inline constexpr std::uint32_t kFlowPressStride = 30u;
   Request request_{};
