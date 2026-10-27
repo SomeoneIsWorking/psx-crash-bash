@@ -1,7 +1,8 @@
 #include "debug/dev_pause.h"
 
 #include "core.h"
-#include "pad_input.h"
+#include "game.h"
+#include "host_input.h"
 #include "title/guest.h"
 
 #include <lucent/log.h>
@@ -9,17 +10,13 @@
 namespace crashbash::debug {
 namespace {
 
-// Active-low pad masks, as the control channel's `tap`.
-constexpr std::uint16_t kStartPressed = 0xFFFF & ~0x0008u;
-constexpr std::uint16_t kUpPressed = 0xFFFF & ~0x0010u;
-constexpr std::uint16_t kDownPressed = 0xFFFF & ~0x0040u;
-constexpr std::uint16_t kLeftPressed = 0xFFFF & ~0x0080u;
-constexpr std::uint16_t kRightPressed = 0xFFFF & ~0x0020u;
-constexpr std::uint16_t kConfirmPressed = 0xFFFF & ~0x4000u;
-
 constexpr const char *kArmed = "armed: the frame driver presses the pad at the next frame boundary";
 // The one-press buttons, after `open` in DevPause::kActionNames.
-constexpr std::array<std::uint16_t, 5> kPresses{kUpPressed, kDownPressed, kLeftPressed, kRightPressed, kConfirmPressed};
+constexpr std::array<std::uint16_t, 5> kPresses{psx::input::kButtonUp,
+                                                psx::input::kButtonDown,
+                                                psx::input::kButtonLeft,
+                                                psx::input::kButtonRight,
+                                                psx::input::kButtonCross};
 static_assert(kPresses.size() + 1 == DevPause::kActionNames.size());
 
 bool pauseIsOpen(Core &core) {
@@ -48,7 +45,7 @@ std::string DevPause::arm(Core &core, std::uint32_t action) {
   return kArmed;
 }
 
-void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
+void DevPause::applyArmed(Core &core, std::uint32_t frame) {
   if (request_.action == Action::None) {
     return;
   }
@@ -59,7 +56,7 @@ void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
   const std::uint32_t waited = frame - request_.firstFrame;
 
   if (request_.action == Action::Press) {
-    pad.driveTap({.activeLowMask = request_.button, .frames = kPressFrames});
+    core.game->hostInput.padButtons(request_.button, psx::input::InjectedPress::Tap, kPressTurns);
     lucent::info("crashbash-pause", "pause {} pressed at f{}", request_.word, frame);
     request_ = Request{};
     return;
@@ -85,7 +82,7 @@ void DevPause::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
     return;
   }
   if (modeSceneIsCurrent(core) && waited % kPressStride == 0) {
-    pad.driveTap({.activeLowMask = kStartPressed, .frames = kPressFrames});
+    core.game->hostInput.padButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressTurns);
     lucent::info("crashbash-pause", "pause open: Start pressed at f{}", frame);
   }
 }

@@ -6,7 +6,6 @@
 #include <string>
 
 class Core;
-class Pad;
 
 namespace crashbash::debug {
 
@@ -26,8 +25,8 @@ public:
   // answers the client.
   std::string arm(Core &core, std::uint32_t arena, std::optional<std::uint32_t> mode);
 
-  // Called at every frame boundary; `pad` delivers the real Start press that leaves the attract demo.
-  void applyArmed(Core &core, Pad &pad, std::uint32_t frame);
+  // Called at every frame boundary; the virtual gamepad delivers the real Start press that leaves the attract demo.
+  void applyArmed(Core &core, std::uint32_t frame);
 
 private:
   enum class ArenaMode : std::uint8_t {
@@ -54,8 +53,6 @@ private:
     std::uint32_t index = 0;
     Stage stage = Stage::EnterMenu;
     std::uint32_t firstFrame = 0;
-    // The pad reports `repl_on` for its own forced drive too, so ownership is only decidable before the first tap.
-    bool tapped = false;
     std::uint32_t lastScreen = 0;
   };
 
@@ -65,10 +62,8 @@ private:
   static inline constexpr std::uint32_t kWaitReportStride = 120u;
   // Frames between Start presses while the menu has not come up.
   static inline constexpr std::uint32_t kStartRetryStride = 90u;
-  // Active-low on the pad mask, as the control channel's `tap start` / `tap x`.
-  static inline constexpr std::uint16_t kStartPressed = 0xFFFF & ~0x0008u;
-  static inline constexpr std::uint16_t kConfirmPressed = 0xFFFF & ~0x4000u;
-  static inline constexpr int kPressFrames = 4;
+  // Input turns a press is held.
+  static inline constexpr int kPressTurns = 4;
   // Frames between Cross presses while the flow walks its screens.
   static inline constexpr std::uint32_t kFlowPressStride = 30u;
   Request request_{};

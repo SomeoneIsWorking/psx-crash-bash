@@ -5,7 +5,6 @@
 #include <string>
 
 class Core;
-class Pad;
 
 namespace crashbash::debug {
 
@@ -22,7 +21,7 @@ public:
   std::string arm(Core &core, std::uint32_t action);
 
   // Called at every frame boundary, before the pad is serviced.
-  void applyArmed(Core &core, Pad &pad, std::uint32_t frame);
+  void applyArmed(Core &core, std::uint32_t frame);
 
   bool armed() const {
     return request_.action != Action::None;
@@ -48,7 +47,8 @@ private:
   static inline constexpr std::uint32_t kFrameBudget = 600u;
   // Frames between Start presses while the pause flag has not come up.
   static inline constexpr std::uint32_t kPressStride = 30u;
-  static inline constexpr int kPressFrames = 4;
+  // Input turns a press is held.
+  static inline constexpr int kPressTurns = 4;
 
   Request request_{};
 };

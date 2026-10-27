@@ -77,8 +77,8 @@ void FrameDriver::finishUpdateSlice(Core &core) {
 void FrameDriver::stepFrame(Core &core, std::uint32_t frame) {
   // Developer request, applied at the frame boundary.
   Session &title = session(core);
-  title.devArena.applyArmed(core, game_.pad, frame);
-  title.devPause.applyArmed(core, game_.pad, frame);
+  title.devArena.applyArmed(core, frame);
+  title.devPause.applyArmed(core, frame);
   // Per-frame profiler (`PSXPORT_DEBUG=perf`).
   game_.perf.frameBegin();
   game_.timing.frameTick();
