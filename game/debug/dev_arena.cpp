@@ -2,6 +2,8 @@
 
 #include "core.h"
 #include "frame/measured_guest_call.h"
+#include "game.h"
+#include "host_input.h"
 #include "pad_input.h"
 #include "title/guest.h"
 
@@ -124,7 +126,7 @@ std::string DevArena::arm(Core &core, std::uint32_t arena, std::optional<std::ui
 
   const Entry found = findEntry(core, arena, wantedMode);
   if (found.found) {
-    request_ = Request{true, arena, selected, found.page, found.index, Stage::EnterMenu, 0, false, 0};
+    request_ = Request{true, arena, selected, found.page, found.index, Stage::EnterMenu, 0, 0};
     return lucent::format("armed: arena {} ({}, table page {} index {}) — the frame driver will run the game's own "
                           "menu flow and select it",
                           arena,
@@ -135,14 +137,14 @@ std::string DevArena::arm(Core &core, std::uint32_t arena, std::optional<std::ui
 
   // A nested gameplay module shares the MENU load address, so mid-match the table is absent and the request
   // stays armed until the menu owns the slot again.
-  request_ = Request{true, arena, selected, 0, 0, Stage::EnterMenu, 0, false, 0};
+  request_ = Request{true, arena, selected, 0, 0, Stage::EnterMenu, 0, 0};
   return lucent::format("armed: arena {} ({}) — the menu overlay is not resident right now, so the frame driver will "
                         "select it when the menu returns",
                         arena,
                         modeName);
 }
 
-void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
+void DevArena::applyArmed(Core &core, std::uint32_t frame) {
   if (!request_.armed) {
     return;
   }
@@ -188,7 +190,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
       request_.stage = Stage::SelectMode;
       return;
     }
-    if (!request_.tapped && pad.repl_on != 0) {
+    if (core.game->pad.replaying()) {
       lucent::info("crashbash-arena",
                    "arena {} not applied at f{}: a pad replay owns input, so Start cannot leave the attract demo",
                    request_.arena,
@@ -198,13 +200,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
     }
     const std::uint32_t waited = frame - request_.firstFrame;
     if (waited % kStartRetryStride == 0) {
-      if (request_.tapped) {
-        // Release the pad so host input works again.
-        pad.driveRelease();
-        request_.tapped = false;
-      }
-      pad.driveTap({.activeLowMask = kStartPressed, .frames = kPressFrames});
-      request_.tapped = true;
+      core.game->hostInput.padButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressTurns);
       lucent::info(
           "crashbash-arena",
           "arena {} at f{}: the menu overlay is not resident, so Start was pressed through the pad to leave the "
@@ -282,7 +278,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
     core.mem_w8(guest::kArenaCursorIndex, static_cast<std::uint8_t>(request_.index));
     // Screens advance on the game's own accept, a Cross press.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      pad.driveTap({.activeLowMask = kConfirmPressed, .frames = kPressFrames});
+      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressTurns);
     }
     if (core.mem_r32(guest::kArenaSelection) == request_.arena && request_.stage == Stage::AwaitArenaScreen) {
       request_.stage = Stage::AwaitCommit;
@@ -303,7 +299,7 @@ void DevArena::applyArmed(Core &core, Pad &pad, std::uint32_t frame) {
   case Stage::AwaitCommit: {
     // Arena set; the remaining screens advance by the same presses.
     if ((frame - request_.firstFrame) % kFlowPressStride == 0) {
-      pad.driveTap({.activeLowMask = kConfirmPressed, .frames = kPressFrames});
+      core.game->hostInput.padButtons(psx::input::kButtonCross, psx::input::InjectedPress::Tap, kPressTurns);
     }
     const bool leftMenu = screen < guest::kMenuImageBase || screen >= guest::kMenuImageBase + guest::kMenuImageBytes;
     if (leftMenu) {
