@@ -9,6 +9,7 @@
 #include "runtime/session.h"
 #include "title/guest.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <lucent/log.h>
 #include <optional>
@@ -40,11 +41,13 @@ void FrameDriver::enterProcessState(Core &core, std::uint32_t state) {
                core.mem_r32(state + 8u));
 }
 
-void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t fields) {
-  if (fields == 0 || fields > 4) {
-    lucent::error("crashbash-frame", "retail display requested {} fields; expected a bounded positive cadence", fields);
+void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t requested) {
+  if (requested == 0 || requested > 4) {
+    lucent::error(
+        "crashbash-frame", "retail display requested {} fields; expected a bounded positive cadence", requested);
     std::abort();
   }
+  const std::uint32_t fields = std::max(requested, game_.timing.fieldsSinceDisplayBoundary());
   if (deliveredFields_ != 0) {
     lucent::error("crashbash-frame", "retail process iteration invoked DisplayFrame more than once");
     std::abort();

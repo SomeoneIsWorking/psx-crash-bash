@@ -16,8 +16,9 @@ public:
   void stepFrame(Core &core, std::uint32_t frame) override;
 
   // Called at the exact point native DisplayFrame removes retail VSync(fields). This owns field
-  // callbacks and audio; presentation remains the single commit at the frame-driver tail.
-  void deliverDisplayFields(Core &core, std::uint32_t fields);
+  // callbacks and audio; presentation remains the single commit at the frame-driver tail. As VSync(n), the frame
+  // spans n fields, or every whole field its guest work already ran past.
+  void deliverDisplayFields(Core &core, std::uint32_t requested);
 
 private:
   static inline constexpr std::uint32_t kUpdateReturnPc = 0x80027144u;
@@ -43,6 +44,5 @@ private:
   std::uint32_t scene_ = 0;
   std::uint32_t sceneChanges_ = 0;
 };
-
 
 } // namespace crashbash
