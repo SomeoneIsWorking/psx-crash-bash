@@ -46,12 +46,13 @@ void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t requested) {
         "crashbash-frame", "retail display requested {} fields; expected a bounded positive cadence", requested);
     std::abort();
   }
+  const std::uint32_t fields = game_.timing.vsyncFields(requested);
   if (deliveredFields_ != 0) {
     lucent::error("crashbash-frame", "retail process iteration invoked DisplayFrame more than once");
     std::abort();
   }
-  deliveredFields_ = requested;
-  for (std::uint32_t field = 0; field < requested; ++field) {
+  deliveredFields_ = fields;
+  for (std::uint32_t field = 0; field < fields; ++field) {
     const std::uint32_t before = core.mem_r32(guest::kVblankCounter);
     const R3000 interrupted = static_cast<const R3000 &>(core);
     runtime::dispatchGuest(core, guest::kVblankRoot);

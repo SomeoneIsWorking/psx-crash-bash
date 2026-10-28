@@ -18,7 +18,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 | hop | joins | owner |
 |---|---|---|
 | 1 | psxport F-TURN.2 | `game/frame/frame_driver.cpp:FrameDriver::stepFrame` — one measured process update/present, one commit |
-| 2 | psxport F-TURN.2 | `game/frame/display_frame.cpp:registerDisplayFrameOverride` → `FrameDriver::deliverDisplayFields` — replaces DisplayFrame `0x800272AC`'s `VSync(n)`: the VBlank root `0x8003ADD4` per field, n = the guest's cadence word `0x8004E0E0` |
+| 2 | psxport F-TURN.2 | `game/frame/display_frame.cpp:registerDisplayFrameOverride` → `FrameDriver::deliverDisplayFields` — replaces DisplayFrame `0x800272AC`'s `VSync(n)`: the VBlank root `0x8003ADD4` per field, `Timing::vsyncFields(n)` fields, n = the cadence word `0x8004E0E0` |
 | 3 | psxport F-TURN.2 | `game/execution/guest_execution.cpp:runGuestCallToReturn` — a blocking guest call resumed across fields under the turn cap |
 | 4 | psxport F-TURN.4 | `game/runtime/runtime.cpp:Runtime::reportRun` — the guest-call turn cap |
 
