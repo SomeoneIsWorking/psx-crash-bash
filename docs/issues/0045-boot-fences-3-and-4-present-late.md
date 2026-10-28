@@ -1,6 +1,6 @@
 # 0045 — boot fences 3 and 4 present late
 
-**Status:** fixed · **State:** S016
+**Status:** fixed against the port's guest clock (oracle not compared) · **State:** S016
 
 ## Observed
 40 s paced hidden runs from boot (ires 0, fps60 1, 3840x2160 sink, `PSXPORT_DEBUG=presentseq`,
@@ -17,8 +17,22 @@ fields. The boot frame at fence 4 runs the spanning calls `0x8008E5BC` (3 turns,
 overhead (43 ms host, `scratch/player-bugs-9/cb-boot-seg`), while the frame was paced as 2 fields (33.4 ms).
 
 ## Fix
-`deliverDisplayFields` delivers `max(n, Timing::fieldsSinceDisplayBoundary())`, the whole fields the frame's guest work
-already spanned (psxport `EmulatedTime::fieldsSinceBoundary`). Shown (`scratch/player-bugs-9/cb-boot-fix`,
-`cb-2400-fix`): fence 4 is a 5-field frame shown 0.2 ms after its deadline (83 ms after fence 3, a load hold), fence 3
-1.5 ms; 0 missed in the boot window; over 2400 frames from boot the only frame above its requested 2 fields is that one
-(4213 `2/2`, 292 `2/1`, 1 `5/1`).
+`deliverDisplayFields` delivers psxport `Timing::vsyncFields(n)`, the one owner of the libetc rule. Decompiled
+`0x800320EC` (`scratch/player-bugs-9/decomp`): VSync(n) waits until the field counter reaches its last return + n - 1,
+then for the next VBlank, so a frame whose guest work ran past field k since the last return spans max(n, k + 1)
+fields and ends on a VBlank. The first fix counted max(n, k), which ended such a frame off the field grid at the
+guest's time.
+
+Shown in the running product, against the port's own guest clock:
+- psxport `scratch/player-bugs-9/v2-cb-grid` (600 frames unpaced, `PSXPORT_DEBUG=presentseq,fielddigest`): fence 4 is `6/1`,
+  and every one of the 928 field deliveries lands on the field grid (emulated ticks a whole number of fields from the
+  first).
+- psxport `scratch/player-bugs-9/v2-audio-cb` (2400 frames paced, audio on through SDL's dummy sink, load 2.9-2.5): 0 missed.
+  Fence 4 shows 0.25 ms after its deadline, 98 ms after fence 3; the player sees that 6-field hold at boot. Cadence
+  4213 `2/2`, 287 `2/1`, 5 `3/1` (fences 94, 465, 476, 1401, 2316, frames whose guest work ran past 2 fields, which
+  the first fix anchored off the grid as 2-field frames), 1 `6/1`.
+
+## Gaps
+- Whether retail holds the boot frame for 6 fields, and whether its fences 94, 465, 476, 1401 and 2316 run 3 fields,
+  depends on how closely the port's instruction count stands for console time. No console oracle frames were compared,
+  so "fixed" means fixed against the port's guest clock, not shown to match retail.
