@@ -56,7 +56,7 @@ void DevPause::applyArmed(Core &core, std::uint32_t frame) {
   const std::uint32_t waited = frame - request_.firstFrame;
 
   if (request_.action == Action::Press) {
-    core.game->hostInput.padButtons(request_.button, psx::input::InjectedPress::Tap, kPressFrames);
+    core.game->pad.injectButtons(request_.button, psx::input::InjectedPress::Tap, kPressFrames);
     lucent::info("crashbash-pause", "pause {} pressed at f{}", request_.word, frame);
     request_ = Request{};
     return;
@@ -82,7 +82,7 @@ void DevPause::applyArmed(Core &core, std::uint32_t frame) {
     return;
   }
   if (modeSceneIsCurrent(core) && waited % kPressStride == 0) {
-    core.game->hostInput.padButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressFrames);
+    core.game->pad.injectButtons(psx::input::kButtonStart, psx::input::InjectedPress::Tap, kPressFrames);
     lucent::info("crashbash-pause", "pause open: Start pressed at f{}", frame);
   }
 }
