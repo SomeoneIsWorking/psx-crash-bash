@@ -3,6 +3,8 @@
 Where Crash Bash's code lives and what each owner owns. Feature chains are in `docs/features.md`, producers
 and state renders in `docs/presentation.md`; the framework side is `external/psxport/docs/codemap.md`.
 
+Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update and present; native DisplayFrame `0x800272AC` replaces VSync(n) with the guest's cadence word `0x8004E0E0` fields.
+
 ## Owners
 
 | owner | path | owns |

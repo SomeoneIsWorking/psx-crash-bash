@@ -15,9 +15,7 @@ public:
 
   void stepFrame(Core &core, std::uint32_t frame) override;
 
-  // Called at the exact point native DisplayFrame removes retail VSync(fields). This owns field
-  // callbacks and audio; presentation remains the single commit at the frame-driver tail. The frame spans the fields
-  // retail VSync(n) 0x800320EC would (Timing::vsyncFields).
+  // Replaces DisplayFrame's VSync(n): the frame spans the guest's cadence word 0x8004E0E0, never the time its work took.
   void deliverDisplayFields(Core &core, std::uint32_t requested);
 
 private:
