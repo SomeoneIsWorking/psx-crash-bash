@@ -233,7 +233,6 @@ inline constexpr std::uint32_t kArenaPageStride = 0x8u;
 
 inline constexpr std::uint32_t kDisplayFieldsPerFrame = 0x8004E0E0u;
 inline constexpr std::uint32_t kVblankCounter = 0x8006D8DCu;
-inline constexpr std::uint32_t kVblankRoot = 0x8003ADD4u;
 inline constexpr std::uint32_t kCdReadActive = 0x800637B4u;
 inline constexpr std::uint32_t kCdBaseLba = 0x800637B8u;
 inline constexpr std::uint32_t kCdLicenseState = 0x80067894u;

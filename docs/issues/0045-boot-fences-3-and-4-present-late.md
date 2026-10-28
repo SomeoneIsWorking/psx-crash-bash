@@ -41,6 +41,15 @@ callbacks and 2 SPU advances for it and every later field landed off the grid (`
 (`scratch/frame-loops/revert-nopace`, 600 frames unpaced): 268 `2/1`, 3 `3/1` (fences 94, 465, 476), 1 `6/1` (fence 4),
 0 of 928 digest fields off the grid.
 
+## The VBlank root ran twice per field (2026-10-28)
+`deliverDisplayFields` also dispatched the VBlank root `0x8003ADD4` itself once per field, but `FUN_8003AD7C` registers
+that root as the guest's VBlank interrupt callback, so the guest's own interrupt path runs it too. Once psxport
+delivered every field's VBlank (`Timing::advanceDisplayFields`), the counter `0x8006D8DC` moved 4 per two-field step
+(psxport `scratch/dispatch-cost/cb-vcount`: `0x971` at step 601, `0x15F3` at 1401). The driver no longer dispatches the
+root; the same 1500 steps unpaced (`cb-vcount2`) read `0x4BA` at 602 and `0xAFB` at 1402, 1601 VBlanks over fences 602-1401,
+which present 1601 fields, with the cadence unchanged (2430 `2/2`, 280 `2/1`, 4 `3/1`, 1 `6/1`). The roots now run at the
+commit and at the next turn's first pending-work service rather than inside DisplayFrame.
+
 ## Gaps
 - Whether retail holds the boot frame for 6 fields, and whether its fences 94, 465, 476, 1401 and 2316 run 3 fields,
   depends on how closely the port's instruction count stands for console time. No console oracle frames were compared,

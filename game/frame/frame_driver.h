@@ -16,7 +16,8 @@ public:
   void stepFrame(Core &core, std::uint32_t frame) override;
 
   // Replaces DisplayFrame's VSync(n): n is the cadence word 0x8004E0E0, extended to the next field boundary when the
-  // guest clock already ran past n (Timing::vsyncFields), so VBlanks and audio keep pace with that clock.
+  // guest clock already ran past n (Timing::vsyncFields), so audio keeps pace with that clock. Timing delivers the
+  // VBlanks.
   void deliverDisplayFields(Core &core, std::uint32_t requested);
 
 private:
