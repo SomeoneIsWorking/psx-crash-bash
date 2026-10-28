@@ -6,7 +6,7 @@
 // When the scope saves, the calls wait for the DrawOTag. `commit` then keeps those whose packets the guest
 // is about to draw: a packet another draw relinked or overwrote after its scope ended is not in the table,
 // and its call is not saved. Scopes, pending calls and face calls live in kept storage, so a steady stream
-// of draws allocates nothing.
+// of mesh draws allocates nothing; a leaf draw still builds its note.
 #pragma once
 
 #include "frame_record.h"
@@ -63,7 +63,7 @@ public:
   void noteLeaf(const LeafCall &call, std::uint32_t packet);
 
   // Saves each kept scope's state. An object that drew nothing the table still holds, or drew faces and
-  // leaves, or more than one mesh, saves nothing and stays as the guest drew it.
+  // leaves, or more than one mesh, saves nothing and stays as the guest drew it. Aborts inside an open scope.
   void commit(Core &core);
 
 private:
