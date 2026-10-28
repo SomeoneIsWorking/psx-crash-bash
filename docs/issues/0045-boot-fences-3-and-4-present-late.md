@@ -1,6 +1,6 @@
 # 0045 — boot fences 3 and 4 present late
 
-**Status:** superseded by the owned frame loop (2026-10-28) · **State:** S016
+**Status:** fixed against the port's guest clock (oracle not compared) · **State:** S016
 
 ## Observed
 40 s paced hidden runs from boot (ires 0, fps60 1, 3840x2160 sink, `PSXPORT_DEBUG=presentseq`,
@@ -32,18 +32,16 @@ Shown in the running product, against the port's own guest clock:
   4213 `2/2`, 287 `2/1`, 5 `3/1` (fences 94, 465, 476, 1401, 2316, frames whose guest work ran past 2 fields, which
   the first fix anchored off the grid as 2-field frames), 1 `6/1`.
 
-## Owned loop (2026-10-28)
-The VSync span below emulated the console's wait; the workspace rule now has the title own its loop. DisplayFrame
-`0x800272AC` is native, so `deliverDisplayFields` delivers the guest's own cadence word `0x8004E0E0` (DisplayFrame's
-argument at `0x800102CC`/`0x80010378`) and the boot frame at fence 4 is a 2-field frame like its neighbours. Its host
-work (the spanning calls above) is what can make that present late now, not its pacing plan.
-
-Shown unpaced from boot, 900 frames (`scratch/frame-loops/{before,after}-nopace`, `PSXPORT_DEBUG=presentseq,fielddigest`):
-before 268 `2/1`, 3 `3/1`, 1 `6/1` fences; after 272 `2/1`. Scene and process-state changes land on the same logic
-frames in both, and `PSXPORT_SHOT_AT=100,300,500,700,880` pictures are byte-identical
-(`scratch/frame-loops/{before,after}-shots`, SHA-1 `b8404739`, `c0a868d5`, `200f932a`, `b9c2cfc6`, `d01e63f2`).
+## Delivering only the requested fields (2026-10-28, reverted)
+A pass made `deliverDisplayFields` deliver the cadence word `0x8004E0E0` alone. The hold did not shrink: the pacer ends
+an interval at the guest's time, so fence 4 still presented about 5.9 fields after fence 3, but the guest got 2 VBlank
+callbacks and 2 SPU advances for it and every later field landed off the grid (`scratch/frame-loops/after-nopace`:
+1525 of 1528 digest fields off the grid; fence 4 ticks 3397241 to 6741393). Reverted: an owned driver still counts
+`Timing::vsyncFields(n)`, because the extension past n is the guest clock, not a VSync wait. Back on the grid
+(`scratch/frame-loops/revert-nopace`, 600 frames unpaced): 268 `2/1`, 3 `3/1` (fences 94, 465, 476), 1 `6/1` (fence 4),
+0 of 928 digest fields off the grid.
 
 ## Gaps
-- No console oracle frames were compared. Retail may hold the boot frame and the overrunning frames longer than 2
-  fields; the owned loop runs them at the guest's requested 2 by design.
-- Pacing of the boot frame on a quiet host is not judged in this pass (sampled load stayed above 4).
+- Whether retail holds the boot frame for 6 fields, and whether its fences 94, 465, 476, 1401 and 2316 run 3 fields,
+  depends on how closely the port's instruction count stands for console time. No console oracle frames were compared,
+  so "fixed" means fixed against the port's guest clock, not shown to match retail.
