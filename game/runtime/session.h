@@ -33,6 +33,8 @@ public:
   psx::present::StateProducerTable stateProducers;
   // The host memory a render builds each leaf in, kept so renders allocate none.
   psx::present::Kept<psx::present::HostMemory> leafMemory;
+  // What face saves and renders work in, kept so they allocate none.
+  psx::present::Kept<render::FaceScratch> faceScratch;
 };
 
 // The session of the Game `core` belongs to; aborts when it has none.

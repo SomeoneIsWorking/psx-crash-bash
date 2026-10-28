@@ -5,7 +5,8 @@
 // component body its inputs and the leaves it called.
 // When the scope saves, the calls wait for the DrawOTag. `commit` then keeps those whose packets the guest
 // is about to draw: a packet another draw relinked or overwrote after its scope ended is not in the table,
-// and its call is not saved.
+// and its call is not saved. Scopes, pending calls and face calls live in kept storage, so a steady stream
+// of draws allocates nothing.
 #pragma once
 
 #include "frame_record.h"
@@ -55,8 +56,10 @@ public:
     bool active_ = false;
   };
 
-  // No-ops with no scope open: a body called outside a producer has no object to save a state for.
-  void noteFaces(FaceCall call);
+  // The call a mesh body fills: noted under the open scope when `note` is set and a scope is open, else a
+  // scratch call that is not kept. Valid until the next call.
+  FaceCall &faceCall(bool note);
+  // A no-op with no scope open: a body called outside a producer has no object to save a state for.
   void noteLeaf(const LeafCall &call, std::uint32_t packet);
 
   // Saves each kept scope's state. An object that drew nothing the table still holds, or drew faces and
@@ -65,7 +68,7 @@ public:
 
 private:
   struct Calls {
-    std::vector<FaceCall> faces;
+    std::vector<std::size_t> faces; // indices in faceCalls_
     std::vector<UiNote> notes;
   };
   struct Pending {
@@ -73,10 +76,19 @@ private:
     Calls calls;
   };
 
-  // The note of each body being drawn, innermost last: its index in `open_.back().notes`.
+  Calls &current() {
+    return open_[depth_ - 1u];
+  }
+
+  // The note of each body being drawn, innermost last: its index in `current().notes`.
   std::vector<std::size_t> bodies_;
-  std::vector<Calls> open_;
-  std::vector<Pending> pending_;
+  std::vector<Calls> open_; // the first depth_ are open
+  std::size_t depth_ = 0;
+  std::vector<Pending> pending_; // the first pendingUsed_ wait for commit
+  std::size_t pendingUsed_ = 0;
+  std::vector<FaceCall> faceCalls_; // the first faceCallsUsed_ are noted
+  std::size_t faceCallsUsed_ = 0;
+  FaceCall unnoted_;
 };
 
 } // namespace crashbash::render

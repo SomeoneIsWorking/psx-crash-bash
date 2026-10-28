@@ -67,7 +67,9 @@ guest's DrawOTag, saves each marked scope. A call whose packet is no longer link
 (`ordering_table_slots.cpp:linkedSlot`) is dropped, so a packet another draw relinked or overwrote after its
 own scope ended, and a culled face's stale link into the other table, are not saved. A scope that ran one
 mesh body saves a face state; one that ran only leaves saves a leaf state; anything else saves nothing and
-stays as the guest drew it.
+stays as the guest drew it. The collector keeps its scopes, pending scopes and mesh calls across frames, and face
+saves and renders work in the session's `faceScratch`, so a steady stream of mesh draws allocates nothing; the
+leaf path still allocates per draw (psxport issue 0173).
 
 - Face state (`model_state.cpp`): the GTE control registers, the face list, the vertex words the guest
   animated into its scratch buffer, the depth bias and limit, the table and bucket base, and the saved

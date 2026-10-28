@@ -50,8 +50,8 @@ struct FaceInputs {
   std::int32_t zLimit = 0;
 };
 
-// The face list at `address`, ended by its 0xFF count.
-std::vector<std::uint8_t> readFaceList(Core &core, std::uint32_t address);
+// The face list at `address`, ended by its 0xFF count, into `list`.
+void readFaceList(Core &core, std::uint32_t address, std::vector<std::uint8_t> &list);
 // Vertex words the body reads for `list`.
 std::uint32_t faceVertexWords(std::span<const std::uint8_t> list);
 // Faces `list` names.
@@ -66,20 +66,18 @@ struct FaceTarget {
 };
 
 // Writes each visible face into the target's packet buffer and links it into its table slice as the guest
-// function does, and remembers which faces it linked.
+// function does, and appends each face it links to `linked`.
 class GuestFaceSink final : public FaceSink {
 public:
-  GuestFaceSink(Core &core, FaceTarget target) : core_(core), target_(target) {}
+  GuestFaceSink(Core &core, FaceTarget target, std::vector<FaceEmit> &linked)
+      : core_(core), target_(target), linked_(linked) {}
 
   void emit(const FaceEmit &face) override;
-  const std::vector<FaceEmit> &linked() const {
-    return linked_;
-  }
 
 private:
   Core &core_;
   FaceTarget target_;
-  std::vector<FaceEmit> linked_;
+  std::vector<FaceEmit> &linked_;
 };
 
 } // namespace crashbash::render
