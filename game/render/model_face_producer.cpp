@@ -23,15 +23,16 @@ void modelDraw(Core *core) {
 }
 
 void meshFaceEmit(Core *core) {
-  FaceCall call = readFaceCall(*core);
-  GuestFaceSink sink(*core, FaceTarget{call.packets, call.globals.otBase});
+  // Only FUN_80019A60 calls this; without its scope there is no object to name faces of.
+  const bool named = core->emission.isOpen();
+  FaceCall &call = session(*core).packetCollector.faceCall(named);
+  readFaceCall(*core, call);
+  GuestFaceSink sink(*core, FaceTarget{call.packets, call.globals.otBase}, call.linked);
   projectFaces(*core, FaceInputs{call.list, call.vertices, call.globals.zBias, call.globals.zLimit}, sink);
-  call.linked = sink.linked();
   // The body ends on the count that terminated the list, in both result registers.
   core->r[2] = kFaceListEnd;
   core->r[3] = kFaceListEnd;
-  // Only FUN_80019A60 calls this; without its scope there is no object to name faces of.
-  if (!core->emission.isOpen()) {
+  if (!named) {
     return;
   }
   const std::uint32_t faceList = core->r[6];
@@ -48,7 +49,6 @@ void meshFaceEmit(Core *core) {
     const auto element = core->emission.element(meshFaceElement(faceList, face));
     core->emission.bindPacket(call.packets + face * kFacePacketBytes);
   }
-  session(*core).packetCollector.noteFaces(std::move(call));
 }
 
 } // namespace

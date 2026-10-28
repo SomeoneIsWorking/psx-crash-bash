@@ -35,13 +35,13 @@ std::array<std::uint32_t, 3> facePointWords(FaceLayout layout) {
   return layout == FaceLayout::Textured ? kTexturedPoints : kShadedPoints;
 }
 
-std::vector<std::uint8_t> readFaceList(Core &core, std::uint32_t address) {
-  std::vector<std::uint8_t> list;
+void readFaceList(Core &core, std::uint32_t address, std::vector<std::uint8_t> &list) {
+  list.clear();
   for (std::uint32_t strip = address;; strip += 2u) {
     list.push_back(core.mem_r8(strip));
     list.push_back(core.mem_r8(strip + 1u));
     if (list.back() == kFaceListEnd) {
-      return list;
+      return;
     }
   }
 }
