@@ -2,6 +2,8 @@
 
 #include "core.h"
 
+#include <cstdlib>
+#include <lucent/log.h>
 #include <utility>
 
 namespace crashbash::render {
@@ -81,6 +83,11 @@ void PacketCollector::BodyScope::finish(ComponentBody body) {
 }
 
 void PacketCollector::commit(Core &core) {
+  // An open scope's calls index faceCalls_, so they cannot be released under it.
+  if (depth_ != 0) {
+    lucent::error("packet-collector", "commit ran inside an open producer scope");
+    std::abort();
+  }
   for (std::size_t index = 0; index < pendingUsed_; ++index) {
     const Calls &calls = pending_[index].calls;
     if (calls.faces.size() == 1u && calls.notes.empty()) {
@@ -90,10 +97,7 @@ void PacketCollector::commit(Core &core) {
     }
   }
   pendingUsed_ = 0;
-  // An open scope's face calls stay noted until it saves and commits.
-  if (depth_ == 0) {
-    faceCallsUsed_ = 0;
-  }
+  faceCallsUsed_ = 0;
 }
 
 } // namespace crashbash::render
