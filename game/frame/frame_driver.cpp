@@ -52,20 +52,8 @@ void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t requested) {
     std::abort();
   }
   deliveredFields_ = fields;
+  // Each field's VBlank reaches the root 0x8003ADD4 through the guest's own interrupt callback (Timing).
   for (std::uint32_t field = 0; field < fields; ++field) {
-    const std::uint32_t before = core.mem_r32(guest::kVblankCounter);
-    const R3000 interrupted = static_cast<const R3000 &>(core);
-    runtime::dispatchGuest(core, guest::kVblankRoot);
-    static_cast<R3000 &>(core) = interrupted;
-    const std::uint32_t after = core.mem_r32(guest::kVblankCounter);
-    if (after != before + 1u) {
-      lucent::error("crashbash-frame",
-                    "VBlank root 0x{:08X} advanced counter 0x{:08X} by {} instead of one field",
-                    guest::kVblankRoot,
-                    guest::kVblankCounter,
-                    after - before);
-      std::abort();
-    }
     // No Audio phase bracket: phases partition time, so the SPU advance counts as GameLogic and `audio` reads 0.
     game_.spu_audio.frame();
   }
