@@ -102,6 +102,7 @@ set(CRASHBASH_SEAM_SOURCES
   game/render/leaf_state.cpp
   game/render/packet_collector.cpp
   game/render/state_renders.cpp
+  game/render/texture_scroll_producer.cpp
 )
 
 add_library(crashbash_seam STATIC ${CRASHBASH_SEAM_SOURCES})

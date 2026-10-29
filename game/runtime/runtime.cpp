@@ -26,6 +26,7 @@
 #include "render/model_face_producer.h"
 #include "render/ordering_table_slots.h"
 #include "render/state_renders.h"
+#include "render/texture_scroll_producer.h"
 #include "render/ui_producer.h"
 #include "runtime/session.h"
 #include "title/guest.h"
@@ -108,6 +109,7 @@ void Runtime::registerOverrides(Game &game) {
   render::registerUiProducers(core);
   render::nameOrderingTables(core);
   render::registerStateRenders(core, session(core).stateProducers);
+  render::registerTextureScrollProducer(core, session(core).stateProducers);
 }
 
 std::unique_ptr<psx::game::TitleSessionState> Runtime::createSession(Game &game) {
