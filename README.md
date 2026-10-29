@@ -5,6 +5,20 @@ release. The title retains its cohesive native boot, device, input and producer 
 the guest's own GP0 output on psxport's record path. Every other guest path will execute through
 psxport's per-`Core` Lightrec runtime.
 
+## Screenshots
+
+![Polar Push at 16:9: four players on the ice floe under the aurora](docs/media/polar-push.png)
+![Crashball at 16:9: the arena with all four bumper cars](docs/media/crashball.png)
+![Crate Crush at 16:9: a TNT crate explodes in the jungle temple arena](docs/media/crate-crush.png)
+
+![Polar Push at 4:3 and at 16:9 side by side; the wider view shows the whole ice floe](docs/media/widescreen-comparison.png)
+
+The same frame at the original 4:3 and at 16:9: the widescreen picture is the game's own geometry, not a stretch.
+
+![Crashball at the original 30 fps and interpolated to 60 fps side by side](docs/media/crashball-interpolation.webp)
+
+The same three seconds of a Crashball match at the original 30 fps (each frame shown twice) and with 60 fps interpolation.
+
 The old offline translator integration, generated guest corpus, static dispatcher/registry, seed
 configuration, static-only verifiers, build tree, and static product binaries were deleted before
 dynarec implementation. They are not a bridge, fallback, or oracle.
