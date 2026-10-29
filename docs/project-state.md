@@ -176,7 +176,7 @@ and Crashball 5,902,090 of 5,904,051 keyed (before: 1,598,087 and 5,809,153), du
 recordcheck mismatched=0 on all presents at 4:3 with fps60 off. The Crashball panel sliding over
 f1240-f1254 sits at x=106, 104, 102 in real f1240, the in-between and real f1241 (issue 0036).
 
-Gap: none known on the flow replays; the unobserved UI paths are listed in issue 0036.
+Gap: the Polar Push aurora, a texture the guest scrolls by VRAM copy, moves only on real presents (issue 0047); the unobserved UI paths are listed in issue 0036.
 
 ### S007 — Independent diagnostics
 
