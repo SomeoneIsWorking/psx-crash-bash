@@ -21,6 +21,9 @@ the frame record with the keys → `FrameDriver::stepFrame` notes `FrameCut` and
   (quad) are producers like `0x80019A60` (object = the component's incarnation); the 2D leaves they reach
   (`0x8002992C`, `0x80029D28`, `0x8001A0D8`, via `0x800243A0`/`0x800248A0`) are overridden by
   `registerUiProducers`, whose `ui_producer.cpp:underName` names the element from the call site the leaf returns to.
+- **Scrolled textures**: `0x80028F28` (the Polar Push aurora) rotates a texture strip in VRAM with two copies at the
+  head of the last bucket; it is a producer (object = the scroller) and its render places both copies at the row
+  blended between frames, which the sky's texels show at scale (`texture_scroll_producer.h`).
 - **Real field vs in-between**: with `fps60` on, each logic frame presents the in-between then the record.
   Every producer below is a state producer and renders its objects from saved state. A cut, an incomplete record or a record
   with no keys is drawn as is.

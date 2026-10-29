@@ -51,6 +51,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 | 1 | psxport F-FPS60.1 | `game/runtime/runtime.cpp:Runtime::stateProducer` — answered from `Session::stateProducers` |
 | 2 | psxport F-FPS60.1 | `game/render/model_face_producer.cpp:registerModelFaceProducer` — model draw `0x80019A60`, face state in `model_state.cpp` |
 | 3 | psxport F-FPS60.1 | `game/render/ui_producer.cpp:registerUiProducers` — text, panel and quad components and BOOT's HUD and menu, leaf state in `leaf_state.cpp` |
+| 3 | psxport F-FPS60.1 | `game/render/texture_scroll_producer.cpp:registerTextureScrollProducer` — texture scroller `0x80028F28` (Polar Push aurora), its two keyed VRAM copies placed at the blended row |
 | 4 | psxport F-FPS60.1 | `game/render/component_incarnation.cpp:registerComponentIncarnationOwners` — a re-initialised component is a new object |
 | 5 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — process state, mode scene and menu screen changes |
 

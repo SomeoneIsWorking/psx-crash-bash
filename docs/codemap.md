@@ -31,6 +31,7 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `DevArena`, `DevPause` | `game/debug/dev_arena.*`, `dev_pause.*` | The `arena` and `pause` routes: armed by the debug menu, applied by the driver as pad presses |
 | guest facts | `game/title/guest.h` | Recovered guest addresses and layouts; facts only |
 | `registerModelFaceProducer` | `game/render/model_face_producer.*` | The `0x80019A60` producer and the mesh body `0x800193A8` override |
+| `registerTextureScrollProducer` | `game/render/texture_scroll_producer.*` | The `0x80028F28` texture scroller producer (two VRAM copies) and its render |
 | `projectFaces`, `GuestFaceSink` | `game/render/face_projection.*` | The mesh face body over `core.gte()`; faces written to the guest pool |
 | face state | `game/render/model_state.*` | Saves a mesh call; renders it at t through `HostFaceSink` |
 | `registerUiProducers`, `underName` | `game/render/ui_producer.*` | The component producers, the 2D leaf and body overrides, the call-site namer |

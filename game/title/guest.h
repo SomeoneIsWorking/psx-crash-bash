@@ -34,6 +34,9 @@ inline constexpr std::uint32_t kOrderingTableB = 0x8005F79Cu;
 inline constexpr std::uint32_t kOrderingTableBuckets = 0x1000u;
 inline constexpr std::uint32_t kOrderingTablePoolCursor = 0x4008u;
 
+// FUN_80028F28(scroller, owner): scrolls a texture strip in VRAM with two DR_MOVEs (the Polar Push aurora).
+inline constexpr std::uint32_t kTextureScroll = 0x80028F28u;
+
 // What the packet bodies (the mesh face emitter and the 2D leaves) read: the display environment pointer
 // (its s16 at +4 is the width the 640-column layout scales to), the screen fade, the table slice base,
 // the depth bias and limit, and the 2D origin.
