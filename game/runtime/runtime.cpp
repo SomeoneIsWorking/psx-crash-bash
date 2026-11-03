@@ -20,7 +20,6 @@
 #include "gameplay/polar_push_contact.h"
 #include "guest_packet_pool_windows.h"
 #include "image_identity.h"
-#include "memcard.h"
 #include "psx_exe_image.h"
 #include "render/component_incarnation.h"
 #include "render/model_face_producer.h"
@@ -90,8 +89,6 @@ void Runtime::startProgram(Core &core) {
 void Runtime::registerOverrides(Game &game) {
   libcd_.bind(game);
   vsync_.bind(game);
-  // libmcrd walks the BIOS device table itself; its completion wait never ends without the device install.
-  game.memcard.install();
   Core &core = game.core;
   registerCdFileReadOverride(core);
   registerLoadPumpDrainOverride(core);
