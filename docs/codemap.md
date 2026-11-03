@@ -27,8 +27,8 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `RecordingPhase` | `game/input/recording_phase.*` | The replay key from the outer and menu scene records |
 | `TouchControls` | `game/input/touch_controls.*` | The touch pad layout and hit tests |
 | `registerPolarPushContactOverride`, `ContactCensus` | `game/gameplay/polar_push_contact.*` | DAT22510 Polar Push contact traversal, motion and effects |
-| `debug::DebugMenu` | `game/debug/debug_menu.*` | The title debug menu (psxport `TitleDebugMenu`): `arenas`, `arena`, `pause` verbs |
-| `DevArena`, `DevPause` | `game/debug/dev_arena.*`, `dev_pause.*` | The `arena` and `pause` routes: armed by the debug menu, applied by the driver as pad presses |
+| `debug::DebugMenu` | `game/debug/debug_menu.*` | The title debug menu (psxport `TitleDebugMenu`): `arenas`, `pause` verbs and the warp catalogue (arena, mode) |
+| `DevArena`, `DevPause` | `game/debug/dev_arena.*`, `dev_pause.*` | The arena arrival and `pause` routes: armed by the debug menu, applied by the driver as pad presses |
 | guest facts | `game/title/guest.h` | Recovered guest addresses and layouts; facts only |
 | `registerModelFaceProducer` | `game/render/model_face_producer.*` | The `0x80019A60` producer and the mesh body `0x800193A8` override |
 | `registerTextureScrollProducer` | `game/render/texture_scroll_producer.*` | The `0x80028F28` texture scroller producer (two VRAM copies) and its render |

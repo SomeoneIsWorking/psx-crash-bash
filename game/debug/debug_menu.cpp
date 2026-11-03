@@ -6,6 +6,10 @@
 
 #include "core.h"
 
+#include <lucent/log.h>
+
+#include <vector>
+
 namespace crashbash::debug {
 
 DebugMenu::DebugMenu() {
@@ -22,16 +26,25 @@ DebugMenu::DebugMenu() {
           },
       .inMenu = false,
   });
-  verb({
-      .name = "arena",
-      .summary = "Enter that arena through the menu",
-      .params = {DebugParam::integer("arena", 0, DevArena::kLevelTableBound - 1),
-                 DebugParam::word("mode", DebugNames::of(DevArena::kModeNames)).orAbsent()},
-      .run =
-          [](const DebugCall &call) {
-            const std::optional<std::uint32_t> mode =
-                call.values.has(1) ? std::optional<std::uint32_t>(call.values.u32(1)) : std::nullopt;
-            call.reply = session(call.core).devArena.arm(call.core, call.values.u32(0), mode);
+  warp({
+      .levels = {"arena", "mode"},
+      .places =
+          [](Core &) {
+            std::vector<psx::game::WarpPlace> arenas;
+            for (std::uint32_t arena = 0; arena < DevArena::kLevelTableBound; ++arena) {
+              psx::game::WarpPlace place{.name = lucent::format("arena {}", arena)};
+              for (std::uint32_t mode = 0; mode < DevArena::kModeNames.size(); ++mode) {
+                place.places.push_back({
+                    .name = DevArena::kModeNames[mode],
+                    .arrive =
+                        [arena, mode](Core &core) {
+                          return session(core).devArena.arm(core, arena, mode);
+                        },
+                });
+              }
+              arenas.push_back(std::move(place));
+            }
+            return arenas;
           },
   });
   section("Pause Page");
