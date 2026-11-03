@@ -9,7 +9,7 @@ class Core;
 
 namespace crashbash::debug {
 
-// The debug menu's `arenas` and `arena <id> [battle|tournament]`. Arming only records a request;
+// The `arenas` listing and the warp catalogue's arena/mode arrival. Arming only records a request;
 // the frame driver advances it at frame boundaries through the guest's own menu flow. SELECT BATTLE TYPE's
 // update (`FUN_800b7458`) reads cursor `DAT_8005a64a/b` to index the arena table at `0x800BA324`.
 class DevArena {
