@@ -70,3 +70,5 @@ audio, timing, devices, and frame-time evidence, followed by broader retail-mode
 
 See `docs/project-goals.md`, `docs/project-state.md`, `docs/codemap.md`, and
 `docs/re-frontier.md` for the canonical goal, state, ownership, and evidence boundaries.
+
+Built with AI assistance (Claude and other LLMs).
