@@ -71,6 +71,8 @@ set(CRASHBASH_SEAM_SOURCES
   game/boot/boot_prefix.cpp
   game/frame/frame_driver.cpp
   game/frame/frame_cut.cpp
+  game/frame/draw_section.cpp
+  game/frame/draw_replay.cpp
   game/input/recording_phase.cpp
   game/debug/debug_menu.cpp
   game/debug/dev_arena.cpp
@@ -85,24 +87,10 @@ set(CRASHBASH_SEAM_SOURCES
   game/execution/image_identity_state.cpp
   game/gameplay/polar_push_contact.cpp
   game/input/touch_controls.cpp
-  game/render/model_face_producer.cpp
   game/render/component_incarnation.cpp
-  game/render/ui_producer.cpp
-  game/render/leaf_port.cpp
-  game/render/host_leaf.cpp
-  game/render/text_bodies.cpp
-  game/render/panel_bodies.cpp
-  game/render/component_body.cpp
+  game/render/component_motion.cpp
+  game/render/context_motion.cpp
   game/render/ordering_table_slots.cpp
-  game/render/draw_globals.cpp
-  game/render/packet_decode.cpp
-  game/render/face_projection.cpp
-  game/render/leaf_packets.cpp
-  game/render/model_state.cpp
-  game/render/leaf_state.cpp
-  game/render/packet_collector.cpp
-  game/render/state_renders.cpp
-  game/render/texture_scroll_producer.cpp
 )
 
 add_library(crashbash_seam STATIC ${CRASHBASH_SEAM_SOURCES})

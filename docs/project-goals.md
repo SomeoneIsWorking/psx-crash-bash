@@ -57,21 +57,21 @@ Success conditions:
   visible defect rather than defining the pass mark.
 
 Constraints and non-goals: no host re-layout of guest 2D; a HUD element moves only when a title
-producer anchors it. Every widening is gated on the configured aspect.
+owner anchors it. Every widening is gated on the configured aspect.
 
 Contributing state items: S004, S005, S007, S016.
 
 ## G003 — Smooth 60 Hz presentation without faster simulation
 
-Crash Bash should present camera and world motion at 60 Hz by blending keyed primitives between
-consecutive frame records while leaving the simulation cadence and results unchanged.
+Crash Bash should present camera and world motion at 60 Hz by replaying its own draw with the camera
+and object inputs blended between consecutive logic ticks, leaving the simulation cadence and results unchanged.
 
 Success conditions:
 
 - Disabling interpolation presents exactly the 30 Hz record picture.
 - An in-between lies between its neighbouring real frames and never mutates simulation or guest RAM.
-- Primitives pair by producer key only (producer, guest object, named element); unkeyed primitives and
-  cuts are drawn as the current frame.
+- Inputs pair by guest identity only (record address, incarnation, model); unpaired records and cuts
+  are drawn as the current frame.
 
 Constraints and non-goals: no pairing by draw order, count, position or colour; cuts come from the
 guest's own scene state, never a distance threshold.

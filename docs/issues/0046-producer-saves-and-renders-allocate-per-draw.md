@@ -1,6 +1,6 @@
 # 0046 — producer saves and renders allocate per draw
 
-**Status:** open: the mesh path is fixed, the 2D leaf path still allocates
+**Status:** closed 2026-11-11: the producers, their saves and their renders are deleted; in-betweens are the replayed draw section (`docs/presentation.md`)
 
 ## Observed
 psxport issue 0194's per-fence count from boot (unpaced, ires 0, fps60 1, sink 3840x2160, `LD_PRELOAD` malloc counter,

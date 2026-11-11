@@ -9,7 +9,6 @@
 #include "disc/cd_file_read.h"
 #include "disc/cd_license_startup.h"
 #include "disc/cd_startup.h"
-#include "disc/loading_card_skip.h"
 #include "execution/boot_image_identity.h"
 #include "execution/guest_execution.h"
 #include "execution/image_content_identity.h"
@@ -22,11 +21,9 @@
 #include "image_identity.h"
 #include "psx_exe_image.h"
 #include "render/component_incarnation.h"
-#include "render/model_face_producer.h"
+#include "render/component_motion.h"
+#include "render/context_motion.h"
 #include "render/ordering_table_slots.h"
-#include "render/state_renders.h"
-#include "render/texture_scroll_producer.h"
-#include "render/ui_producer.h"
 #include "runtime/session.h"
 #include "title/guest.h"
 
@@ -99,14 +96,11 @@ void Runtime::registerOverrides(Game &game) {
   registerDisplayFrameOverride(core);
   registerBootObjectCallbackOverrides(core);
   registerBootLogoSkipOverride(core);
-  registerLoadingCardSkipOverride(core);
   polar::registerPolarPushContactOverride(core);
-  render::registerModelFaceProducer(core);
+  render::registerDrawnComponentNotes(core);
+  render::registerSelectedContextNotes(core);
   render::registerComponentIncarnationOwners(core);
-  render::registerUiProducers(core);
   render::nameOrderingTables(core);
-  render::registerStateRenders(core, session(core).stateProducers);
-  render::registerTextureScrollProducer(core, session(core).stateProducers);
 }
 
 std::unique_ptr<psx::game::TitleSessionState> Runtime::createSession(Game &game) {
@@ -121,8 +115,8 @@ std::optional<psx::gpu::PacketPoolExtent> Runtime::packetPool(Core &core) const 
   return kPacketPool.extent(core);
 }
 
-const psx::present::StateProducer *Runtime::stateProducer(Core &core, std::uint32_t producer) const {
-  return session(core).stateProducers.find(producer);
+psx::present::ReplayFrame *Runtime::replayFrame(Core &core) {
+  return &session(core).drawReplay.frame();
 }
 
 bool Runtime::sealedFrameIsCut(Core &core) const {

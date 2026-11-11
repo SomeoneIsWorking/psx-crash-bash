@@ -20,8 +20,8 @@ inline constexpr GuestAddressRange kResidentCodeRange{identity::kTextAddress & 0
 static_assert(kResidentCodeRange.begin < kResidentCodeRange.end);
 static_assert(kResidentCodeRange.end <= (identity::kTextAddress & 0x1fffffffu) + identity::kTextBytes);
 
-// Replays crt0 and the finite boot prefix, then FrameDriver owns each process iteration. Records
-// interpolate through the model, text, panel and quad producers.
+// Replays crt0 and the finite boot prefix, then FrameDriver owns each process iteration. In-betweens replay
+// the process present's draw section (DrawReplay).
 class Runtime final : public psx::game::GameRuntime {
 public:
   Runtime();
@@ -38,7 +38,7 @@ public:
   bool interpolates() const override {
     return true;
   }
-  const psx::present::StateProducer *stateProducer(Core &core, std::uint32_t producer) const override;
+  psx::present::ReplayFrame *replayFrame(Core &core) override;
   bool sealedFrameIsCut(Core &core) const override;
   const psx::present::GuestWidescreenProjection *guestWidescreenProjection() const override;
 

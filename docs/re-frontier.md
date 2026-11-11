@@ -101,11 +101,11 @@ remain diagnostics for finding causes, not completion conditions.
 ### runtime.gameplay — Prove representative interactive hybrid gameplay
 
 - status: todo
-- deps: runtime.first-frontier, flow.pad-input, graphics.producers
+- deps: runtime.first-frontier, flow.pad-input, graphics.replay
 - evidence: Retained acceptance inputs reach live Crashball (3,740 frames), Battle Crate Crush
   (15,401), Tournament Crate Crush (7,910), and Polar Push (17,682), each with observable player
   movement and complete native presentation.
-- where: `replays/flow/`, producers under `game/render/`, independent emulator diagnostics
+- where: `replays/flow/`, independent emulator diagnostics
 - gap: Re-run the bounded scenarios on the native/dynarec gameplay product with nonzero Lightrec
   execution, correct timing/interrupt/device state, rendering, audio, and declared frame-time evidence
   on each released host architecture.
@@ -137,7 +137,7 @@ remain diagnostics for finding causes, not completion conditions.
 - notes: START is not an alternate acceptance route. `kAppModeVtable` (`0x8004E0DC`) is NOT the mode
   selector — the scene record at `0x8009F658` is.
 
-### graphics.producers — Key the guest's model packets by object and face
+### graphics.replay — Replay the draw section with blended inputs
 
 - status: re-verified
 - deps: runtime.images
@@ -147,22 +147,22 @@ remain diagnostics for finding causes, not completion conditions.
   from `0x80019094` (free list at `model + parity * 0x28 + 4 + 0xC`, popped in call order) and calls
   `0x800193A8(buffer, vertices, faceList)`, which writes face i at `buffer + i * 40` over
   `{flags, count}` strips ended by count 0xFF and links visible faces into the OT slice at
-  `0x800569D8`. 0x3000 codes draw one flat sprite through `0x80029D28`. Producers keyed 99.5%+ of
-  live-match primitives with 0 duplicate keys (S006). A render component starts a new incarnation
+  `0x800569D8`. 0x3000 codes draw one flat sprite through `0x80029D28`. Every model draw runs in the
+  root scene present under `0x80010278`; at t = 1 its replay equals the real chain (S006). A render component starts a new incarnation
   whenever the render template `0x8005A830` is copied into it; the complete copier set (every image
   scanned for `addiu …, 0xA830` and calls to the copiers) is `0x80018F3C`, `0x8001D3B0`, `0x8001D48C`,
   `0x8001D6B4`, `0x8001E0A8`, `0x80021A1C`, `0x80021798`, `0x8002128C` and BOOT's `0x8007EB68`,
   `0x8009440C` (native: one incarnation per scratch entry). The briefing page builder `0x80095BEC` re-fills layer components at
   `0x800A13F4 + layer * 0x1500` through `0x8001D3B0`, then `0x800952F8` sets each from the page record.
-- where: `game/render/model_face_producer.{h,cpp}`
-- gap: none for models. Large steps of `0x800A28F4`'s off-screen faces are the guest's own motion
-  (issue 0038).
+- where: `game/frame/draw_section.*`, `game/render/component_motion.*`, `game/render/context_motion.*`
+- gap: the hub portal present reads a DMA register (issue 0048); texture scrolls are linked in the update
+  (issue 0047); UI components are not sampled (issue 0049).
 - notes: The record path makes the guest's GP0 output the picture; nothing here reconstructs it.
 
-### graphics.ui-producers — Key the 2D UI by the element that draws it
+### graphics.ui-draws — The 2D UI's draw paths
 
 - status: re-verified
-- deps: graphics.producers
+- deps: graphics.replay
 - evidence: UI render components draw through their +0x54 callbacks with the component in a0: text
   `0x8001C448` → `0x8001A82C` → `0x800243A0(x, y, string, ...)` when component flag 0x10000000 is set
   (string at component+0x6C); panel `0x8001C690` → `0x8001A6D4(component+0x6C)`, body through
@@ -172,11 +172,9 @@ remain diagnostics for finding causes, not completion conditions.
   draws three digits, hundreds first. BOOT `0x800798A4` draws HUD icons from 8-byte records in s0
   (`0x800996E0`, `0x8009AD54`, four each) and per-player digits from s4 = `0x8009AD74` + 8 * player
   (units first); BOOT `0x800809A0(items, y)` walks 24-byte item records in s4. Every string address
-  `0x800243A0` drew over both flow replays held one text. Producers keyed 99.97% of both replays with 0
-  duplicate keys (issue 0036).
-- where: `game/render/ui_producer.{h,cpp}`
-- gap: BOOT's direct `0x8001A6D4` calls (`0x80082608`, `0x8008267C`) and the projected text path
-  `0x800246D0` are unkeyed and unobserved in the replays.
+  `0x800243A0` drew over both flow replays held one text.
+- where: the draw section; no title owner
+- gap: which fields of a UI component or its +0x6C record move it, so the replay can blend them (issue 0049).
 
 ### presentation.cuts — Scene identity for cuts
 
@@ -186,5 +184,5 @@ remain diagnostics for finding causes, not completion conditions.
   scene record `0x8009F8A4` each change exactly at a scene enter, which places camera and objects
   afresh; `FrameCut` declares those frames cuts.
 - where: `game/frame/frame_cut.{h,cpp}`
-- gap: none for object reuse; a re-initialised render component keys as a new object
-  (`graphics.producers`, issue 0037).
+- gap: none for object reuse; a re-initialised render component pairs with nothing
+  (`graphics.replay`, issue 0037).

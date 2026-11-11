@@ -1,9 +1,9 @@
-// game/render/component_incarnation.h — which life of a render component an object key names.
+// game/render/component_incarnation.h — which life of a render component a sample holds.
 //
 // The guest pools and rebuilds render components in place: a page flip re-initialises a UI layer's
 // components, an effect respawns into a freed slot. Each copy of the render template 0x8005A830 into a
-// component starts a new incarnation; the copiers are overridden here and count it, so the producer's
-// object key changes exactly when the guest re-initialises the component and never otherwise.
+// component starts a new incarnation; the copiers are overridden here and count it, so a component's key
+// changes exactly when the guest re-initialises it and never otherwise.
 #pragma once
 
 #include <cstdint>
@@ -25,8 +25,6 @@ class ComponentIncarnations {
 public:
   // The guest copied the render template into `component`.
   void begin(std::uint32_t component);
-  // A scratch component the guest refills for each entry it draws: its key names the entry.
-  void refill(std::uint32_t component, std::uint32_t entry);
   // The object key for the component's current incarnation.
   std::uint32_t object(std::uint32_t component) const;
 

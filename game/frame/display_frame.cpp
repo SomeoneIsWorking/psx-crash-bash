@@ -7,8 +7,6 @@
 #include "game.h"
 #include "guest_abi.h"
 #include "render/ordering_table_slots.h"
-#include "render/packet_collector.h"
-#include "runtime/session.h"
 #include "title/guest.h"
 
 #include <cstdint>
@@ -196,7 +194,6 @@ void displayFrameOwned(Core *core) {
     core->game->frameDriverAs<FrameDriver>().deliverDisplayFields(*core, fields);
 
     measuredGuestCall(*core, 0x8002F598u, 0x80027398u, 2u, environment.address());
-    session(*core).packetCollector.commit(*core);
     measuredGuestCall(*core, 0x8002F35Cu, 0x800273A8u, 4u, orderingTable + kOrderingTableDrawOffset);
     const std::uint32_t nextOrderingTable =
         orderingTable == guest::kOrderingTableA ? guest::kOrderingTableB : guest::kOrderingTableA;

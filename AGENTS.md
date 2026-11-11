@@ -12,15 +12,14 @@ is no framework pin.
 
 ## Overrides
 
-`crashbash_runtime_test` checks every native override installation by address. Override and
-translated-block identity include the loaded image generation because several modules reuse the
+Override and translated-block identity include the loaded image generation because several modules reuse the
 same guest address range.
 
 ## Presentation
 
 The picture is the guest's GP0 output on psxport's record path (`external/psxport/docs/presentation.md`).
-60 fps comes from producers: native overrides that key the guest's packets by the guest object drawing
-them, found by RE, never by draw order or count. Cuts come from the guest's scene state. Widescreen is
+60 fps comes from replaying the game's own draw section with its camera and object inputs blended
+(`docs/presentation.md`). Cuts come from the guest's scene state. Widescreen is
 the record canvas; guest 2D is not re-laid out.
 
 The completion bar is representative gameplay that works and looks correct. Frame comparison, an

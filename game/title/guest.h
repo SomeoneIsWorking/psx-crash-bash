@@ -34,25 +34,12 @@ inline constexpr std::uint32_t kOrderingTableB = 0x8005F79Cu;
 inline constexpr std::uint32_t kOrderingTableBuckets = 0x1000u;
 inline constexpr std::uint32_t kOrderingTablePoolCursor = 0x4008u;
 
-// FUN_80028F28(scroller, owner): scrolls a texture strip in VRAM with two DR_MOVEs (the Polar Push aurora).
-inline constexpr std::uint32_t kTextureScroll = 0x80028F28u;
-
-// What the packet bodies (the mesh face emitter and the 2D leaves) read: the display environment pointer
-// (its s16 at +4 is the width the 640-column layout scales to), the screen fade, the table slice base,
-// the depth bias and limit, and the 2D origin.
-inline constexpr std::uint32_t kDrawEnvironment = 0x8005B698u;
-inline constexpr std::uint32_t kEnvironmentScaleOffset = 4u;
-inline constexpr std::uint32_t kScreenFade = 0x800569ACu;
+// The ordering-table bucket the current draw slice links from.
 inline constexpr std::uint32_t kDrawOtBase = 0x800569D8u;
-inline constexpr std::uint32_t kDrawZBias = 0x800569DCu;
-inline constexpr std::uint32_t kDrawZLimit = 0x800569DEu;
-inline constexpr std::uint32_t kDrawOriginX = 0x800569C0u;
-inline constexpr std::uint32_t kDrawOriginY = 0x800569C4u;
 
-// Model draw: FUN_80019A60(frame code, model data, flags, object), reached from the standard
-// (0x80019F1C) and alternate (0x8001DD50) object draw callbacks; FUN_800193A8 emits a mesh's faces.
+// Model draw: FUN_80019A60(frame code, model data, flags, component), reached from the standard
+// (0x80019F1C) and alternate (0x8001DD50) object draw callbacks.
 inline constexpr std::uint32_t kModelDraw = 0x80019A60u;
-inline constexpr std::uint32_t kMeshFaceEmit = 0x800193A8u;
 
 // A render component (0x80019A60's a3) is 0xA8 bytes, chained through +0x5C. It begins a new life
 // when one of these copies the template 0x8005A830 into it; they are the template's only copiers.
@@ -80,73 +67,9 @@ inline constexpr std::uint32_t kAnimationNodeCreateType5 = 0x8002128Cu;
 // component 0x800A0C74 for each entry it draws.
 inline constexpr std::uint32_t kBootStaticComponentInit = 0x8007EB68u;
 inline constexpr std::uint32_t kBootStaticComponent = 0x8009AD94u;
-inline constexpr std::uint32_t kBootScratchComponentDraw = 0x8009440Cu;
 inline constexpr std::uint32_t kBootScratchComponent = 0x800A0C74u;
-// 0x8009440C's entries: {u16 mesh code, u32 model row, u32 component +0x6C} records, count at 0x800A0C70.
-inline constexpr std::uint32_t kBootScratchEntries = 0x800A0C10u;
-inline constexpr std::uint32_t kBootScratchEntryCount = 0x800A0C70u;
-inline constexpr std::uint32_t kBootScratchEntryBytes = 12u;
-// 20-byte model rows: scaled x, y, z words, then the halfword stored at component +0x68.
-inline constexpr std::uint32_t kBootModelRows = 0x800A02D8u;
-inline constexpr std::uint32_t kBootModelRowBytes = 20u;
-inline constexpr std::uint32_t kBootModelScale = 0x8004E0D8u;
-// The render template 0x8005A830 is 0xA8 bytes.
-inline constexpr std::uint32_t kRenderTemplate = 0x8005A830u;
-inline constexpr std::uint32_t kRenderTemplateBytes = 0xA8u;
-// The current draw context; +0x18 is its projection distance H, +0x74 its object-draw argument.
-inline constexpr std::uint32_t kDrawContextPointer = 0x800569E0u;
-inline constexpr std::uint32_t kObjectDraw = 0x80019F1Cu;
-
-// UI component draw callbacks (component+0x54), each called with the component in a0: text (string at
-// +0x6C through 0x8001A82C), panel (body and border quads through 0x8001A6D4), and screen quad.
-inline constexpr std::uint32_t kTextComponentDraw = 0x8001C448u;
-inline constexpr std::uint32_t kPanelComponentDraw = 0x8001C690u;
-inline constexpr std::uint32_t kQuadComponentDraw = 0x8001C7FCu;
-// 2D leaves: textured quad (image, packed xy, OT index, 4 colours), sprite, and the shaded quad.
-inline constexpr std::uint32_t kImageQuad = 0x8002992Cu;
-inline constexpr std::uint32_t kImageSprite = 0x80029D28u;
-inline constexpr std::uint32_t kShadedQuad = 0x8001A0D8u;
-// FUN_800243A0(x, y, string, colour, colour2, tint) draws a string; FUN_800248A0(x, y, colour, colour2, set)
-// draws a set of three digits, hundreds first. Both place their glyphs through the 2D leaves.
-inline constexpr std::uint32_t kStringDraw = 0x800243A0u;
-inline constexpr std::uint32_t kNumberDraw = 0x800248A0u;
-// Glyph tables of the font at 0x8005B2B4: advance (s8) and flags (u8) by 256 bytes, texture index (s16) by 512.
-inline constexpr std::uint32_t kFontIndex = 0x8005B2B4u;
-inline constexpr std::uint32_t kFontAdvance = 0x8005AEB4u;
-inline constexpr std::uint32_t kFontFlags = 0x8005B0B4u;
-inline constexpr std::uint32_t kFontTexture = 0x8005AAB4u;
-// The texture records: 0x38 bytes each from the table at +0x18 of the record the pointer at 0x8005B63C names;
-// the digit draw reads it at 0x8005308C directly.
-inline constexpr std::uint32_t kTextureTablePointer = 0x8005B63Cu;
-inline constexpr std::uint32_t kTextureTableOffset = 0x18u;
-inline constexpr std::uint32_t kDigitTextureTable = 0x8005308Cu;
-inline constexpr std::uint32_t kTextureRecordBytes = 0x38u;
-// Three s16 texture indices (hundreds, tens, units) per digit set.
-inline constexpr std::uint32_t kDigitSets = 0x8005A5C0u;
-inline constexpr std::uint32_t kDigitSetBytes = 6u;
-// The tint FUN_80024214 applies: the frame counter indexes a table of s16 pairs, the second the scale.
-inline constexpr std::uint32_t kTintCounter = 0x8005B690u;
-inline constexpr std::uint32_t kTintTable = 0x80068BD4u;
-// 0x8001A6D4(record, attributes) draws a panel's body and 0x8001A43C(edge, colour, attributes, widths) its border.
-inline constexpr std::uint32_t kPanelDraw = 0x8001A6D4u;
-inline constexpr std::uint32_t kBorderDraw = 0x8001A43Cu;
-// The quad component's leaf call returns here.
-inline constexpr std::uint32_t kQuadComponentReturn = 0x8001C960u;
-// BOOT HUD 0x800798A4: icon loops over 8-byte records in s0 (0x800996E0 and 0x8009AD54, four each), and
-// per-player digits from the player's record in s4 (0x8009AD74 + 8 * player), units drawn first.
-inline constexpr std::uint32_t kBootHudDraw = 0x800798A4u;
-inline constexpr std::uint32_t kBootHudIconRegister = 16u;
-inline constexpr std::uint32_t kBootHudDigitRegister = 20u;
-inline constexpr std::uint32_t kBootHudIconReturns[] = {0x800799FCu, 0x80079B58u, 0x80079C5Cu};
-inline constexpr std::uint32_t kBootHudThreeDigitReturns[] = {0x80079DF8u, 0x80079E6Cu, 0x80079EE0u};
-inline constexpr std::uint32_t kBootHudTwoDigitReturns[] = {0x80079F9Cu, 0x8007A010u};
-inline constexpr std::uint32_t kBootHudOneDigitReturn = 0x8007A0C8u;
-// BOOT menu page 0x800809A0(items, y): walks 24-byte item records in s4 and draws each item's string or
-// number from it.
-inline constexpr std::uint32_t kBootMenuPageDraw = 0x800809A0u;
-inline constexpr std::uint32_t kBootMenuItemRegister = 20u;
-inline constexpr std::uint32_t kBootMenuStringReturns[] = {0x80080AC0u, 0x80080F30u};
-inline constexpr std::uint32_t kBootMenuNumberReturn = 0x80080BC0u;
+// FUN_8001ACC0(component): the matrix 0x80056A44 a root component's children draw by (entity draws, animation trees).
+inline constexpr std::uint32_t kRootTransform = 0x8001ACC0u;
 
 // Load queue pacing pump: one queue step per call. Retail pending counter 0x80012FFC is zero exactly
 // when the three words below are zero; the swap path 0x8001E610 loops the pump while it is nonzero.
@@ -195,9 +118,10 @@ inline constexpr std::uint32_t kPauseOpenBit = 0x1u;
 // menu screen struct (SELECT GAME TYPE is 0x800B8E28).
 inline constexpr std::uint32_t kMenuSceneTransition = 0x8009F8A4u;
 
-// LOADING card draw; BOOT's handoff presents FUN_8009421C (record 0x8009F998) and FUN_8009414C
-// (record 0x8009FA00) are its only callers while the handoff scene 0x800A00DC is current.
-inline constexpr std::uint32_t kLoadingCardDraw = 0x80018B08u;
+// FUN_80018B08(viewport, context): makes `context` the current draw context (0x800569E0), derives its view
+// (FUN_80014540) and links the viewport's draw environment. BOOT's handoff presents FUN_8009421C (record 0x8009F998)
+// and FUN_8009414C (record 0x8009FA00) draw the LOADING card through it.
+inline constexpr std::uint32_t kSelectDrawContext = 0x80018B08u;
 
 // Arena read by FUN_800793E8; MENU fills it from the SELECT BATTLE TYPE cursor (FUN_800b7ef4). The
 // dispatcher FUN_8007F314 needs the scene machine's prepared frame, so $a1 is not the arena index;

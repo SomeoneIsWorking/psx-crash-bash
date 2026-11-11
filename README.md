@@ -1,7 +1,7 @@
 # Crash Bash
 
 Crash Bash is being migrated to one native/Lightrec hybrid over the authenticated USA PlayStation
-release. The title retains its cohesive native boot, device, input and producer owners; the picture is
+release. The title retains its cohesive native boot, device, input and render owners; the picture is
 the guest's own GP0 output on psxport's record path. Every other guest path will execute through
 psxport's per-`Core` Lightrec runtime.
 
@@ -24,7 +24,7 @@ configuration, static-only verifiers, build tree, and static product binaries we
 dynarec implementation. They are not a bridge, fallback, or oracle.
 
 The native title adapter authenticates and loads the resident executable, installs the 17
-image-qualified native owners, and selects the record path with keyed 60 fps in-betweens. Its 5
+image-qualified native owners, and selects the record path with replayed 60 fps in-betweens. Its 5
 original-body calls enter psxport's generation-aware dispatcher and scoped original-call boundary.
 
 `crashbash_port` is psxport's framework `main` over a one-title catalog: `psx::host::ProductHost`

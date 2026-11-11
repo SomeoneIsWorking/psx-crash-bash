@@ -4,8 +4,8 @@ class Core;
 
 namespace crashbash {
 
-// Retires the LOADING card draw `FUN_80018B08` at the two BOOT.BIN handoff present call sites; other
-// callers (the menu panels) run the guest body.
-void registerLoadingCardSkipOverride(Core &core);
+// Whether this call of the draw-context select `FUN_80018B08` is the LOADING card's, from one of the two BOOT.BIN
+// handoff present call sites; it is retired there, and other callers (the menu panels) run the guest body.
+[[nodiscard]] bool isLoadingCardDraw(const Core &core);
 
 } // namespace crashbash

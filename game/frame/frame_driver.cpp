@@ -60,6 +60,7 @@ void FrameDriver::deliverDisplayFields(Core &core, std::uint32_t requested) {
 }
 
 void FrameDriver::finishUpdateSlice(Core &core) {
+  session(core).drawReplay.beforePresent(core, presentFn_);
   measuredGuestCall(core, presentFn_, kPresentReturnPc, 4u);
   psx::cpu::accountGuestInstructions(core, 4u);
 }
@@ -119,6 +120,8 @@ void FrameDriver::stepFrame(Core &core, std::uint32_t frame) {
     measuredGuestCallSetup(core, MeasuredCallSite{kUpdateReturnPc, 4u});
     runtime::runGuestCallToReturn(core, update, kUpdateReturnPc, "Crash Bash process update", std::nullopt);
     finishUpdateSlice(core);
+  } else {
+    title.drawReplay.forget();
   }
 
   reportProgress(core, frame);

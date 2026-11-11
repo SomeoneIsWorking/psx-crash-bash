@@ -12,7 +12,7 @@ User-visible deltas from that baseline, as the product stands:
 
 - **Picture**: the guest's own GP0 output, rasterized from psxport's frame record at the internal
   resolution; at 1x 4:3 it equals the GPU device's picture.
-- **60 fps**: one keyed in-between per logic frame (`fps60`); the 30 Hz picture with it off.
+- **60 fps**: one replayed in-between per logic frame (`fps60`); the 30 Hz picture with it off.
 - **Widescreen**: the record canvas widens the display (512 → 684 at 16:9) and the guest's own
   geometry fills the margins; the HUD stays at its 4:3 position (issue 0035).
 - **Loading**: load waits and the LOADING card removed (S020).
@@ -48,7 +48,7 @@ native/dynarec product; nothing it lands may regress Spyro 1's gates. Finish lis
 | S004 | Crash Bash graphics are the guest's own GP0 output on the record path and look correct across representative content | partial — `RenderPath::Record` is the only picture path; `recordcheck` mismatched=0 on 1,395/1,395 Polar Push and 3,741/3,741 Crashball presents at 4:3 with fps60 off; looked at in menus and both live matches | S002, S015 | G001, G002, G003 |
 | S005 | Wider aspect ratios widen horizontal view without changing vertical framing | partial — `GuestWidescreenProjection` declares the aspect and the record canvas adds 86 columns per side at 16:9 (512 → 684), filled by the guest's own geometry in menus and Polar Push; 4:3 stays the device picture. No guest cull has been found to widen; margins not yet surveyed in every arena | S004 | G002 |
 | S019 | Widescreen anchors the UI: edge HUD elements sit at the widened edges or safe area, centred elements stay centred, nothing stretches | missing — the native anchoring policy was deleted with the native renderer; on the record path the HUD stays at its 4:3 position (issue 0035) | S005 | G002 |
-| S006 | Camera and world motion render between simulation ticks | partial — the `0x80019A60` producer keys every model face by object and face and the UI producers key text glyphs, panel parts and HUD digits (`docs/presentation.md`, Producers): 99.97% of Polar Push (1,661,862 of 1,662,395) and of Crashball (5,902,090 of 5,904,051), only the static LOADING card left, 0 duplicate keys; in-betweens differ from and lie between their neighbours; a re-initialised component keys as a new object (issue 0037); every producer (model faces, text, panels, quads, BOOT HUD and menu items) is a state producer whose render runs the native bodies (`0x800193A8`, `0x800243A0`, `0x800248A0`, `0x8001A6D4`, `0x8001A43C` and the three 2D leaves) on component fields blended at t (`docs/presentation.md`, State producers); the override differential matches those four bodies on 6,624 sampled Polar Push calls; Polar Push `recordcheck` at 4:3 is mismatched=0 on 1,391/1,391 presents with fps60 off and 1,420/1,420 with it on; Crashball (3,746 presents) and Tournament (9,246) recordcheck at 4:3 are mismatched=0 with fps60 on and off; the title `pause` command reaches BOOT's pause pages in every retained match: recordcheck at 4:3 is mismatched=0 with fps60 off and on over them (Polar Push 1,741/1,770 presents, Crashball 3,941/3,941, Battle Crate Crush 9,441/9,471, Tournament 9,441/9,470); the BOOT HUD's leaf positions never move in those matches (issue 0039); the pause page's title and items reach the GPU since `followDrawBase` (issue 0040): Polar Push pause sequence recordcheck is mismatched=0 on 1,741/1,741 presents with fps60 off and 1,770/1,770 on; BOOT's scratch-component draw `0x8009440C` is native and keys each entry as its own object, so the census's keyed-without-render count on Polar Push (1,500 frames) went from 54,788 to 0 with 0 duplicate keys and recordcheck mismatched=0 on 1,501/1,501 presents | S004 | G003 |
+| S006 | Camera and world motion render between simulation ticks | partial — each in-between is the root scene present replayed in psxport's sandbox with the draw contexts, render components and scene fade blended (`docs/presentation.md`, In-betweens); Polar Push and Crashball move halfway per present; fps60 on and off reach identical guest RAM; the hub portal screen is refused (issue 0048) and the aurora scroll steps at 30 Hz (issue 0047) | S004 | G003 |
 | S007 | Deterministic diagnostics compare reached hybrid-product boundaries with independent retail behavior and prove both answers | partial | S001, S003 | G001, G002, G003 |
 | S008 | The retail game modes are reachable and playable end to end on the hybrid product | partial | S002, S003, S004, S015 | G001 |
 | S009 | The Crashball gameplay scenario reaches a live match and accepts player control | verified | `replays/flow/crashball-control.pad` drives a live match, guest movement words are proven against an idle control leg, 0 fallback | G001 |
@@ -141,27 +141,20 @@ Crush; Tournament is the same mode screen with one more Down and its own flow ta
 
 ### S006 — Interpolated presentation
 
-`render::registerModelFaceProducer` keys the guest's model packets: the `0x80019A60` producer opens
-(object incarnation) and the `0x800193A8` namer names each face by its mesh's face list and index.
-`render::registerComponentIncarnationOwners` overrides every copier of the render template, so a
-component the guest re-initialises in place (a briefing page flip, a pooled slot handed out again) keys
-as a new object. `FrameCut`
-declares a cut when the process state, scene (`0x8009F658`) or menu screen (`0x8009F8A4`) changed.
-`FramePresenter` presents the in-between (each producer's render at t = 0.5 on the shown record) then N per logic frame with `fps60` on.
+`DrawReplay` replays the root scene's present (the draw section of the process present `0x80010278`)
+once per in-between inside psxport's `GuestRedraw` sandbox, with every draw context `FUN_80018B08`
+selected, every render component `0x80019A60`/`FUN_8001ACC0` drew and the scene clock written t of the
+way between the two logic ticks (`docs/presentation.md`, `docs/plans/replay-interpolation.md`). Components
+pair by address, incarnation (`registerComponentIncarnationOwners`) and model. `FrameCut` declares a cut
+when the process state, scene (`0x8009F658`) or menu screen (`0x8009F8A4`) changed.
 
-Evidence (2026-10-07): census over Polar Push to f1370 keyed 1,554,644 of 1,618,751 primitives, every
-remaining one under the menu/UI present `0x80010278` or the LOADING card; live-match frames 1,804 of
-1,812 keyed; Crashball 5,809,153 of 5,904,051, live match f3400+ 659,995 of 663,055. Duplicate keys 0
-in every frame of both runs. Polar Push f1360-f1367 at fps60: 12 consecutive presents all differ (ImageMagick AE 918-1,368)
-and every middle present is closer to each neighbour than the neighbours are to each other.
-
-Evidence (2026-10-07, incarnations): Polar Push briefing page flip f1086→f1087, whose `0x800A188C`
-sprite stepped 307 px in the in-between, now presents the in-between equal to f1087 (AE 0; before: AE
-120 against f1087 and 5,009 against f1086). The f1316→f1317 effect `0x801DD920` is one incarnation
-(begun at its f1316 draw), and the guest itself draws it 83-116 px apart in those two frames, so it
-still blends. f1360-f1367 at fps60: all 16 presents differ, every in-between closer to each neighbour
-than they are to each other. Recordcheck at 4:3 with fps60 off: 1,395 records, mismatched=0. Duplicate
-keys 0 in every blended frame of Polar Push (1,076) and Crashball (3,642).
+Evidence (2026-11-11, hidden, ires 0, fps60 1, sink 3840x2160, unpaced): at t = 1 the replay's chain equals
+the real chain captured before DrawOTag in 1,633 of 1,633 frames (boot, menus, Polar Push). Polar Push replay:
+1,630 intervals replayed, 0 refused; components 524 of 83,655 draws unpaired, contexts 6 of 2,483. Polar Push
+crops: Coco's head and the other players lie halfway between the real presents. Crashball live match, 12
+presents: the two balls step 18-28 px and 59-71 px per present, evenly, the in-betweens halfway. Leak proof:
+`fielddigest` over the Polar Push replay, fps60 1 against 0, the same `ram=` hash at all 1,633 shared guest
+fields. Crashball replay: 781 intervals refused, all on the hub portal screen (issue 0048).
 
 **The retail cadence is 2 FIELDS PER GAME FRAME = 30 fields/s** (issue 0031). Four of five writers
 store the literal 2 into the rate global `0x8004E0E0` (`guest::kDisplayFieldsPerFrame`); the fifth
@@ -170,13 +163,7 @@ writers. `0x800320EC` proves the VSync argument is a field count — `a0 <= 1` t
 and only `a0 >= 2` waits — so **60 fps is structurally unpaceable on the guest path** and the in-between
 presentation is the only route to it. The title is therefore in lerp scope.
 
-Evidence (2026-10-07, UI producers, psxport 7e8d4fb1): `render::registerUiProducers` keys the text,
-panel and quad component callbacks and BOOT's HUD and menu page; census Polar Push 1,661,862 of 1,662,395
-and Crashball 5,902,090 of 5,904,051 keyed (before: 1,598,087 and 5,809,153), duplicate keys 0,
-recordcheck mismatched=0 on all presents at 4:3 with fps60 off. The Crashball panel sliding over
-f1240-f1254 sits at x=106, 104, 102 in real f1240, the in-between and real f1241 (issue 0036).
-
-Gap: the Polar Push aurora, a texture the guest scrolls by VRAM copy, moves only on real presents (issue 0047); the unobserved UI paths are listed in issue 0036.
+Gaps: the hub portal screen is refused (issue 0048); the Polar Push aurora scrolls only on real presents (issue 0047).
 
 ### S007 — Independent diagnostics
 
@@ -406,15 +393,15 @@ behavior, or native subsystem contracts rather than the retired translation meth
   Right 3620-3739 in a live DAT28241 match), `battle-crate-crush-control.pad`,
   `tournament-crate-crush-control.pad`, and `polar-push-control.pad`.
 
-### Guest graphics and producer contracts
+### Guest graphics contracts
 
 - Model draws converge on `0x80019A60(frame code, model data, flags, object)` from the standard
   (`0x80019F1C`) and alternate (`0x8001DD50`) object draw callbacks; it draws a 0x3000 code as a flat
   sprite through `0x80029D28` and a mesh through `0x800193A8`.
 - `0x80019094` pops a 10-word-per-face packet buffer from a free list per (model frame, display parity);
   `0x800193A8` writes face i at `buffer + i * 40` from `{flags, count}` strip pairs ended by count
-  0xFF, culled or not. Objects drawing one model frame take buffers in call order, so the object, not
-  the buffer, is the producer key.
+  0xFF, culled or not. Objects drawing one model frame take buffers in call order, so the component, not
+  the buffer, is the identity.
 - `0x800274FC` and `0x800276C4` are the two heap-pool allocators; their live base/end ranges are the
-  packet-pool windows the producer census attributes 2D packets through.
+  packet-pool windows.
 - `0x80018B08` is viewport/camera/render-list setup and the LOADING card draw.

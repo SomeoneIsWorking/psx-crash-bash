@@ -58,12 +58,7 @@ public:
   // Whether an owner is registered for `address` in `image`, bound or waiting for its image.
   bool registers(GuestImage image, std::uint32_t address) const;
 
-  // A producer override opens its emission scope around every call (psxport presentation.md, Frame model).
-  void registerOverride(GuestImage image,
-                        std::uint32_t address,
-                        std::string_view name,
-                        NativeOverride function,
-                        std::optional<psx::present::Producer> producer = std::nullopt);
+  void registerOverride(GuestImage image, std::uint32_t address, std::string_view name, NativeOverride function);
   void bindAuthenticatedImage(GuestImage image, psx::cpu::ImageIdentity identity, GuestAddressRange range);
   void unbindImage(GuestImage image);
   // Removes only the overwritten bytes from a generation and retires native keys at overwritten entries.
@@ -91,7 +86,6 @@ private:
     std::uint32_t address;
     std::string name;
     NativeOverride function;
-    std::optional<psx::present::Producer> producer;
   };
   struct Binding {
     GuestImage image;
@@ -108,12 +102,8 @@ private:
   std::unique_ptr<ImageIdentityState> statePort_;
 };
 
-void registerNativeOverride(Core &core,
-                            GuestImage image,
-                            std::uint32_t address,
-                            std::string_view name,
-                            NativeOverride function,
-                            std::optional<psx::present::Producer> producer = std::nullopt);
+void registerNativeOverride(
+    Core &core, GuestImage image, std::uint32_t address, std::string_view name, NativeOverride function);
 void retireAuthenticatedImagesForWrite(Core &core, GuestAddressRange physicalRange);
 
 // Callers set up the guest ABI state (including r31 and instruction timing) first.

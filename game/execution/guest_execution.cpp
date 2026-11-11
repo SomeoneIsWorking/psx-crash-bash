@@ -76,8 +76,7 @@ bool GuestExecution::registers(GuestImage image, std::uint32_t address) const {
 void GuestExecution::registerOverride(GuestImage image,
                                       std::uint32_t address,
                                       std::string_view name,
-                                      NativeOverride function,
-                                      std::optional<psx::present::Producer> producer) {
+                                      NativeOverride function) {
   if (!function || name.empty() || (address & 3u) != 0u) {
     throw std::invalid_argument("Crash Bash native override is incomplete or unaligned");
   }
@@ -91,11 +90,11 @@ void GuestExecution::registerOverride(GuestImage image,
     if (!binding->range.containsPhysical(address) || core_.imageCatalog().resolve(address) != binding->identity) {
       throw std::invalid_argument("Crash Bash override does not belong to the active authenticated image");
     }
-    if (!psx::cpu::tryInstallNativeOverride(core_, address, name, function, producer)) {
+    if (!psx::cpu::tryInstallNativeOverride(core_, address, name, function)) {
       throw std::logic_error("Crash Bash native override conflicts with an existing runtime owner");
     }
   }
-  registrations_.push_back({image, address, std::string(name), function, producer});
+  registrations_.push_back({image, address, std::string(name), function});
 }
 
 void GuestExecution::bindAuthenticatedImage(GuestImage image,
@@ -123,8 +122,7 @@ void GuestExecution::bindAuthenticatedImage(GuestImage image,
   bindings_.push_back(binding);
   for (const auto &registration : registrations_) {
     if (registration.image == image &&
-        !psx::cpu::tryInstallNativeOverride(
-            core_, registration.address, registration.name, registration.function, registration.producer)) {
+        !psx::cpu::tryInstallNativeOverride(core_, registration.address, registration.name, registration.function)) {
       lucent::error("crashbash-runtime", "validated image binding failed to install a native owner");
       std::abort();
     }
@@ -259,13 +257,9 @@ GuestExecution::original(GuestImage image, std::uint32_t address, psx::cpu::Exec
   return psx::cpu::callOriginal(core_, *key, budget);
 }
 
-void registerNativeOverride(Core &core,
-                            GuestImage image,
-                            std::uint32_t address,
-                            std::string_view name,
-                            NativeOverride function,
-                            std::optional<psx::present::Producer> producer) {
-  execution(core).registerOverride(image, address, name, function, producer);
+void registerNativeOverride(
+    Core &core, GuestImage image, std::uint32_t address, std::string_view name, NativeOverride function) {
+  execution(core).registerOverride(image, address, name, function);
 }
 
 void retireAuthenticatedImagesForWrite(Core &core, GuestAddressRange physicalRange) {

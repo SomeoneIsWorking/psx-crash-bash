@@ -10,7 +10,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 | 1 | psxport F-BOOT.1 | `game/entry/catalog.cpp:createCatalog` — `SCUS_945.70` identity, `PSXPORT_CRASHBASH_DISC`, provisioning under `scratch/bin`, one `Runtime` |
 | 2 | psxport F-BOOT.5 | `game/runtime/runtime.cpp:Runtime::startProgram` — crt0 (`kCrt0`), then `game/boot/boot_prefix.cpp:runBootPrefix` |
 | 3 | psxport F-BOOT.6 | `game/runtime/runtime.cpp:Runtime::registerOverrides` — binds `StockLibcd`, `StockVSync` (`0x800320EC`) and the card device, then installs the title overrides and state renders |
-| 4 | psxport F-BOOT.6 | `game/runtime/session.h:Session` — per-Core guest execution, dev requests, Polar Push census, incarnations, packet collector, frame cut, state producers |
+| 4 | psxport F-BOOT.6 | `game/runtime/session.h:Session` — per-Core guest execution, dev requests, Polar Push census, incarnations, frame cut, draw replay |
 | 5 | psxport F-BOOT.6 | `game/boot/boot_object_callbacks.cpp:registerBootObjectCallbackOverrides`, `game/boot/memory_card_startup.cpp:registerMemoryCardStartupOverride` — the boot object callbacks and card startup |
 
 ## F-TURN
@@ -48,12 +48,12 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-FPS60.1 | `game/runtime/runtime.cpp:Runtime::stateProducer` — answered from `Session::stateProducers` |
-| 2 | psxport F-FPS60.1 | `game/render/model_face_producer.cpp:registerModelFaceProducer` — model draw `0x80019A60`, face state in `model_state.cpp` |
-| 3 | psxport F-FPS60.1 | `game/render/ui_producer.cpp:registerUiProducers` — text, panel and quad components and BOOT's HUD and menu, leaf state in `leaf_state.cpp` |
-| 3 | psxport F-FPS60.1 | `game/render/texture_scroll_producer.cpp:registerTextureScrollProducer` — texture scroller `0x80028F28` (Polar Push aurora), its two keyed VRAM copies placed at the blended row |
-| 4 | psxport F-FPS60.1 | `game/render/component_incarnation.cpp:registerComponentIncarnationOwners` — a re-initialised component is a new object |
-| 5 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — process state, mode scene and menu screen changes |
+| 1 | psxport `presentation.md` Replay | `game/runtime/runtime.cpp:Runtime::replayFrame` — the session's `DrawReplay` frame |
+| 2 | psxport `ReplayFrame::beforeDraw` | `game/frame/frame_driver.cpp:FrameDriver::finishUpdateSlice` → `game/frame/draw_replay.cpp:DrawReplay::beforePresent` — samples and replays before each process present `0x80010278` |
+| 3 | psxport `ReplaySection` | `game/frame/draw_section.cpp:DrawSection::draw` — the root scene present on the scratchpad stack |
+| 4 | psxport `MotionSource` | `game/render/context_motion.cpp:ContextMotion`, `game/render/component_motion.cpp:ComponentMotion` — draw contexts and render components the real draw used |
+| 5 | | `game/render/component_incarnation.cpp:registerComponentIncarnationOwners` — a re-initialised component pairs with nothing |
+| 6 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — process state, mode scene and menu screen changes |
 
 ## F-WIDE
 
@@ -79,7 +79,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 |---|---|
 | 1 | `game/boot/boot_logo_skip.cpp:registerBootLogoSkipOverride` — Start/Cross ends the logos through the scene lifecycle |
 | 2 | `game/disc/cd_file_read.cpp:registerLoadPumpDrainOverride` — the load pump `0x8001231C` drained to quiescence |
-| 3 | `game/disc/loading_card_skip.cpp:registerLoadingCardSkipOverride` — the LOADING card retired at its two call sites |
+| 3 | `game/render/context_motion.cpp:registerSelectedContextNotes` → `game/disc/loading_card_skip.cpp:isLoadingCardDraw` — the LOADING card retired at its two call sites |
 
 ## CB-POLAR (title only)
 
