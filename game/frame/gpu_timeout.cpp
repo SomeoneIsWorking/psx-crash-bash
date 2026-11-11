@@ -3,6 +3,7 @@
 #include "core.h"
 #include "execution/guest_execution.h"
 #include "execution_services.h"
+#include "ordering_table.h"
 #include "title/guest.h"
 
 #include <cstdint>
@@ -31,6 +32,22 @@ void gpuTimeoutArmOwned(Core *core) {
 void gpuTimeoutCheckOwned(Core *core) {
   // Synchronous GPU: nothing to time out.
   core->r[2] = 0u;
+}
+
+// FUN_80030220(ot, count), the GPU driver's ClearOTagR body: an OTC DMA from &ot[count - 1] down that completes at
+// once, then the timeout arm. Its writes are the DMA's, made in RAM, so a draw section that clears a table replays.
+void clearTableOwned(Core *core) {
+  const std::uint32_t ot = core->r[4];
+  const std::uint32_t count = core->r[5];
+  const std::uint32_t top = psx::gpu::mainRamOffsetOf(ot + count * 4u - 4u);
+  const std::uint32_t buckets = (count & 0xFFFFu) == 0u ? 0x10000u : (count & 0xFFFFu);
+  for (std::uint32_t i = 0; i < buckets; ++i) {
+    const std::uint32_t address = top - i * 4u;
+    core->mem_w32(address, psx::gpu::reverseClearedLink(address, i == buckets - 1u));
+  }
+  armSynchronousGpuTimeout(*core);
+  core->r[2] = count;
+  psx::cpu::accountGuestInstructions(*core, 24u);
 }
 
 void finishGpuTransfer(Core *core) {
@@ -109,6 +126,8 @@ void registerGpuTimeoutOverrides(Core &core) {
       core, runtime::GuestImage::Resident, guest::kGpuTimeoutCheck, "CrashBash::GpuTimeoutCheck", gpuTimeoutCheckOwned);
   runtime::registerNativeOverride(
       core, runtime::GuestImage::Resident, guest::kGpuTransfer, "CrashBash::GpuTransfer", gpuTransferOwned);
+  runtime::registerNativeOverride(
+      core, runtime::GuestImage::Resident, guest::kGpuClearTable, "CrashBash::GpuClearTable", clearTableOwned);
 }
 
 } // namespace crashbash

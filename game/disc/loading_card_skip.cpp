@@ -1,6 +1,8 @@
 #include "disc/loading_card_skip.h"
 
 #include "core.h"
+#include "execution/guest_execution.h"
+#include "title/guest.h"
 
 #include <cstdint>
 
@@ -11,11 +13,19 @@ namespace {
 constexpr std::uint32_t kCardDrawReturnAddress = 0x80094248u;    // BOOT FUN_8009421C, screen 0x8009F998
 constexpr std::uint32_t kLevelScreenReturnAddress = 0x80094188u; // BOOT FUN_8009414C, screen 0x8009FA00
 
+void selectDrawContext(Core *core) {
+  // Only the LOADING panel is retired; the handoff presents its level as before.
+  if (core->r[31] == kCardDrawReturnAddress || core->r[31] == kLevelScreenReturnAddress) {
+    return;
+  }
+  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kSelectDrawContext);
+}
+
 } // namespace
 
-bool isLoadingCardDraw(const Core &core) {
-  // Only the LOADING panel is retired; the handoff presents its level as before.
-  return core.r[31] == kCardDrawReturnAddress || core.r[31] == kLevelScreenReturnAddress;
+void registerLoadingCardSkipOverride(Core &core) {
+  runtime::registerNativeOverride(
+      core, runtime::GuestImage::Resident, guest::kSelectDrawContext, "CrashBash::LoadingCardSkip", selectDrawContext);
 }
 
 } // namespace crashbash

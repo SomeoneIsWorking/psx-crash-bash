@@ -91,6 +91,7 @@ set(CRASHBASH_SEAM_SOURCES
   game/render/component_motion.cpp
   game/render/context_motion.cpp
   game/render/ordering_table_slots.cpp
+  game/render/texture_scroll_motion.cpp
 )
 
 add_library(crashbash_seam STATIC ${CRASHBASH_SEAM_SOURCES})

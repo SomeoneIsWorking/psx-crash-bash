@@ -51,7 +51,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 | 1 | psxport `presentation.md` Replay | `game/runtime/runtime.cpp:Runtime::replayFrame` — the session's `DrawReplay` frame |
 | 2 | psxport `ReplayFrame::beforeDraw` | `game/frame/frame_driver.cpp:FrameDriver::finishUpdateSlice` → `game/frame/draw_replay.cpp:DrawReplay::beforePresent` — samples and replays before each process present `0x80010278` |
 | 3 | psxport `ReplaySection` | `game/frame/draw_section.cpp:DrawSection::draw` — the root scene present on the scratchpad stack |
-| 4 | psxport `MotionSource` | `game/render/context_motion.cpp:ContextMotion`, `game/render/component_motion.cpp:ComponentMotion` — draw contexts and render components the real draw used |
+| 4 | psxport `MotionSource` | `game/render/context_motion.cpp:ContextMotion`, `game/render/component_motion.cpp:ComponentMotion`, `game/render/texture_scroll_motion.cpp:TextureScrollMotion` — draw contexts and render components the real draw used, texture scrolls the update linked |
 | 5 | | `game/render/component_incarnation.cpp:registerComponentIncarnationOwners` — a re-initialised component pairs with nothing |
 | 6 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — process state, mode scene and menu screen changes |
 
@@ -79,7 +79,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 |---|---|
 | 1 | `game/boot/boot_logo_skip.cpp:registerBootLogoSkipOverride` — Start/Cross ends the logos through the scene lifecycle |
 | 2 | `game/disc/cd_file_read.cpp:registerLoadPumpDrainOverride` — the load pump `0x8001231C` drained to quiescence |
-| 3 | `game/render/context_motion.cpp:registerSelectedContextNotes` → `game/disc/loading_card_skip.cpp:isLoadingCardDraw` — the LOADING card retired at its two call sites |
+| 3 | `game/disc/loading_card_skip.cpp:registerLoadingCardSkipOverride` — the LOADING card retired at its two call sites |
 
 ## CB-POLAR (title only)
 

@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "execution/guest_execution.h"
+#include "ordering_table.h"
 #include "runtime/session.h"
 #include "title/guest.h"
 
@@ -96,12 +97,12 @@ void bootStaticComponentInit(Core *core) {
 } // namespace
 
 void ComponentIncarnations::begin(std::uint32_t component) {
-  ++generations_[component & kComponentOffsetMask];
+  ++generations_[psx::gpu::mainRamOffsetOf(component)];
 }
 
-std::uint32_t ComponentIncarnations::object(std::uint32_t component) const {
-  const auto found = generations_.find(component & kComponentOffsetMask);
-  return incarnationObject(component, found == generations_.end() ? 0u : found->second);
+std::uint32_t ComponentIncarnations::generation(std::uint32_t component) const {
+  const auto found = generations_.find(psx::gpu::mainRamOffsetOf(component));
+  return found == generations_.end() ? 0u : found->second;
 }
 
 void registerComponentIncarnationOwners(Core &core) {

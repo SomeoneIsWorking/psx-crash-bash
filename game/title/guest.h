@@ -17,6 +17,8 @@ inline constexpr std::uint32_t kDisplayFrame = 0x800272ACu;
 inline constexpr std::uint32_t kGpuTimeoutArm = 0x8003126Cu;
 inline constexpr std::uint32_t kGpuTimeoutCheck = 0x800312A0u;
 inline constexpr std::uint32_t kGpuTransfer = 0x8003165Cu;
+// The GPU driver's ClearOTagR body (reached through ClearOTagR 0x8002F254's driver table): the OTC DMA.
+inline constexpr std::uint32_t kGpuClearTable = 0x80030220u;
 inline constexpr std::uint32_t kGteInitialization = 0x80033494u;
 inline constexpr std::uint32_t kCdDriveReady = 0x800349ACu;
 inline constexpr std::uint32_t kCdInitHandshake = 0x80034B8Cu;
@@ -33,6 +35,10 @@ inline constexpr std::uint32_t kOrderingTableA = 0x8005B790u;
 inline constexpr std::uint32_t kOrderingTableB = 0x8005F79Cu;
 inline constexpr std::uint32_t kOrderingTableBuckets = 0x1000u;
 inline constexpr std::uint32_t kOrderingTablePoolCursor = 0x4008u;
+
+// FUN_80028F28(scroller, owner): scrolls a texture strip with two DR_MOVEs linked at the last bucket's head, in the
+// update (the Polar Push aurora).
+inline constexpr std::uint32_t kTextureScroll = 0x80028F28u;
 
 // The ordering-table bucket the current draw slice links from.
 inline constexpr std::uint32_t kDrawOtBase = 0x800569D8u;
@@ -68,6 +74,13 @@ inline constexpr std::uint32_t kAnimationNodeCreateType5 = 0x8002128Cu;
 inline constexpr std::uint32_t kBootStaticComponentInit = 0x8007EB68u;
 inline constexpr std::uint32_t kBootStaticComponent = 0x8009AD94u;
 inline constexpr std::uint32_t kBootScratchComponent = 0x800A0C74u;
+// Render component draw callbacks (+0x54), the component in a0: text (FUN_8001A82C, the string at +0x6C placed by the
+// position), panel (FUN_8001A6D4 over its +0x6C record) and quad (the shaded quad 0x8001A0D8 over it), each under the
+// component's transform unless flag 0x10000000 is set.
+inline constexpr std::uint32_t kTextComponentDraw = 0x8001C448u;
+inline constexpr std::uint32_t kPanelComponentDraw = 0x8001C690u;
+inline constexpr std::uint32_t kQuadComponentDraw = 0x8001C7FCu;
+
 // FUN_8001ACC0(component): the matrix 0x80056A44 a root component's children draw by (entity draws, animation trees).
 inline constexpr std::uint32_t kRootTransform = 0x8001ACC0u;
 
@@ -122,6 +135,9 @@ inline constexpr std::uint32_t kMenuSceneTransition = 0x8009F8A4u;
 // (FUN_80014540) and links the viewport's draw environment. BOOT's handoff presents FUN_8009421C (record 0x8009F998)
 // and FUN_8009414C (record 0x8009FA00) draw the LOADING card through it.
 inline constexpr std::uint32_t kSelectDrawContext = 0x80018B08u;
+// FUN_80014540(context): the view of `context` from its translation, eye, H and angles; called from 0x80018B08 and
+// FUN_8002AEE0.
+inline constexpr std::uint32_t kDeriveView = 0x80014540u;
 
 // Arena read by FUN_800793E8; MENU fills it from the SELECT BATTLE TYPE cursor (FUN_800b7ef4). The
 // dispatcher FUN_8007F314 needs the scene machine's prepared frame, so $a1 is not the arena index;

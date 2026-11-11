@@ -48,7 +48,7 @@ native/dynarec product; nothing it lands may regress Spyro 1's gates. Finish lis
 | S004 | Crash Bash graphics are the guest's own GP0 output on the record path and look correct across representative content | partial — `RenderPath::Record` is the only picture path; `recordcheck` mismatched=0 on 1,395/1,395 Polar Push and 3,741/3,741 Crashball presents at 4:3 with fps60 off; looked at in menus and both live matches | S002, S015 | G001, G002, G003 |
 | S005 | Wider aspect ratios widen horizontal view without changing vertical framing | partial — `GuestWidescreenProjection` declares the aspect and the record canvas adds 86 columns per side at 16:9 (512 → 684), filled by the guest's own geometry in menus and Polar Push; 4:3 stays the device picture. No guest cull has been found to widen; margins not yet surveyed in every arena | S004 | G002 |
 | S019 | Widescreen anchors the UI: edge HUD elements sit at the widened edges or safe area, centred elements stay centred, nothing stretches | missing — the native anchoring policy was deleted with the native renderer; on the record path the HUD stays at its 4:3 position (issue 0035) | S005 | G002 |
-| S006 | Camera and world motion render between simulation ticks | partial — each in-between is the root scene present replayed in psxport's sandbox with the draw contexts, render components and scene fade blended (`docs/presentation.md`, In-betweens); Polar Push and Crashball move halfway per present; fps60 on and off reach identical guest RAM; the hub portal screen is refused (issue 0048) and the aurora scroll steps at 30 Hz (issue 0047) | S004 | G003 |
+| S006 | Camera and world motion render between simulation ticks | partial — each in-between is the root scene present replayed in psxport's sandbox with the draw contexts, render components and scene fade blended (`docs/presentation.md`, In-betweens); Polar Push and Crashball move halfway per present; fps60 on and off reach identical guest RAM; the aurora scroll, the hub portal and UI panels and text are replayed (issues 0047-0049); no cut below scene level (issue 0050), one Crashball leak-proof field differs (issue 0051) | S004 | G003 |
 | S007 | Deterministic diagnostics compare reached hybrid-product boundaries with independent retail behavior and prove both answers | partial | S001, S003 | G001, G002, G003 |
 | S008 | The retail game modes are reachable and playable end to end on the hybrid product | partial | S002, S003, S004, S015 | G001 |
 | S009 | The Crashball gameplay scenario reaches a live match and accepts player control | verified | `replays/flow/crashball-control.pad` drives a live match, guest movement words are proven against an idle control leg, 0 fallback | G001 |
@@ -163,7 +163,12 @@ writers. `0x800320EC` proves the VSync argument is a field count — `a0 <= 1` t
 and only `a0 >= 2` waits — so **60 fps is structurally unpaceable on the guest path** and the in-between
 presentation is the only route to it. The title is therefore in lerp scope.
 
-Gaps: the hub portal screen is refused (issue 0048); the Polar Push aurora scrolls only on real presents (issue 0047).
+2026-11-11 follow-up: the aurora scroll (issue 0047), the hub portal (issue 0048) and the UI text, panels and
+quads (issue 0049) are replayed. Crashball replay: 2096 intervals replayed, 0 refused. Leak proof: Polar Push
+equal at all 1700 shared fields; Crashball at 2061 of 2062 (issue 0051).
+
+Gaps: no cut below scene level and no pose cross-blend (issue 0050); one Crashball field differs in the leak proof
+(issue 0051); a paced real-time run on a quiet host is still to be made.
 
 ### S007 — Independent diagnostics
 

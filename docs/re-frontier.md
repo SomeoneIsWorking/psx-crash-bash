@@ -155,8 +155,8 @@ remain diagnostics for finding causes, not completion conditions.
   `0x8009440C` (native: one incarnation per scratch entry). The briefing page builder `0x80095BEC` re-fills layer components at
   `0x800A13F4 + layer * 0x1500` through `0x8001D3B0`, then `0x800952F8` sets each from the page record.
 - where: `game/frame/draw_section.*`, `game/render/component_motion.*`, `game/render/context_motion.*`
-- gap: the hub portal present reads a DMA register (issue 0048); texture scrolls are linked in the update
-  (issue 0047); UI components are not sampled (issue 0049).
+- gap: cuts below scene level (issue 0050). The hub portal's ClearOTagR (`FUN_80030220`, the OTC DMA), the
+  texture scrolls (`FUN_80028F28`) and the UI callbacks are replayed (issues 0047-0049).
 - notes: The record path makes the guest's GP0 output the picture; nothing here reconstructs it.
 
 ### graphics.ui-draws — The 2D UI's draw paths
@@ -173,8 +173,10 @@ remain diagnostics for finding causes, not completion conditions.
   (`0x800996E0`, `0x8009AD54`, four each) and per-player digits from s4 = `0x8009AD74` + 8 * player
   (units first); BOOT `0x800809A0(items, y)` walks 24-byte item records in s4. Every string address
   `0x800243A0` drew over both flow replays held one text.
-- where: the draw section; no title owner
-- gap: which fields of a UI component or its +0x6C record move it, so the replay can blend them (issue 0049).
+  Placement (decompiled 2026-11-11): under the component's transform unless flag 0x10000000; then text at
+  position x|y, the panel at its +0x6C record's rect, the quad at that record's four corners.
+- where: `game/render/component_motion.*` (noted at the three callbacks)
+- gap: none for placement.
 
 ### presentation.cuts — Scene identity for cuts
 

@@ -34,6 +34,7 @@ void DrawReplay::forget() {
   frame_.forget();
   components_.forget();
   contexts_.forget();
+  scrolls_.forget();
 }
 
 void DrawReplay::noteSelected(std::uint32_t context) {
@@ -42,9 +43,15 @@ void DrawReplay::noteSelected(std::uint32_t context) {
   }
 }
 
-void DrawReplay::noteDrawn(std::uint32_t component) {
+void DrawReplay::noteDrawn(std::uint32_t component, render::ComponentMotion::Kind kind) {
   if (!frame_.replaying()) {
-    components_.noteDrawn(component);
+    components_.noteDrawn(component, kind);
+  }
+}
+
+void DrawReplay::noteScrolled(std::uint32_t scroller, std::uint32_t owner, std::uint32_t moves) {
+  if (!frame_.replaying()) {
+    scrolls_.noteScrolled(scroller, owner, moves);
   }
 }
 

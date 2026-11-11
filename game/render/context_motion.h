@@ -14,7 +14,7 @@ namespace crashbash::render {
 
 class ContextMotion final : public psx::present::MotionSource {
 public:
-  // The real draw selected `context` (FUN_80018B08's a1); it is sampled from the next section entry on.
+  // The real draw derived the view of `context` (FUN_80014540's a0); it is sampled from the next section entry on.
   void noteSelected(std::uint32_t context);
   // The real draw begins: what it selects is noted afresh.
   void openDraw();
@@ -52,8 +52,7 @@ private:
   std::vector<Record> later_;
 };
 
-// Overrides FUN_80018B08 (select a viewport and draw context) to note each context the real draw selects; the
-// LOADING card's call is retired (isLoadingCardDraw).
-void registerSelectedContextNotes(Core &core);
+// Overrides FUN_80014540 (derive a draw context's view) to note each context the real draw derives a view from.
+void registerContextViewNotes(Core &core);
 
 } // namespace crashbash::render

@@ -13,20 +13,12 @@ class Core;
 
 namespace crashbash::render {
 
-// The generation sits above the main-RAM offset, so it wraps after 2048 re-initialisations of one slot.
-inline constexpr std::uint32_t kComponentOffsetBits = 21u;
-inline constexpr std::uint32_t kComponentOffsetMask = (1u << kComponentOffsetBits) - 1u;
-
-constexpr std::uint32_t incarnationObject(std::uint32_t component, std::uint32_t generation) {
-  return (generation << kComponentOffsetBits) | (component & kComponentOffsetMask);
-}
-
 class ComponentIncarnations {
 public:
   // The guest copied the render template into `component`.
   void begin(std::uint32_t component);
-  // The object key for the component's current incarnation.
-  std::uint32_t object(std::uint32_t component) const;
+  // How many times the guest has re-initialised `component`.
+  [[nodiscard]] std::uint32_t generation(std::uint32_t component) const;
 
 private:
   std::unordered_map<std::uint32_t, std::uint32_t> generations_; // main-RAM offset -> generation

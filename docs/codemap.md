@@ -18,10 +18,10 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `runBootPrefix` | `game/boot/boot_prefix.*` | The finite boot prefix after crt0; the frame driver owns repetition |
 | boot owners | `game/boot/boot_object_callbacks.*`, `boot_logo_skip.*`, `memory_card_startup.*` | BOOT's object callbacks, the logo skip through the scene lifecycle, card startup |
 | module images | `game/boot/authenticated_module_image.*`, `boot_image.*`, `menu_image.*`, `nested_module_image.*` | Authenticating a completed read into BOOT, menu and nested-overlay generations |
-| disc | `game/disc/cd_file_read.*`, `cd_startup.*`, `cd_license_startup.*`, `loading_card_skip.*` | The descriptor-relative read and load-pump drain, the startup and licence handshakes, which draw-context selection is the LOADING card |
+| disc | `game/disc/cd_file_read.*`, `cd_startup.*`, `cd_license_startup.*`, `loading_card_skip.*` | The descriptor-relative read and load-pump drain, the startup and licence handshakes, the LOADING card's draw-context select retired |
 | `FrameDriver`, `frameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one measured process update/present per step, dev requests at the boundary, one commit |
 | `registerDisplayFrameOverride` | `game/frame/display_frame.*` | The guest's `DisplayFrame`: frame arena split, DrawOTag, fields handed to the driver |
-| `registerGpuTimeoutOverrides` | `game/frame/gpu_timeout.*` | The libgpu timeout bodies as title natives (the stock ones leave r2 differently) |
+| `registerGpuTimeoutOverrides` | `game/frame/gpu_timeout.*` | The libgpu timeout bodies and the ClearOTagR OTC DMA body as title natives (the stock ones leave r2 differently; the DMA writes only RAM) |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: process state, mode scene or menu screen changed |
 | `DrawReplay` | `game/frame/draw_replay.*` | The title's `ReplayFrame`: the scene fade track, the two motion sources, when to sample and when to forget |
 | `DrawSection` | `game/frame/draw_section.*` | The replayed draw section: the root scene present on the scratchpad stack, the chain head |
@@ -32,9 +32,10 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `debug::DebugMenu` | `game/debug/debug_menu.*` | The title debug menu (psxport `TitleDebugMenu`): `arenas`, `pause` verbs and the warp catalogue (arena, mode) |
 | `DevArena`, `DevPause` | `game/debug/dev_arena.*`, `dev_pause.*` | The arena arrival and `pause` routes: armed by the debug menu, applied by the driver as pad presses |
 | guest facts | `game/title/guest.h` | Recovered guest addresses and layouts; facts only |
-| `ContextMotion` | `game/render/context_motion.*` | The draw contexts `FUN_80018B08` selected, sampled and blended; the LOADING card retired there |
-| `ComponentMotion` | `game/render/component_motion.*` | The render components `0x80019A60`/`FUN_8001ACC0` drew, sampled and blended (position, angles or matrix, scale, pose) |
+| `ContextMotion` | `game/render/context_motion.*` | The draw contexts whose view `FUN_80014540` derived, sampled and blended |
+| `ComponentMotion` | `game/render/component_motion.*` | The render components the model draw, root transform and text/panel/quad callbacks drew, sampled and blended (transform, pose, screen rect) |
 | `ComponentIncarnations` | `game/render/component_incarnation.*` | Copies of the render template `0x8005A830` start a new object generation |
+| `TextureScrollMotion` | `game/render/texture_scroll_motion.*` | The strips `FUN_80028F28` scrolled in the update, sampled; a replay rewrites their two DR_MOVEs at the blended scroll, placed by the part of a row |
 | ordering tables | `game/render/ordering_table_slots.*` | Names both tables; the draw base carried between tables |
 | AppImage | `packaging/appimage.py`, `packaging/linux/` (desktop entry, icon, metainfo) | Packages `crashbash_port` alone; the first-run disc screen and packaged defaults are psxport's `FirstRunSetup` (issue 0042) |
 | Android | `platform/android/` | Activity and SAF media import |

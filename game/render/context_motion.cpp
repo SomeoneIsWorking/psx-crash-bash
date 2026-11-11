@@ -1,7 +1,6 @@
 #include "render/context_motion.h"
 
 #include "core.h"
-#include "disc/loading_card_skip.h"
 #include "execution/guest_execution.h"
 #include "runtime/session.h"
 #include "title/guest.h"
@@ -11,12 +10,9 @@
 namespace crashbash::render {
 namespace {
 
-void selectContext(Core *core) {
-  if (isLoadingCardDraw(*core)) {
-    return;
-  }
-  session(*core).drawReplay.noteSelected(core->r[5]);
-  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kSelectDrawContext);
+void deriveView(Core *core) {
+  session(*core).drawReplay.noteSelected(core->r[4]);
+  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kDeriveView);
 }
 
 } // namespace
@@ -65,9 +61,9 @@ psx::present::MotionCount ContextMotion::write(psx::present::GuestRedraw &redraw
   return count;
 }
 
-void registerSelectedContextNotes(Core &core) {
+void registerContextViewNotes(Core &core) {
   runtime::registerNativeOverride(
-      core, runtime::GuestImage::Resident, guest::kSelectDrawContext, "CrashBash::SelectDrawContext", selectContext);
+      core, runtime::GuestImage::Resident, guest::kDeriveView, "CrashBash::DeriveView", deriveView);
 }
 
 } // namespace crashbash::render

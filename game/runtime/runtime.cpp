@@ -9,6 +9,7 @@
 #include "disc/cd_file_read.h"
 #include "disc/cd_license_startup.h"
 #include "disc/cd_startup.h"
+#include "disc/loading_card_skip.h"
 #include "execution/boot_image_identity.h"
 #include "execution/guest_execution.h"
 #include "execution/image_content_identity.h"
@@ -24,6 +25,7 @@
 #include "render/component_motion.h"
 #include "render/context_motion.h"
 #include "render/ordering_table_slots.h"
+#include "render/texture_scroll_motion.h"
 #include "runtime/session.h"
 #include "title/guest.h"
 
@@ -98,8 +100,10 @@ void Runtime::registerOverrides(Game &game) {
   registerBootLogoSkipOverride(core);
   polar::registerPolarPushContactOverride(core);
   render::registerDrawnComponentNotes(core);
-  render::registerSelectedContextNotes(core);
+  registerLoadingCardSkipOverride(core);
+  render::registerContextViewNotes(core);
   render::registerComponentIncarnationOwners(core);
+  render::registerTextureScrollNotes(core);
   render::nameOrderingTables(core);
 }
 

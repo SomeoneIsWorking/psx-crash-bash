@@ -26,6 +26,9 @@ The chain head is the last bucket of the table in use, `*0x8005B68C + 0x3FFC` (t
 `0x8005F79C`, cleared by ClearOTagR each frame, so the section rebuilds rather than appends). At t = 1 the
 replay's chain equals the real one in 1,633 of 1,633 frames.
 
+The hub portal's present clears a table of its own through ClearOTagR; its OTC DMA body `FUN_80030220` is a
+title native (`gpu_timeout.cpp`), so the section reaches no device (issue 0048).
+
 ## Inputs the draw reads
 
 - **Camera**: `FUN_80018B08(viewport, context)` makes `context` current (`0x800569E0`) and `FUN_80014540`
@@ -39,11 +42,18 @@ replay's chain equals the real one in 1,633 of 1,633 frames.
 - **Root transforms**: `FUN_8001ACC0(component)` builds `0x80056A44`, which the entity draw `FUN_8001C2C0`
   (entity +0xC) and the animation-tree draw `FUN_80022070` (list `0x80058B78`, children through `FUN_800201BC`)
   place children by.
+- **UI callbacks** (+0x54, component in a0): text `0x8001C448` → `FUN_8001A82C`, panel `0x8001C690` →
+  `FUN_8001A6D4(+0x6C)`, quad `0x8001C7FC` → `0x8001A0D8(+0x6C)`. Each draws under the component's transform
+  unless flag `0x10000000` is set; then text sits at position x|y, the panel at its record's rect (x|y +0x04, x1
+  +0x0A, y1 +0x0C, x's top bits 10 centre it) and the quad at its record's four corners (8 bytes apart).
+- **Texture scrolls** (update): `FUN_80028F28(scroller, owner)` adds the speed to the 8.8 position +0x08, wraps it
+  into the strip height (owner table entry +0x1E, `*scroller` indexes 0x38-byte entries at `owner + 8`), and links
+  two DR_MOVEs at the last bucket's head: rows p..H of the source (`*(scroller + 0x0C)`) to the destination
+  (entry +0x20), then rows 0..p below them.
 - **Fade**: the scene clock `0x8009F644`.
 
 ## Left to do
 
-- Hub portal screen: a DMA register read inside the present refuses its in-betweens (issue 0048).
-- Texture scroll copies are linked in the update (issue 0047).
-- UI components drawn through +0x54 callbacks are not sampled (issue 0049).
+- Cuts below scene level (round restart, respawn) and pose cross-blends (issue 0050).
+- One Crashball field differs in the leak proof (issue 0051).
 - A paced real-time run on a quiet host (about 0.5 tick per vblank).
