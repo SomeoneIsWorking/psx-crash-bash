@@ -18,3 +18,6 @@ __pycache__/
 
 # Android package outputs and locally built native libraries live under the
 # authoritative top-level build/ tree and are covered by build/ above.
+
+# long-lived ignored inputs and derived assets (Ghidra projects, decompiled output)
+env-assets/
