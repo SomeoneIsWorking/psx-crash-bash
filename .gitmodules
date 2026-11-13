@@ -1,0 +1,3 @@
+[submodule "external/crash_bash_decomp"]
+	path = external/crash_bash_decomp
+	url = https://github.com/jake-r-r-w/crash_bash_decomp.git
