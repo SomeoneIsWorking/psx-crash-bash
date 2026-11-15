@@ -11,7 +11,7 @@ Fixed in psxport: with no argument and no usable disc, `ProductHost::runOnlyTitl
 and authenticates `SCUS_945.70` inside it; the accepted path is saved by `SavedDisc` in
 `<user data>/crashbash/disc-path` and read after the disc keys. A packaged run (`APPDIR`) defaults to a
 window and the shipped assets and works in that user-data directory. The launcher, `install_media.*`,
-`user_paths.*` and the accepted entry are deleted; `packaging/appimage.py` packages `crashbash_port` alone.
+`user_paths.*` and the accepted entry are deleted; psxport `tools/port/appimage.py` packages `crashbash_port` alone.
 
 Evidence: psxport `tests/test_first_run_setup.cpp`; a zero-argument packaged run with no disc refused by
 name (hidden), and with a saved choice extracted the executable into user data and booted (recordcheck

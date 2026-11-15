@@ -37,7 +37,7 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `ComponentIncarnations` | `game/render/component_incarnation.*` | Copies of the render template `0x8005A830` start a new object generation |
 | `TextureScrollMotion` | `game/render/texture_scroll_motion.*` | The strips `FUN_80028F28` scrolled in the update, sampled; a replay rewrites their two DR_MOVEs at the blended scroll, placed by the part of a row |
 | ordering tables | `game/render/ordering_table_slots.*` | Names both tables; the draw base carried between tables |
-| AppImage | `packaging/appimage.py`, `packaging/linux/` (desktop entry, icon, metainfo) | Packages `crashbash_port` alone; the first-run disc screen and packaged defaults are psxport's `FirstRunSetup` (issue 0042) |
+| AppImage | psxport `tools/port/appimage.py` over `packaging/linux/` (desktop entry, icon, metainfo) | Packages `crashbash_port` alone; the first-run disc screen and packaged defaults are psxport's `FirstRunSetup` (issue 0042) |
 | Android | `platform/android/` | Activity and SAF media import |
 | provisioning | `tools/provision.py`, `tools/loaded_module.py` | Extracting and authenticating the executable and modules from the disc |
 | launcher, packaging | `bootstrap.py`, `tools/run.py`, `tools/android_package.py` | The `external/psxport` fetch, provisioning, build and exec on psxport `tools/port/launcher.py`, the Android package |

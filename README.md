@@ -43,7 +43,7 @@ The intended default remains `./run.sh`, with an optional explicit USA CHD:
 `run.sh` provisions the authenticated executable and modules, then starts `crashbash_port`. It never
 emits or compiles guest source. Disc resolution is explicit argument, `PSXPORT_CRASHBASH_DISC`,
 `PSXPORT_DISC`, the same keys in `.env`, the disc chosen on psxport's first-run screen, then one
-root-level `.chd`. The AppImage (`packaging/appimage.py`) ships `crashbash_port` alone; with no disc it
+root-level `.chd`. The AppImage (psxport `tools/port/appimage.py`) ships `crashbash_port` alone; with no disc it
 shows that first-run screen. Original game content remains untracked.
 
 `run.sh` is only a stable root handoff to `uv run --frozen python bootstrap.py`. Python owns
