@@ -4,7 +4,7 @@
 #include "execution/image_content_identity.h"
 #include "image_identity.h"
 #include "invalidation.h"
-#include "lightrec_executor.h"
+#include "guest_executor.h"
 #include "runtime/session.h"
 
 #include <cstddef>

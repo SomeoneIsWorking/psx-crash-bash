@@ -1,7 +1,7 @@
 # Crash Bash port
 
-A psxport native/dynarec title: Crash Bash's native overrides plus psxport's pinned Lightrec
-integration for every remaining guest path. Framework contract: `external/psxport/AGENTS.md`;
+A psxport native/interpreter title: Crash Bash's native overrides plus psxport's per-`Core`
+interpreter (`GuestExecutor`) for every remaining guest path. Framework contract: `external/psxport/AGENTS.md`;
 framework changes: `external/psxport/docs/workspace/PROTOCOL.md`. Execution policy: the
 `dynarec-port` and `dynarec-overrides` skills.
 
@@ -12,7 +12,7 @@ is no framework pin.
 
 ## Overrides
 
-Override and translated-block identity include the loaded image generation because several modules reuse the
+Override and dispatch identity include the loaded image generation because several modules reuse the
 same guest address range.
 
 ## Presentation

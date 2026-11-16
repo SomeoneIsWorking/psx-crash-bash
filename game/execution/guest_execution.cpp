@@ -4,7 +4,7 @@
 #include "execution/image_identity_state.h"
 #include "execution_control.h"
 #include "image_identity.h"
-#include "lightrec_executor.h"
+#include "guest_executor.h"
 #include "native_dispatch.h"
 #include "resumable_guest_call.h"
 #include "runtime/session.h"

@@ -1,9 +1,9 @@
 # Crash Bash
 
-Crash Bash is being migrated to one native/Lightrec hybrid over the authenticated USA PlayStation
+Crash Bash is being migrated to one native/interpreter hybrid over the authenticated USA PlayStation
 release. The title retains its cohesive native boot, device, input and render owners; the picture is
-the guest's own GP0 output on psxport's record path. Every other guest path will execute through
-psxport's per-`Core` Lightrec runtime.
+the guest's own GP0 output on psxport's record path. Every other guest path executes on
+psxport's per-`Core` interpreter (`GuestExecutor`).
 
 ## Screenshots
 
@@ -21,7 +21,7 @@ The same three seconds of a Crashball match at the original 30 fps (each frame s
 
 The old offline translator integration, generated guest corpus, static dispatcher/registry, seed
 configuration, static-only verifiers, build tree, and static product binaries were deleted before
-dynarec implementation. They are not a bridge, fallback, or oracle.
+the runtime executor was implemented. They are not a bridge, fallback, or oracle.
 
 The native title adapter authenticates and loads the resident executable, installs the 17
 image-qualified native owners, and selects the record path with replayed 60 fps in-betweens. Its 5
@@ -63,8 +63,9 @@ The bounded replays under `replays/flow/` are the scenarios for gameplay qualifi
 
 ## Product completion
 
-The complete port must prove nonzero translated execution, correct
-loaded-image invalidation, bounded VSync/interrupt/exception exits, image-scoped overrides, and a gameplay link without an explicit interpreter mode. Boot, logos, menus, FMV, and a first frame are implementation
+The complete port must prove nonzero executed guest instructions in the executor ledger, correct
+loaded-image invalidation, bounded VSync/interrupt/exception exits, image-scoped overrides, and a
+gameplay link without an engine selector. Boot, logos, menus, FMV, and a first frame are implementation
 checkpoints only. Completion requires representative controllable gameplay with correct rendering,
 audio, timing, devices, and frame-time evidence, followed by broader retail-mode coverage.
 
