@@ -79,7 +79,7 @@ with no row runs on the framework alone. Producers and state renders in detail: 
 |---|---|
 | 1 | `game/boot/boot_logo_skip.cpp:registerBootLogoSkipOverride` — Start/Cross ends the logos through the scene lifecycle |
 | 2 | `game/disc/cd_file_read.cpp:registerLoadPumpDrainOverride` — the load pump `0x8001231C` drained to quiescence |
-| 3 | `game/disc/loading_card_skip.cpp:registerLoadingCardSkipOverride` — the LOADING card retired at its two call sites |
+| 3 | `game/disc/loading_card_skip.cpp:registerLoadingCardSkipOverride` — BOOT `RenderLoadingScreen` without the LOADING card model, and `UpdateLevelLoad`'s card fade-in not requested |
 
 ## CB-POLAR (title only)
 

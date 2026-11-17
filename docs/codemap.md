@@ -18,7 +18,7 @@ Frame loop: owned. `FrameDriver` runs the process runner `0x800270F0`'s update a
 | `runBootPrefix` | `game/boot/boot_prefix.*` | The finite boot prefix after crt0; the frame driver owns repetition |
 | boot owners | `game/boot/boot_object_callbacks.*`, `boot_logo_skip.*`, `memory_card_startup.*` | BOOT's object callbacks, the logo skip through the scene lifecycle, card startup |
 | module images | `game/boot/authenticated_module_image.*`, `boot_image.*`, `menu_image.*`, `nested_module_image.*` | Authenticating a completed read into BOOT, menu and nested-overlay generations |
-| disc | `game/disc/cd_file_read.*`, `cd_startup.*`, `cd_license_startup.*`, `loading_card_skip.*` | The descriptor-relative read and load-pump drain, the startup and licence handshakes, the LOADING card's draw-context select retired |
+| disc | `game/disc/cd_file_read.*`, `cd_startup.*`, `cd_license_startup.*`, `loading_card_skip.*` | The descriptor-relative read and load-pump drain, the startup and licence handshakes, the LOADING card (model and fade-in) retired |
 | `FrameDriver`, `frameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one measured process update/present per step, dev requests at the boundary, one commit |
 | `registerDisplayFrameOverride` | `game/frame/display_frame.*` | The guest's `DisplayFrame`: frame arena split, DrawOTag, fields handed to the driver |
 | `registerGpuTimeoutOverrides` | `game/frame/gpu_timeout.*` | The libgpu timeout bodies and the ClearOTagR OTC DMA body as title natives (the stock ones leave r2 differently; the DMA writes only RAM) |

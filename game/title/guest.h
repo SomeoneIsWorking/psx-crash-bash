@@ -132,9 +132,14 @@ inline constexpr std::uint32_t kPauseOpenBit = 0x1u;
 inline constexpr std::uint32_t kMenuSceneTransition = 0x8009F8A4u;
 
 // FUN_80018B08(viewport, context): makes `context` the current draw context (0x800569E0), derives its view
-// (FUN_80014540) and links the viewport's draw environment. BOOT's handoff presents FUN_8009421C (record 0x8009F998)
-// and FUN_8009414C (record 0x8009FA00) draw the LOADING card through it.
+// (FUN_80014540) and links the viewport's draw environment (decomp gfx_set_viewport).
 inline constexpr std::uint32_t kSelectDrawContext = 0x80018B08u;
+// RenderState.modelDp: the depth cue model draws fade by.
+inline constexpr std::uint32_t kRenderStateModelDepthCue = 0x800569ACu;
+
+// BOOT level load (decomp levelload.c): its stage word, and LoadingProcess's render, which draws the LOADING card.
+inline constexpr std::uint32_t kLevelLoadStage = 0x800A0158u;
+inline constexpr std::uint32_t kRenderLoadingScreen = 0x8009421Cu;
 // FUN_80014540(context): the view of `context` from its translation, eye, H and angles; called from 0x80018B08 and
 // FUN_8002AEE0.
 inline constexpr std::uint32_t kDeriveView = 0x80014540u;

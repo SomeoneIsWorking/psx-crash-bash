@@ -67,7 +67,8 @@ executes it into the frame record → `FramePresenter` seals it, asks `Runtime::
 - **Restore**: a state restore forgets every sample (psxport `MachineState::restore`).
 - **Run end**: `[replay]` intervals replayed and refused, `[motion]` unpaired records per source.
 
-Retired at its own override: the LOADING card's `FUN_80018B08` call (`disc/loading_card_skip.cpp`).
+Retired at its own override: the LOADING card model and its fade-in (`disc/loading_card_skip.cpp`); the load still
+sets its viewport, so every load frame clears the back buffer to black.
 
 ## How to check it
 

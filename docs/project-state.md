@@ -299,11 +299,20 @@ only inside the seven loops. Calling them from the per-frame site is not a short
 emptied the queue from the loop callers left the Polar Push briefing refusing Cross with no read ever
 requested.
 
-**What the LOADING card turned out to be.** The card is not a scene of its own: `0x800A00DC` IS the
-game's transition scene, and the card is drawn by the resident `FUN_80018B08`, which BOOT reaches only
-from the two handoff screen presents (`0x80094248` and `0x80094188`). Those two sites are the whole of
-the card's presentation, and `game/disc/loading_card_skip.{h,cpp}` retires the card there while every
-other caller — the menu screens draw their own panels through it — runs the guest's own body.
+**The LOADING card.** `0x800A00DC` is the decomp's `LevelLoadProcess`; its `LoadingProcess` render
+`RenderLoadingScreen` (BOOT `0x8009421C`) sets `LoadingViewport` through `gfx_set_viewport` (`0x80018B08`), whose
+draw environment clears the back buffer to black, then draws the card model with `eng_render`.
+`game/disc/loading_card_skip.{h,cpp}` replaces that render with the viewport alone, so every load frame from stage 2
+is black. Retiring the viewport instead left the card drawing into one stale buffer while the display flipped, the
+load flicker of issue 0043. `UpdateLevelLoad` stage 1 fades in for the card (`set_fade(&ScreenFade, -0x300)`, call
+returning to `0x80093DFC`) and stage 7's `GotoProcess(&RetryProcess, 0x300)` fades back out; with no card both
+show only black, so the fade-in is not requested and stage 7 waits only for the fade already at black. The
+first-boot `LoadingProcess2` (the Crash Bash logo scene, `RenderLoadingScene`) is authored presentation and runs
+as retail.
+
+Measured from boot through `replays/flow/polar-push-control.pad` (hidden, ires 0, fps60 1, sink 3840x2160,
+unpaced): the load into the titles takes 10 frames in `LevelLoadProcess` (was 15), the load into the Polar Push
+match 16 (was 21); the presents across both are logo or menu, steady black, then the next screen fading in.
 
 **Phase-keyed replays.** `replays/flow/polar-push-control.pad` is phase-keyed v1 (1,394 frames, 13
 segments, keyed through `crashbash::RecordingPhase`), so it

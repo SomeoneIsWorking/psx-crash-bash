@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "execution/guest_execution.h"
+#include "frame/measured_guest_call.h"
 #include "title/guest.h"
 
 #include <cstdint>
@@ -9,23 +10,50 @@
 namespace crashbash {
 namespace {
 
-// BOOT.BIN call sites of the card draw `jal 0x80018B08` (0x80094240, 0x80094180), keyed on r[31].
-constexpr std::uint32_t kCardDrawReturnAddress = 0x80094248u;    // BOOT FUN_8009421C, screen 0x8009F998
-constexpr std::uint32_t kLevelScreenReturnAddress = 0x80094188u; // BOOT FUN_8009414C, screen 0x8009FA00
+// BOOT RenderLoadingScreen: gfx_set_viewport(&LoadingViewport, &LoadingCamera), then the card's eng_render.
+constexpr std::uint32_t kLoadingViewport = 0x8009F8BCu;
+constexpr std::uint32_t kLoadingCamera = 0x800A016Cu;
+constexpr std::uint32_t kViewportReturnAddress = 0x80094248u;
+constexpr std::uint32_t kViewportCallTicks = 9u;
 
-void selectDrawContext(Core *core) {
-  // Only the LOADING panel is retired; the handoff presents its level as before.
-  if (core->r[31] == kCardDrawReturnAddress || core->r[31] == kLevelScreenReturnAddress) {
+void renderLoadingScreenOwned(Core *core) {
+  // The viewport still clears the back buffer to black (LoadingViewport isbg); only the card model is retired.
+  if (static_cast<std::int32_t>(core->mem_r32(guest::kLevelLoadStage)) < 2) {
     return;
   }
-  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kSelectDrawContext);
+  measuredGuestCall(*core,
+                    guest::kSelectDrawContext,
+                    kViewportReturnAddress,
+                    kViewportCallTicks,
+                    kLoadingViewport,
+                    kLoadingCamera);
+  core->mem_w32(guest::kRenderStateModelDepthCue, core->mem_r32(guest::kSceneTransitionClock));
+}
+
+// UpdateLevelLoad stage 1 fades the screen in for the card, which stage 7's GotoProcess then fades out again.
+constexpr std::uint32_t kCardFadeInReturnAddress = 0x80093DFCu;
+
+void setFadeOwned(Core *core) {
+  // With no card the fade-in and its fade-out show only black; the screen stays at the previous fade.
+  if (core->r[31] == kCardFadeInReturnAddress) {
+    return;
+  }
+  runtime::callOriginal(*core, runtime::GuestImage::Resident, guest::kSceneTransitionRequest);
 }
 
 } // namespace
 
 void registerLoadingCardSkipOverride(Core &core) {
-  runtime::registerNativeOverride(
-      core, runtime::GuestImage::Resident, guest::kSelectDrawContext, "CrashBash::LoadingCardSkip", selectDrawContext);
+  runtime::registerNativeOverride(core,
+                                  runtime::GuestImage::Boot,
+                                  guest::kRenderLoadingScreen,
+                                  "CrashBash::LoadingCardSkip",
+                                  renderLoadingScreenOwned);
+  runtime::registerNativeOverride(core,
+                                  runtime::GuestImage::Resident,
+                                  guest::kSceneTransitionRequest,
+                                  "CrashBash::LoadingCardFadeSkip",
+                                  setFadeOwned);
 }
 
 } // namespace crashbash

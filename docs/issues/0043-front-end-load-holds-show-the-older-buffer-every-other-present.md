@@ -1,6 +1,6 @@
 # 0043 — front-end load holds show the older buffer every other present
 
-**Status:** open · **State:** S006
+**Status:** load half fixed; logo holds open · **State:** S006
 
 ## Observed
 Real-window play check (2026-10-16, `replays/flow/polar-push-control.pad` then 75 s of the live Polar Push match,
@@ -31,3 +31,15 @@ Spyro 1 judder pass 3 ran every title 40 s from boot at real speed (hidden windo
 psxport, three times during the pass and once after its review fixes: each Crash Bash run shows records backwards
 20 and 272 presents without an in-between, at load 13.3, 19.3, 15.1 and 5.8. The psxport changes of that pass
 (sub-pixel places, composer storage) did not move it. The gap above stands.
+
+## The loads (fixed 2026-11-17)
+`game/disc/loading_card_skip.cpp` retired `gfx_set_viewport` in `RenderLoadingScreen`, which also dropped the
+viewport's black clear and its draw offset: the card model kept drawing into one stale buffer and the display
+flipped between it and the previous screen (boot into the titles: alternating presents differed by a mean of 56
+of 255). The override now keeps the viewport and drops only the card model (S020). Same run after the fix:
+`backwards=21`, none in either load except fence 998, one of the two stage 0/1 frames retail also draws nothing on.
+
+## The logo holds (open)
+Fences 344-362 and 442-460 are `UpdateIntro`'s 20-frame step delay after each logo script: `RenderIntro` draws
+nothing and the display flips between the script's last two frames, which differ only by star twinkle (117 and 21
+pixels of 164,160 at 684x240). This is the guest's own flip; the presenter still counts each as a step back.
