@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Crash Bash Revamped
+X-OpenSU-BoxArt=psx/Crash Bash (USA)
 GenericName=Party game
 Comment=PC-native port of Crash Bash
 Exec=crashbash_port
